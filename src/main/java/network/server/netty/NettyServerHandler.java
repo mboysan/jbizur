@@ -13,36 +13,17 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package communication.client.netty;
+package network.server.netty;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
 /**
- * Handler implementation for the echo communication.client.  It initiates the ping-pong
- * traffic between the echo communication.client and communication.server by sending the first message to
- * the communication.server.
+ * Handler implementation for the echo network.server.
  */
-public class EchoClientHandler extends ChannelInboundHandlerAdapter {
-
-    private final ByteBuf firstMessage;
-
-    /**
-     * Creates a communication.client-side handler.
-     */
-    public EchoClientHandler() {
-        firstMessage = Unpooled.buffer(EchoClient.SIZE);
-        for (int i = 0; i < firstMessage.capacity(); i ++) {
-            firstMessage.writeByte((byte) i);
-        }
-    }
-
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) {
-        ctx.writeAndFlush(firstMessage);
-    }
+@Sharable
+public class NettyServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
@@ -51,7 +32,7 @@ public class EchoClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) {
-       ctx.flush();
+        ctx.flush();
     }
 
     @Override

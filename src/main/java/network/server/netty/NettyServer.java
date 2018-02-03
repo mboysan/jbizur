@@ -1,6 +1,6 @@
-package communication.server.netty;
+package network.server.netty;
 
-import communication.server.IServer;
+import network.server.IServer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -14,38 +14,47 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class NettyServer implements IServer {
 
-    static final boolean SSL = System.getProperty("ssl") != null;
-    static final int PORT = Integer.parseInt(System.getProperty("port", "8007"));
+    private transient ServerState state = ServerState.initializing;
 
-    private transient boolean isInitialized = false;
+    private enum ServerState {
+        initializing,
+        initialized,
+        started,
+        stopped
+    }
+
+    private final boolean ssl;
+    private final String address;
+    private final int port;
+
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private ServerBootstrap b;
 
-    public NettyServer() {
-        try {
-            init();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public NettyServer(boolean ssl, String address, int port) throws Exception {
+        this.ssl = ssl;
+        this.address = address;
+        this.port = port;
+
+        init();
     }
 
     @Override
     public void init() throws Exception {
-        if (isInitialized) {
+        if (state.ordinal() >= ServerState.initialized.ordinal()) {
             return;
         }
 
         // Configure SSL.
         final SslContext sslCtx;
-        if (SSL) {
+        if (ssl) {
             SelfSignedCertificate ssc = new SelfSignedCertificate();
             sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
         } else {
             sslCtx = null;
         }
 
-        // Configure the communication.server.
+        // Configure the network.server.
         this.bossGroup = new NioEventLoopGroup(1);
         this.workerGroup = new NioEventLoopGroup();
         try {
@@ -66,7 +75,7 @@ public class NettyServer implements IServer {
                         }
                     });
 
-            this.isInitialized = true;
+            state = ServerState.initialized;
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -77,17 +86,23 @@ public class NettyServer implements IServer {
 
     @Override
     public void start() throws Exception {
+        if (state == ServerState.started) {
+            return;
+        }
         if (b != null) {
-            // Start the communication.server.
-            ChannelFuture f = b.bind(PORT).sync();
+            // Start the network.server.
+            ChannelFuture f = b.bind(port).sync();
 
-            // Wait until the communication.server socket is closed.
+            // Wait until the network.server socket is closed.
             f.channel().closeFuture().sync();
         }
     }
 
     @Override
     public void stop() {
+        if (state != ServerState.started) {
+            return;
+        }
         // Shut down all event loops to terminate all threads.
         if (bossGroup != null) {
             bossGroup.shutdownGracefully();
@@ -95,6 +110,15 @@ public class NettyServer implements IServer {
         if (workerGroup != null) {
             workerGroup.shutdownGracefully();
         }
-        isInitialized = false;
+        state = ServerState.stopped;
+    }
+
+    @Override
+    public void run() {
+        try {
+            start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

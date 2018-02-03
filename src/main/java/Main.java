@@ -1,12 +1,23 @@
-import communication.server.IServer;
-import communication.server.netty.NettyServer;
+import network.client.ClientConfig;
+import network.server.ServerConfig;
+import nodes.Node;
+import nodes.NodeConfig;
 
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        IServer server = new NettyServer();
-        server.start();
+        Node node1 = new Node(
+                new NodeConfig(
+                        new ServerConfig(8001),
+                        new ClientConfig("127.0.0.1", 8002)
+                )
+        );
 
-        System.out.printf("asdsadsadsa");
+        Node node2 = new Node(
+                new NodeConfig(
+                        new ServerConfig(8002),
+                        new ClientConfig("127.0.0.1", 8001)
+                )
+        );
     }
 }
