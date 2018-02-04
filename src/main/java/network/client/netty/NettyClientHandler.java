@@ -1,47 +1,59 @@
 package network.client.netty;
 
-import io.netty.buffer.ByteBuf;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.util.CharsetUtil;
 import network.communication.IMessageHandler;
+import protocol.CommandMarshaller;
+import protocol.commands.ICommand;
 
-public class NettyClientHandler extends ChannelInboundHandlerAdapter {
+import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
 
-    private final IMessageHandler messageHandler;
-    private final int messageSize;
-    private final ByteBuf firstMessage;
+public class NettyClientHandler extends ChannelInboundHandlerAdapter implements IMessageHandler{
 
+    private final CommandMarshaller commandMarshaller;
+
+    private CountDownLatch readyLatch;
     private ChannelHandlerContext ctx;
 
     /**
      * Creates a network.client-side handler.
      */
-    public NettyClientHandler(IMessageHandler messageHandler) {
-        this(messageHandler,256);
+    public NettyClientHandler() {
+        this.readyLatch = new CountDownLatch(1);
+        this.commandMarshaller = new CommandMarshaller();
     }
 
-    public NettyClientHandler(IMessageHandler messageHandler, int messageSize) {
-        this.messageHandler = messageHandler;
+    @Override
+    public void sendCommand(ICommand command) {
+        try {
+            readyLatch.await();
 
-        this.messageSize = messageSize;
-
-        firstMessage = Unpooled.buffer(messageSize);
-        for (int i = 0; i < firstMessage.capacity(); i ++) {
-            firstMessage.writeByte((byte) i);
+            String msg = commandMarshaller.marshall(command);
+            ctx.writeAndFlush(Unpooled.copiedBuffer(msg, CharsetUtil.UTF_8));
+        } catch (JsonProcessingException | InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
-    
-
     @Override
-    public void channelActive(ChannelHandlerContext ctx) {
-        ctx.writeAndFlush(firstMessage);
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        this.ctx = ctx;
+        readyLatch.countDown();
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        ctx.write(msg);
+        try {
+            ICommand command = commandMarshaller.unmarshall((String) msg);
+            //TODO: process command
+            System.out.println("FROM SERVER: "+ command.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

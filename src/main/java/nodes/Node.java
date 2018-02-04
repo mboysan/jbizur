@@ -1,12 +1,22 @@
 package nodes;
 
 import network.client.ClientConfig;
+import protocol.commands.ICommand;
+
+import java.util.UUID;
 
 public class Node {
+
+    private final String nodeId;
 
     private final NodeConfig nodeConfig;
 
     public Node(NodeConfig nodeConfig) {
+        this(UUID.randomUUID().toString(), nodeConfig);
+    }
+
+    public Node(String nodeId, NodeConfig nodeConfig){
+        this.nodeId = nodeId;
         this.nodeConfig = nodeConfig;
         init();
     }
@@ -21,11 +31,18 @@ public class Node {
         }
     }
 
+    public String getNodeId() {
+        return nodeId;
+    }
+
     public NodeConfig getNodeConfig() {
         return nodeConfig;
     }
 
-    public void sendCommandToAll(Object command){
+    public void sendCommandToAll(ICommand command){
+        for (ClientConfig clientConfig : nodeConfig.getClientConfigs()) {
+            clientConfig.getClient().getMessageHandler().sendCommand(command);
+        }
 
     }
 }

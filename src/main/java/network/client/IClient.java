@@ -1,10 +1,6 @@
 package network.client;
 
-import network.communication.IMessageHandler;
+import network.INetworkOperator;
 
-public interface IClient extends Runnable{
-    IMessageHandler getMessageHandler();
-    void init() throws Exception;
-    void start() throws Exception;
-    void stop() throws Exception;
+public interface IClient extends INetworkOperator {
 }

@@ -1,16 +1,20 @@
 package network.server.netty;
 
-import network.server.IServer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
+import io.netty.util.CharsetUtil;
+import network.communication.IMessageHandler;
+import network.server.IServer;
 
 public class NettyServer implements IServer {
 
@@ -22,6 +26,8 @@ public class NettyServer implements IServer {
         started,
         stopped
     }
+
+    private final IMessageHandler messageHandler;
 
     private final boolean ssl;
     private final String address;
@@ -35,6 +41,8 @@ public class NettyServer implements IServer {
         this.ssl = ssl;
         this.address = address;
         this.port = port;
+
+        this.messageHandler = new NettyServerHandler();
 
         init();
     }
@@ -70,8 +78,12 @@ public class NettyServer implements IServer {
                             if (sslCtx != null) {
                                 p.addLast(sslCtx.newHandler(ch.alloc()));
                             }
-                            //p.addLast(new LoggingHandler(LogLevel.INFO));
-                            p.addLast(new NettyServerHandler());
+                            // Decoders
+                            p.addLast("stringDecoder", new StringDecoder(CharsetUtil.UTF_8));
+                            // Encoders
+                            p.addLast("stringEncoder", new StringEncoder(CharsetUtil.UTF_8));
+                            // Network Handlers
+                            p.addLast((NettyServerHandler) messageHandler);
                         }
                     });
 
@@ -120,5 +132,10 @@ public class NettyServer implements IServer {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public IMessageHandler getMessageHandler() {
+        return messageHandler;
     }
 }

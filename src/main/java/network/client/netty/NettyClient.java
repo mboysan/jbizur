@@ -1,15 +1,17 @@
 package network.client.netty;
 
-import network.client.ClientMessageHandler;
-import network.client.IClient;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.util.CharsetUtil;
+import network.client.IClient;
 import network.communication.IMessageHandler;
 
 public class NettyClient implements IClient {
@@ -39,7 +41,7 @@ public class NettyClient implements IClient {
         this.hostPort = hostPort;
         this.messageSize = messageSize;
 
-        this.messageHandler = new ClientMessageHandler(this);
+        this.messageHandler = new NettyClientHandler();
 
         init();
     }
@@ -61,32 +63,25 @@ public class NettyClient implements IClient {
 
         // Configure the network.client.
         this.group = new NioEventLoopGroup();
-        try {
-            this.b = new Bootstrap();
-            b.group(group)
-                    .channel(NioSocketChannel.class)
-                    .option(ChannelOption.TCP_NODELAY, true)
-                    .handler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        public void initChannel(SocketChannel ch) throws Exception {
-                            ChannelPipeline p = ch.pipeline();
-                            if (sslCtx != null) {
-                                p.addLast(sslCtx.newHandler(ch.alloc(), hostAddress, hostPort));
-                            }
-                            //p.addLast(new LoggingHandler(LogLevel.INFO));
-                            p.addLast(new NettyClientHandler(messageHandler));
+        this.b = new Bootstrap();
+        b.group(group)
+                .channel(NioSocketChannel.class)
+                .option(ChannelOption.TCP_NODELAY, true)
+                .handler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    public void initChannel(SocketChannel ch) throws Exception {
+                        ChannelPipeline p = ch.pipeline();
+                        if (sslCtx != null) {
+                            p.addLast(sslCtx.newHandler(ch.alloc(), hostAddress, hostPort));
                         }
-                    });
-
-            // Start the network.client.
-            ChannelFuture f = b.connect(hostAddress, hostPort).sync();
-
-            // Wait until the connection is closed.
-            f.channel().closeFuture().sync();
-        } finally {
-            // Shut down the event loop to terminate all threads.
-            group.shutdownGracefully();
-        }
+                        // Decoders
+                        p.addLast("stringDecoder", new StringDecoder(CharsetUtil.UTF_8));
+                        // Encoders
+                        p.addLast("stringEncoder", new StringEncoder(CharsetUtil.UTF_8));
+                        // Network Handlers
+                        p.addLast((NettyClientHandler) messageHandler);
+                    }
+                });
     }
 
     @Override
