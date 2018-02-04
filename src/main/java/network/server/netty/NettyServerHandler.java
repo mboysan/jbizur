@@ -24,7 +24,6 @@ import io.netty.util.CharsetUtil;
 import network.communication.IMessageHandler;
 import protocol.CommandMarshaller;
 import protocol.commands.GenericCommand;
-import protocol.commands.ICommand;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -42,12 +41,13 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter implements 
     private ChannelHandlerContext ctx;
 
     public NettyServerHandler() {
+        System.out.println("NettyServerHandler + " + UUID.randomUUID().toString());
         this.readyLatch = new CountDownLatch(1);
         this.commandMarshaller = new CommandMarshaller();
     }
 
     @Override
-    public void sendCommand(ICommand command) {
+    public void sendCommand(GenericCommand command) {
         try {
             readyLatch.await();
 
@@ -67,11 +67,12 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter implements 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         try {
-            ICommand command = commandMarshaller.unmarshall((String) msg);
+            GenericCommand command = commandMarshaller.unmarshall((String) msg);
+//            new CommandProcessor().processCommand(command);
             //TODO: process command
             String testId = UUID.randomUUID().toString();
             System.out.println("FROM CLIENT: serverId: " + testId + " | "+ command.toString());
-            ((GenericCommand)command).setSenderId(testId);
+            command.setSenderId(testId);
             sendCommand(command);
         } catch (IOException e) {
             e.printStackTrace();

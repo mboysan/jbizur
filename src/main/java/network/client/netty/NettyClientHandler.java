@@ -7,7 +7,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.CharsetUtil;
 import network.communication.IMessageHandler;
 import protocol.CommandMarshaller;
-import protocol.commands.ICommand;
+import protocol.commands.GenericCommand;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
@@ -28,7 +28,7 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter implements 
     }
 
     @Override
-    public void sendCommand(ICommand command) {
+    public void sendCommand(GenericCommand command) {
         try {
             readyLatch.await();
 
@@ -48,7 +48,7 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter implements 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         try {
-            ICommand command = commandMarshaller.unmarshall((String) msg);
+            GenericCommand command = commandMarshaller.unmarshall((String) msg);
             //TODO: process command
             System.out.println("FROM SERVER: "+ command.toString());
         } catch (IOException e) {

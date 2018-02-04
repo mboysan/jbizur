@@ -1,7 +1,7 @@
 package nodes;
 
 import network.client.ClientConfig;
-import protocol.commands.ICommand;
+import protocol.commands.GenericCommand;
 
 import java.util.UUID;
 
@@ -39,10 +39,9 @@ public class Node {
         return nodeConfig;
     }
 
-    public void sendCommandToAll(ICommand command){
+    public void sendCommandToAll(GenericCommand command){
         for (ClientConfig clientConfig : nodeConfig.getClientConfigs()) {
             clientConfig.getClient().getMessageHandler().sendCommand(command);
         }
-
     }
 }

@@ -1,8 +1,18 @@
 package protocol.commands;
 
-public class GenericCommand implements ICommand{
+public class GenericCommand {
     private String senderId;
+    private String[] idsToSend;
     private String payload;
+
+    public String[] getIdsToSend() {
+        return idsToSend;
+    }
+
+    public GenericCommand setIdsToSend(String[] idsToSend) {
+        this.idsToSend = idsToSend;
+        return this;
+    }
 
     public String getSenderId() {
         return senderId;

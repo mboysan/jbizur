@@ -3,7 +3,6 @@ import network.server.ServerConfig;
 import nodes.Node;
 import nodes.NodeConfig;
 import protocol.commands.GenericCommand;
-import protocol.commands.ICommand;
 
 public class Main {
 
@@ -34,7 +33,7 @@ public class Main {
 
         //TODO: connect nodes after starting servers
 
-        ICommand command = new GenericCommand().setSenderId(node1.getNodeId()).setPayload("test payload");
+        GenericCommand command = new GenericCommand().setSenderId(node1.getNodeId()).setPayload("test payload");
         node1.sendCommandToAll(command);
     }
 }
