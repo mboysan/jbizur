@@ -13,8 +13,10 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.util.CharsetUtil;
+import network.NetworkManager;
 import network.communication.IMessageHandler;
 import network.server.IServer;
+import network.server.ServerConfig;
 
 public class NettyServer implements IServer {
 
@@ -27,23 +29,19 @@ public class NettyServer implements IServer {
         stopped
     }
 
+    private final NetworkManager networkManager;
     private final IMessageHandler messageHandler;
 
-    private final boolean ssl;
-    private final String address;
-    private final int port;
+    private final ServerConfig serverConfig;
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private ServerBootstrap b;
 
-    public NettyServer(boolean ssl, String address, int port) throws Exception {
-        this.ssl = ssl;
-        this.address = address;
-        this.port = port;
-
-        this.messageHandler = new NettyServerHandler();
-
+    public NettyServer(NetworkManager networkManager, ServerConfig serverConfig) throws Exception {
+        this.networkManager = networkManager;
+        this.serverConfig = serverConfig;
+        this.messageHandler = new NettyServerHandler(networkManager);
         init();
     }
 
@@ -55,7 +53,7 @@ public class NettyServer implements IServer {
 
         // Configure SSL.
         final SslContext sslCtx;
-        if (ssl) {
+        if (serverConfig.isSsl()) {
             SelfSignedCertificate ssc = new SelfSignedCertificate();
             sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
         } else {
@@ -103,7 +101,9 @@ public class NettyServer implements IServer {
         }
         if (b != null) {
             // Start the network.server.
-            ChannelFuture f = b.bind(port).sync();
+            ChannelFuture f = b.bind(serverConfig.getPort()).sync();
+
+            state = ServerState.started;
 
             // Wait until the network.server socket is closed.
             f.channel().closeFuture().sync();
@@ -132,6 +132,11 @@ public class NettyServer implements IServer {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public ServerConfig getServerConfig() {
+        return serverConfig;
     }
 
     @Override

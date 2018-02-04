@@ -2,7 +2,6 @@ import network.client.ClientConfig;
 import network.server.ServerConfig;
 import nodes.Node;
 import nodes.NodeConfig;
-import protocol.commands.GenericCommand;
 
 public class Main {
 
@@ -31,9 +30,8 @@ public class Main {
                 )
         );
 
-        //TODO: connect nodes after starting servers
+        Thread.sleep(5000);
 
-        GenericCommand command = new GenericCommand().setSenderId(node1.getNodeId()).setPayload("test payload");
-        node1.sendCommandToAll(command);
+        node1.sendPingToAll();
     }
 }

@@ -1,7 +1,7 @@
 package network.communication;
 
-import protocol.commands.GenericCommand;
+import protocol.commands.BaseCommand;
 
 public interface IMessageHandler {
-    void sendCommand(GenericCommand command);
+    void sendCommand(BaseCommand command);
 }

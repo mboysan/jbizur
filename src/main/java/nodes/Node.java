@@ -1,7 +1,8 @@
 package nodes;
 
-import network.client.ClientConfig;
-import protocol.commands.GenericCommand;
+import processor.CommandProcessor;
+import protocol.commands.BaseCommand;
+import protocol.commands.PingCommand;
 
 import java.util.UUID;
 
@@ -11,24 +12,16 @@ public class Node {
 
     private final NodeConfig nodeConfig;
 
-    public Node(NodeConfig nodeConfig) {
+    private final CommandProcessor commandProcessor;
+
+    public Node(NodeConfig nodeConfig) throws Exception {
         this(UUID.randomUUID().toString(), nodeConfig);
     }
 
-    public Node(String nodeId, NodeConfig nodeConfig){
+    public Node(String nodeId, NodeConfig nodeConfig) throws Exception {
         this.nodeId = nodeId;
         this.nodeConfig = nodeConfig;
-        init();
-    }
-
-    private void init() {
-        // start server
-        new Thread(nodeConfig.getServerConfig().getServer()).start();
-
-        // start clients
-        for (ClientConfig clientConfig : nodeConfig.getClientConfigs()) {
-            new Thread(clientConfig.getClient()).start();
-        }
+        this.commandProcessor = new CommandProcessor(this);
     }
 
     public String getNodeId() {
@@ -39,9 +32,11 @@ public class Node {
         return nodeConfig;
     }
 
-    public void sendCommandToAll(GenericCommand command){
-        for (ClientConfig clientConfig : nodeConfig.getClientConfigs()) {
-            clientConfig.getClient().getMessageHandler().sendCommand(command);
-        }
+    public void sendPingToAll(){
+        BaseCommand pingCommand = new PingCommand()
+                .setSuccess(false)
+                .setSenderId(nodeId)
+                .setPayload("ping...");
+        commandProcessor.processCommand(pingCommand);
     }
 }
