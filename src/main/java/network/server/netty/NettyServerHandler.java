@@ -21,12 +21,12 @@ import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.CharsetUtil;
+import network.NetworkManager;
 import network.communication.IMessageHandler;
 import protocol.CommandMarshaller;
-import protocol.commands.GenericCommand;
+import protocol.commands.BaseCommand;
 
 import java.io.IOException;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -35,19 +35,20 @@ import java.util.concurrent.CountDownLatch;
 @Sharable
 public class NettyServerHandler extends ChannelInboundHandlerAdapter implements IMessageHandler{
 
+    private final NetworkManager networkManager;
     private final CommandMarshaller commandMarshaller;
 
     private CountDownLatch readyLatch;
     private ChannelHandlerContext ctx;
 
-    public NettyServerHandler() {
-        System.out.println("NettyServerHandler + " + UUID.randomUUID().toString());
+    public NettyServerHandler(NetworkManager networkManager) {
+        this.networkManager = networkManager;
         this.readyLatch = new CountDownLatch(1);
         this.commandMarshaller = new CommandMarshaller();
     }
 
     @Override
-    public void sendCommand(GenericCommand command) {
+    public void sendCommand(BaseCommand command) {
         try {
             readyLatch.await();
 
@@ -67,13 +68,8 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter implements 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         try {
-            GenericCommand command = commandMarshaller.unmarshall((String) msg);
-//            new CommandProcessor().processCommand(command);
-            //TODO: process command
-            String testId = UUID.randomUUID().toString();
-            System.out.println("FROM CLIENT: serverId: " + testId + " | "+ command.toString());
-            command.setSenderId(testId);
-            sendCommand(command);
+            BaseCommand command = commandMarshaller.unmarshall((String) msg);
+            networkManager.receiveCommand(command);
         } catch (IOException e) {
             e.printStackTrace();
         }

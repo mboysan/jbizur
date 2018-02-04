@@ -11,8 +11,11 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.util.CharsetUtil;
+import network.NetworkManager;
+import network.client.ClientConfig;
 import network.client.IClient;
 import network.communication.IMessageHandler;
+import protocol.commands.internal.ClientConnectionDown;
 
 public class NettyClient implements IClient {
 
@@ -25,24 +28,18 @@ public class NettyClient implements IClient {
         stopped
     }
 
+    private final NetworkManager networkManager;
     private final IMessageHandler messageHandler;
 
-    private final boolean ssl;
-    private final String hostAddress;
-    private final int hostPort;
-    private final int messageSize;
+    private final ClientConfig clientConfig;
 
     private EventLoopGroup group;
     private Bootstrap b;
 
-    public NettyClient(boolean ssl, String hostAddress, int hostPort, int messageSize) throws Exception {
-        this.ssl = ssl;
-        this.hostAddress = hostAddress;
-        this.hostPort = hostPort;
-        this.messageSize = messageSize;
-
-        this.messageHandler = new NettyClientHandler();
-
+    public NettyClient(NetworkManager networkManager, ClientConfig clientConfig) throws Exception {
+        this.networkManager = networkManager;
+        this.clientConfig = clientConfig;
+        this.messageHandler = new NettyClientHandler(networkManager);
         init();
     }
 
@@ -54,7 +51,7 @@ public class NettyClient implements IClient {
 
         // Configure SSL.git
         final SslContext sslCtx;
-        if (ssl) {
+        if (clientConfig.isSsl()) {
             sslCtx = SslContextBuilder.forClient()
                     .trustManager(InsecureTrustManagerFactory.INSTANCE).build();
         } else {
@@ -72,7 +69,9 @@ public class NettyClient implements IClient {
                     public void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline p = ch.pipeline();
                         if (sslCtx != null) {
-                            p.addLast(sslCtx.newHandler(ch.alloc(), hostAddress, hostPort));
+                            p.addLast(sslCtx.newHandler(
+                                    ch.alloc(), clientConfig.getHostAddress(), clientConfig.getHostPort())
+                            );
                         }
                         // Decoders
                         p.addLast("stringDecoder", new StringDecoder(CharsetUtil.UTF_8));
@@ -91,7 +90,7 @@ public class NettyClient implements IClient {
         }
         if (b != null) {
             // Start the network.client.
-            ChannelFuture f = b.connect(hostAddress, hostPort).sync();
+            ChannelFuture f = b.connect(clientConfig.getHostAddress(), clientConfig.getHostPort()).sync();
 
             // Wait until the connection is closed.
             f.channel().closeFuture().sync();
@@ -99,7 +98,7 @@ public class NettyClient implements IClient {
     }
 
     @Override
-    public void stop() throws Exception {
+    public void stop() {
         if (state != ClientState.started) {
             return;
         }
@@ -116,8 +115,14 @@ public class NettyClient implements IClient {
         try {
             start();
         } catch (Exception e) {
+            networkManager.notifyManager(new ClientConnectionDown(), this);
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public ClientConfig getClientConfig() {
+        return clientConfig;
     }
 
     @Override

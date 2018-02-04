@@ -5,15 +5,17 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.CharsetUtil;
+import network.NetworkManager;
 import network.communication.IMessageHandler;
 import protocol.CommandMarshaller;
-import protocol.commands.GenericCommand;
+import protocol.commands.BaseCommand;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
 public class NettyClientHandler extends ChannelInboundHandlerAdapter implements IMessageHandler{
 
+    private final NetworkManager networkManager;
     private final CommandMarshaller commandMarshaller;
 
     private CountDownLatch readyLatch;
@@ -22,13 +24,14 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter implements 
     /**
      * Creates a network.client-side handler.
      */
-    public NettyClientHandler() {
+    public NettyClientHandler(NetworkManager networkManager) {
+        this.networkManager = networkManager;
         this.readyLatch = new CountDownLatch(1);
         this.commandMarshaller = new CommandMarshaller();
     }
 
     @Override
-    public void sendCommand(GenericCommand command) {
+    public void sendCommand(BaseCommand command) {
         try {
             readyLatch.await();
 
@@ -48,9 +51,8 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter implements 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         try {
-            GenericCommand command = commandMarshaller.unmarshall((String) msg);
-            //TODO: process command
-            System.out.println("FROM SERVER: "+ command.toString());
+            BaseCommand command = commandMarshaller.unmarshall((String) msg);
+            networkManager.receiveCommand(command);
         } catch (IOException e) {
             e.printStackTrace();
         }

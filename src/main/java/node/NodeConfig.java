@@ -1,4 +1,4 @@
-package nodes;
+package node;
 
 import network.client.ClientConfig;
 import network.server.ServerConfig;
