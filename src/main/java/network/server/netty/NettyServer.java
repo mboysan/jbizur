@@ -15,8 +15,10 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.util.CharsetUtil;
 import network.NetworkManager;
 import network.communication.IMessageHandler;
+import network.communication.netty.NettyMessageHandler;
 import network.server.IServer;
 import network.server.ServerConfig;
+import protocol.commands.NetworkCommand;
 
 public class NettyServer implements IServer {
 
@@ -41,7 +43,7 @@ public class NettyServer implements IServer {
     public NettyServer(NetworkManager networkManager, ServerConfig serverConfig) throws Exception {
         this.networkManager = networkManager;
         this.serverConfig = serverConfig;
-        this.messageHandler = new NettyServerHandler(networkManager);
+        this.messageHandler = new NettyMessageHandler(this);
         init();
     }
 
@@ -81,7 +83,7 @@ public class NettyServer implements IServer {
                             // Encoders
                             p.addLast("stringEncoder", new StringEncoder(CharsetUtil.UTF_8));
                             // Network Handlers
-                            p.addLast((NettyServerHandler) messageHandler);
+                            p.addLast((NettyMessageHandler) messageHandler);
                         }
                     });
 
@@ -140,7 +142,9 @@ public class NettyServer implements IServer {
     }
 
     @Override
-    public IMessageHandler getMessageHandler() {
-        return messageHandler;
+    public void notifyOperator(NetworkCommand networkCommand, Object notifiedFrom) {
+        if(notifiedFrom instanceof IMessageHandler){
+            networkManager.receiveCommand(networkCommand, this);
+        }
     }
 }

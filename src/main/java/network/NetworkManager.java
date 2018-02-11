@@ -7,14 +7,19 @@ import network.server.IServer;
 import network.server.ServerConfig;
 import network.server.netty.NettyServer;
 import processor.CommandProcessor;
-import protocol.commands.BaseCommand;
-import protocol.commands.PingCommand;
+import protocol.commands.GetNodeIdRequest;
+import protocol.commands.GetNodeIdResponse;
+import protocol.commands.NetworkCommand;
+import protocol.commands.SendNodeId;
 import protocol.commands.internal.ClientConnectionDown;
-import protocol.commands.internal.IInternalCommand;
+import protocol.commands.internal.ClientConnectionReady;
+import protocol.commands.internal.InternalCommand;
 import protocol.commands.internal.ServerDown;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class NetworkManager {
 
@@ -24,7 +29,8 @@ public class NetworkManager {
     private final ClientConfig[] clientConfigs;
 
     private IServer server;
-    private List<IClient> clients;
+    private final List<IClient> clients = new CopyOnWriteArrayList<>();
+    private final Map<String, IClient> clientsMap = new ConcurrentHashMap<>();
 
     public NetworkManager(CommandProcessor commandProcessor,
                           ServerConfig serverConfig,
@@ -32,7 +38,6 @@ public class NetworkManager {
         this.commandProcessor = commandProcessor;
         this.serverConfig = serverConfig;
         this.clientConfigs = clientConfigs;
-        this.clients = new ArrayList<>();
 
         registerServer(serverConfig);
         registerClients(clientConfigs);
@@ -56,17 +61,17 @@ public class NetworkManager {
         return client;
     }
 
-    public void manageAll(){
+    public void manageAll() {
         manage(server);
         clients.forEach(this::manage);
     }
 
-    private void manage(INetworkOperator operator){
+    private void manage(INetworkOperator operator) {
         new Thread(operator).start();
     }
 
-    public void notifyManager(IInternalCommand command, INetworkOperator operator){
-        if(command instanceof ServerDown){
+    public void notifyManager(InternalCommand command, INetworkOperator operator) {
+        if (command instanceof ServerDown) {
             try {
                 server.stop();
                 IServer newServer = registerServer(server.getServerConfig());
@@ -74,7 +79,7 @@ public class NetworkManager {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        } else if(command instanceof ClientConnectionDown){
+        } else if (command instanceof ClientConnectionDown) {
             IClient client = (IClient) operator;
             try {
                 client.stop();
@@ -84,20 +89,40 @@ public class NetworkManager {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        } else if(command instanceof ClientConnectionReady && operator instanceof IClient){
+            IClient client = (IClient) operator;
+            SendNodeId sendNodeId = new SendNodeId();
+            sendNodeId.setSenderId(commandProcessor.getNode().getNodeId());
+            client.notifyOperator(sendNodeId, this);
         }
     }
 
-    public void sendCommand(BaseCommand command){
-        if(command instanceof PingCommand){
-            clients.forEach(c -> c.getMessageHandler().sendCommand(command));
+    public void sendCommand(NetworkCommand command) {
+        if (command.getIdsToSend() != null) {
+            /* Send only to clients with the specified ids. */
+            for (String s : command.getIdsToSend()) {
+                sendCommand(command, clientsMap.get(s));
+            }
+        } else {
+            /* Send command to all */
+            for (IClient client : clients) {
+                sendCommand(command, client);
+            }
         }
     }
 
-    public void receiveCommand(BaseCommand command){
-        if(command instanceof PingCommand){
-            command.setReceivedBy(commandProcessor.getNode().getNodeId());
-            ((PingCommand) command).setSuccess(true);
-            commandProcessor.processCommand(command);
+    private void sendCommand(NetworkCommand command, IClient client) {
+        if (client == null) {
+            return;
         }
+        client.notifyOperator(command, this);
+    }
+
+    public void receiveCommand(NetworkCommand command, INetworkOperator operator) {
+        if (command instanceof GetNodeIdResponse && operator instanceof IClient) {
+            System.out.println("Node id received: " + command.getSenderId());
+            clientsMap.put(command.getSenderId(), (IClient) operator);
+        }
+        commandProcessor.processReceive(command);
     }
 }

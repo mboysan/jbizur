@@ -32,6 +32,7 @@ public class Main {
 
         Thread.sleep(5000);
 
-        node1.sendPingToAll();
+//        node1.requestNodeIds();
+//        node1.sendPingToAll();
     }
 }

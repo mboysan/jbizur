@@ -1,21 +1,24 @@
-package network.client.netty;
+package network.communication.netty;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.CharsetUtil;
-import network.NetworkManager;
+import network.INetworkOperator;
 import network.communication.IMessageHandler;
 import protocol.CommandMarshaller;
-import protocol.commands.BaseCommand;
+import protocol.commands.NetworkCommand;
+import protocol.commands.internal.ClientConnectionReady;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
-public class NettyClientHandler extends ChannelInboundHandlerAdapter implements IMessageHandler{
+@ChannelHandler.Sharable
+public class NettyMessageHandler extends ChannelInboundHandlerAdapter implements IMessageHandler {
 
-    private final NetworkManager networkManager;
+    private final INetworkOperator networkOperator;
     private final CommandMarshaller commandMarshaller;
 
     private CountDownLatch readyLatch;
@@ -24,14 +27,14 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter implements 
     /**
      * Creates a network.client-side handler.
      */
-    public NettyClientHandler(NetworkManager networkManager) {
-        this.networkManager = networkManager;
+    public NettyMessageHandler(INetworkOperator networkOperator) {
+        this.networkOperator = networkOperator;
         this.readyLatch = new CountDownLatch(1);
         this.commandMarshaller = new CommandMarshaller();
     }
 
     @Override
-    public void sendCommand(BaseCommand command) {
+    public void sendCommand(NetworkCommand command) {
         try {
             readyLatch.await();
 
@@ -43,16 +46,22 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter implements 
     }
 
     @Override
+    public void receiveCommand(NetworkCommand command) {
+        networkOperator.notifyOperator(command, this);
+    }
+
+    @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         this.ctx = ctx;
+        networkOperator.notifyOperator(new ClientConnectionReady(), this);
         readyLatch.countDown();
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         try {
-            BaseCommand command = commandMarshaller.unmarshall((String) msg);
-            networkManager.receiveCommand(command);
+            NetworkCommand command = commandMarshaller.unmarshall((String) msg);
+            receiveCommand(command);
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -1,4 +1,4 @@
 package protocol.commands.internal;
 
-public class ClientConnectionDown implements IInternalCommand{
+public class ClientConnectionDown implements InternalCommand {
 }

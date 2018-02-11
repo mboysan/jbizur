@@ -2,17 +2,27 @@ package protocol.commands;
 
 import java.util.Arrays;
 
-public class BaseCommand {
+public class NetworkCommand {
     private String senderId;
     private String[] idsToSend;
     private String receivedBy;
     private String payload;
 
+    public NetworkCommand(NetworkCommand networkCommand) {
+        this.senderId = networkCommand.getSenderId();
+        this.idsToSend = networkCommand.getIdsToSend();
+        this.receivedBy = networkCommand.getReceivedBy();
+        this.payload = networkCommand.getPayload();
+    }
+
+    public NetworkCommand() {
+    }
+
     public String getReceivedBy() {
         return receivedBy;
     }
 
-    public BaseCommand setReceivedBy(String receivedBy) {
+    public NetworkCommand setReceivedBy(String receivedBy) {
         this.receivedBy = receivedBy;
         return this;
     }
@@ -21,7 +31,7 @@ public class BaseCommand {
         return idsToSend;
     }
 
-    public BaseCommand setIdsToSend(String[] idsToSend) {
+    public NetworkCommand setIdsToSend(String... idsToSend) {
         this.idsToSend = idsToSend;
         return this;
     }
@@ -30,7 +40,7 @@ public class BaseCommand {
         return senderId;
     }
 
-    public BaseCommand setSenderId(String senderId) {
+    public NetworkCommand setSenderId(String senderId) {
         this.senderId = senderId;
         return this;
     }
@@ -39,14 +49,14 @@ public class BaseCommand {
         return payload;
     }
 
-    public BaseCommand setPayload(String payload) {
+    public NetworkCommand setPayload(String payload) {
         this.payload = payload;
         return this;
     }
 
     @Override
     public String toString() {
-        return "BaseCommand{" +
+        return "NetworkCommand{" +
                 "senderId='" + senderId + '\'' +
                 ", idsToSend=" + Arrays.toString(idsToSend) +
                 ", receivedBy='" + receivedBy + '\'' +

@@ -1,9 +1,11 @@
 package network;
 
-import network.communication.IMessageHandler;
+import protocol.commands.NetworkCommand;
+import protocol.commands.internal.InternalCommand;
 
 public interface INetworkOperator extends Runnable{
-    IMessageHandler getMessageHandler();
+    void notifyOperator(NetworkCommand networkCommand, Object notifiedFrom);
+    void notifyOperator(InternalCommand internalCommand, Object notifiedFrom);
     void init() throws Exception;
     void start() throws Exception;
     void stop() throws Exception;

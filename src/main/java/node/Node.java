@@ -1,8 +1,9 @@
 package node;
 
 import processor.CommandProcessor;
-import protocol.commands.BaseCommand;
-import protocol.commands.PingCommand;
+import protocol.commands.GetNodeIdRequest;
+import protocol.commands.NetworkCommand;
+import protocol.commands.Ping;
 
 import java.util.UUID;
 
@@ -32,11 +33,15 @@ public class Node {
         return nodeConfig;
     }
 
+    public void requestNodeIds(){
+        NetworkCommand getNodeIdsRequest = new GetNodeIdRequest().setSenderId(nodeId);
+        commandProcessor.processSend(getNodeIdsRequest);
+    }
+
     public void sendPingToAll(){
-        BaseCommand pingCommand = new PingCommand()
-                .setSuccess(false)
+        NetworkCommand pingCommand = new Ping()
                 .setSenderId(nodeId)
                 .setPayload("ping...");
-        commandProcessor.processCommand(pingCommand);
+        commandProcessor.processSend(pingCommand);
     }
 }

@@ -2,8 +2,7 @@ package processor;
 
 import network.NetworkManager;
 import node.Node;
-import protocol.commands.BaseCommand;
-import protocol.commands.PingCommand;
+import protocol.commands.*;
 
 public class CommandProcessor {
 
@@ -23,12 +22,23 @@ public class CommandProcessor {
         networkManager.manageAll();
     }
 
-    public void processCommand(BaseCommand command){
-        System.out.println("Processing command: " + command.toString());
-        if(command instanceof PingCommand){
-            if(!((PingCommand) command).isSuccess()){
-                networkManager.sendCommand(command);
-            }
+    public void processSend(NetworkCommand command){
+        System.out.println("CommandProcessor.processSend(): " + command.toString());
+        networkManager.sendCommand(command);
+    }
+
+    public void processReceive(NetworkCommand command){
+        System.out.println("CommandProcessor.processReceive(): " + command.toString());
+        if(command instanceof GetNodeIdRequest){
+            NetworkCommand getNodeIdResponse = new GetNodeIdResponse(command)
+                    .setSenderId(node.getNodeId());
+            networkManager.sendCommand(getNodeIdResponse);
+        } else if(command instanceof Ping){
+            NetworkCommand pingDone = new PingDone(command)
+                    .setSenderId(node.getNodeId())
+                    .setIdsToSend(command.getSenderId())
+                    .setPayload("pingdone.");
+            networkManager.sendCommand(pingDone);
         }
     }
 

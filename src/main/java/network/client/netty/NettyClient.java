@@ -15,7 +15,10 @@ import network.NetworkManager;
 import network.client.ClientConfig;
 import network.client.IClient;
 import network.communication.IMessageHandler;
+import network.communication.netty.NettyMessageHandler;
+import protocol.commands.NetworkCommand;
 import protocol.commands.internal.ClientConnectionDown;
+import protocol.commands.internal.InternalCommand;
 
 public class NettyClient implements IClient {
 
@@ -39,7 +42,7 @@ public class NettyClient implements IClient {
     public NettyClient(NetworkManager networkManager, ClientConfig clientConfig) throws Exception {
         this.networkManager = networkManager;
         this.clientConfig = clientConfig;
-        this.messageHandler = new NettyClientHandler(networkManager);
+        this.messageHandler = new NettyMessageHandler(this);
         init();
     }
 
@@ -78,7 +81,7 @@ public class NettyClient implements IClient {
                         // Encoders
                         p.addLast("stringEncoder", new StringEncoder(CharsetUtil.UTF_8));
                         // Network Handlers
-                        p.addLast((NettyClientHandler) messageHandler);
+                        p.addLast((NettyMessageHandler) messageHandler);
                     }
                 });
     }
@@ -126,7 +129,21 @@ public class NettyClient implements IClient {
     }
 
     @Override
-    public IMessageHandler getMessageHandler() {
-        return messageHandler;
+    public void notifyOperator(NetworkCommand networkCommand, Object notifiedFrom) {
+        if(notifiedFrom instanceof NetworkManager){
+            /* if command received from networkManager, send command to messageHandler */
+            messageHandler.sendCommand(networkCommand);
+        }else if(notifiedFrom instanceof IMessageHandler){
+            /* if command received from messageHandler, send command to networkManager */
+            networkManager.receiveCommand(networkCommand, this);
+        }
+    }
+
+    @Override
+    public void notifyOperator(InternalCommand internalCommand, Object notifiedFrom) {
+        if(notifiedFrom instanceof IMessageHandler){
+            /* if command received from messageHandler, send command to networkManager */
+            networkManager.notifyManager(internalCommand, this);
+        }
     }
 }

@@ -1,4 +1,4 @@
 package protocol.commands.internal;
 
-public interface IInternalCommand {
+public interface InternalCommand {
 }
