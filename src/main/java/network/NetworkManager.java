@@ -7,18 +7,13 @@ import network.server.IServer;
 import network.server.ServerConfig;
 import network.server.netty.NettyServer;
 import processor.CommandProcessor;
-import protocol.commands.GetNodeIdRequest;
-import protocol.commands.GetNodeIdResponse;
 import protocol.commands.NetworkCommand;
-import protocol.commands.SendNodeId;
 import protocol.commands.internal.ClientConnectionDown;
 import protocol.commands.internal.ClientConnectionReady;
 import protocol.commands.internal.InternalCommand;
 import protocol.commands.internal.ServerDown;
 
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class NetworkManager {
@@ -30,7 +25,6 @@ public class NetworkManager {
 
     private IServer server;
     private final List<IClient> clients = new CopyOnWriteArrayList<>();
-    private final Map<String, IClient> clientsMap = new ConcurrentHashMap<>();
 
     public NetworkManager(CommandProcessor commandProcessor,
                           ServerConfig serverConfig,
@@ -89,25 +83,15 @@ public class NetworkManager {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        } else if(command instanceof ClientConnectionReady && operator instanceof IClient){
-            IClient client = (IClient) operator;
-            SendNodeId sendNodeId = new SendNodeId();
-            sendNodeId.setSenderId(commandProcessor.getNode().getNodeId());
-            client.notifyOperator(sendNodeId, this);
+        } else if (command instanceof ClientConnectionReady){
+            //do something?
         }
     }
 
     public void sendCommand(NetworkCommand command) {
-        if (command.getIdsToSend() != null) {
-            /* Send only to clients with the specified ids. */
-            for (String s : command.getIdsToSend()) {
-                sendCommand(command, clientsMap.get(s));
-            }
-        } else {
-            /* Send command to all */
-            for (IClient client : clients) {
-                sendCommand(command, client);
-            }
+        /* Send command to all */
+        for (IClient client : clients) {
+            sendCommand(command, client);
         }
     }
 
@@ -119,10 +103,6 @@ public class NetworkManager {
     }
 
     public void receiveCommand(NetworkCommand command, INetworkOperator operator) {
-        if (command instanceof GetNodeIdResponse && operator instanceof IClient) {
-            System.out.println("Node id received: " + command.getSenderId());
-            clientsMap.put(command.getSenderId(), (IClient) operator);
-        }
         commandProcessor.processReceive(command);
     }
 }

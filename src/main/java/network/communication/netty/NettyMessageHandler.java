@@ -53,8 +53,8 @@ public class NettyMessageHandler extends ChannelInboundHandlerAdapter implements
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         this.ctx = ctx;
-        networkOperator.notifyOperator(new ClientConnectionReady(), this);
         readyLatch.countDown();
+        networkOperator.notifyOperator(new ClientConnectionReady(), this);
     }
 
     @Override
