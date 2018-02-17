@@ -1,7 +1,6 @@
 package node;
 
 import processor.CommandProcessor;
-import protocol.commands.GetNodeIdRequest;
 import protocol.commands.NetworkCommand;
 import protocol.commands.Ping;
 
@@ -31,11 +30,6 @@ public class Node {
 
     public NodeConfig getNodeConfig() {
         return nodeConfig;
-    }
-
-    public void requestNodeIds(){
-        NetworkCommand getNodeIdsRequest = new GetNodeIdRequest().setSenderId(nodeId);
-        commandProcessor.processSend(getNodeIdsRequest);
     }
 
     public void sendPingToAll(){

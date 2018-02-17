@@ -19,6 +19,7 @@ import network.communication.netty.NettyMessageHandler;
 import network.server.IServer;
 import network.server.ServerConfig;
 import protocol.commands.NetworkCommand;
+import protocol.commands.internal.InternalCommand;
 
 public class NettyServer implements IServer {
 
@@ -146,5 +147,10 @@ public class NettyServer implements IServer {
         if(notifiedFrom instanceof IMessageHandler){
             networkManager.receiveCommand(networkCommand, this);
         }
+    }
+
+    @Override
+    public void notifyOperator(InternalCommand internalCommand, Object notifiedFrom) {
+
     }
 }
