@@ -30,7 +30,7 @@ buildNumber.properties
 .mtj.tmp/
 
 # Package Files #
-# NB! allowing *.jar for mpi.jar
+*.jar
 *.war
 *.ear
 *.zip
