@@ -26,18 +26,15 @@
         <repository>
             <id>project-common</id>
             <name>Project Common</name>
-            <url>https://github.com/mboysan/mvn-repo/master/raw/</url>
+            <url>https://github.com/mboysan/mvn-repo/raw/master/</url>
         </repository>
     </repositories>
 
     <dependencies>
-        <!-- Local open-api-3.0.0 binary -->
         <dependency>
             <groupId>org.open-mpi</groupId>
             <artifactId>open-mpi</artifactId>
             <version>3.0.0</version>
-            <systemPath>${project.basedir}/lib/open-api/mpi.jar</systemPath>
-            <scope>system</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/io.netty/netty-all -->
         <dependency>
