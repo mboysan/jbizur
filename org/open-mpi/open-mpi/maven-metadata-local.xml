@@ -3,10 +3,11 @@
   <groupId>org.open-mpi</groupId>
   <artifactId>open-mpi</artifactId>
   <versioning>
-    <release>3.0.0</release>
+    <release>1.8.4</release>
     <versions>
       <version>3.0.0</version>
+      <version>1.8.4</version>
     </versions>
-    <lastUpdated>20180218112605</lastUpdated>
+    <lastUpdated>20180331181049</lastUpdated>
   </versioning>
 </metadata>
