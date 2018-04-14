@@ -76,7 +76,6 @@ public class TestFramework {
         for (int i = 0; i < loopCount; i++) {
             long start = System.currentTimeMillis();
             pinger.pingAll();
-            pinger.waitPongs();
             long currTime = System.currentTimeMillis();
             resultCollector.addResultAsync(
                     new LatencyResult(

@@ -4,9 +4,9 @@ import config.GlobalConfig;
 import network.address.Address;
 import org.pmw.tinylog.Logger;
 import protocol.commands.NetworkCommand;
+import protocol.commands.SequenceNumber;
 import protocol.commands.ping.Ping_NC;
 import protocol.commands.ping.Pong_NC;
-import protocol.commands.ping.SignalEnd_NC;
 import testframework.TestFramework;
 import testframework.result.LatencyResult;
 
@@ -19,17 +19,11 @@ import static testframework.TestPhase.PHASE_CUSTOM;
  */
 public class Node extends Role {
     /**
-     * Latch to wait for all the pong responses.
-     */
-    private CountDownLatch pongLatch;
-
-    /**
      * Currently only used to initializes the Pinger node.
      * @param myAddress  address of the node.
      */
     public Node(Address myAddress) throws InterruptedException {
         super(myAddress);
-        pongLatch = new CountDownLatch(GlobalConfig.getInstance().getProcessCount());
         Logger.info("Node created: " + this.toString());
     }
 
@@ -37,12 +31,20 @@ public class Node extends Role {
      * Sends {@link Ping_NC} request to all processes.
      */
     public void pingAll() {
+        SequenceNumber seqNum = GlobalConfig.getInstance().generateSequenceNumber(this);
+        CountDownLatch latch = prepareForSync(seqNum, GlobalConfig.getInstance().getProcessCount());
         for (Address receiverAddress : GlobalConfig.getInstance().getAddresses()) {
             NetworkCommand ping = new Ping_NC()
                     .setSenderId(getRoleId())
                     .setReceiverAddress(receiverAddress)
-                    .setSenderAddress(getAddress());
+                    .setSenderAddress(getAddress())
+                    .setAssocMsgId(seqNum);
             sendMessage(ping);
+        }
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Logger.error(e);
         }
     }
 
@@ -54,35 +56,10 @@ public class Node extends Role {
         NetworkCommand pong = new Pong_NC()
                 .setSenderId(getRoleId())
                 .setReceiverAddress(message.resolveSenderAddress())
-                .setSenderAddress(getAddress());
+                .setSenderAddress(getAddress())
+                .setMsgId(GlobalConfig.getInstance().generateSequenceNumber(this))
+                .setAssocMsgId(message.getAssocMsgId());
         sendMessage(pong);
-    }
-
-    /**
-     * Sends {@link SignalEnd_NC} command to all the processes.
-     */
-    public void signalEndToAll() {
-        for (Address receiverAddress : GlobalConfig.getInstance().getAddresses()) {
-            NetworkCommand signalEnd = new SignalEnd_NC()
-                    .setSenderId(getRoleId())
-                    .setReceiverAddress(receiverAddress)
-                    .setSenderAddress(getAddress());
-            sendMessage(signalEnd);
-        }
-    }
-
-    /**
-     * Waits until all the {@link Pong_NC} responses are received. Resets the {@link #pongLatch} if all are received.
-     */
-    public void waitPongs(){
-        if(pongLatch != null){
-            try {
-                pongLatch.await();
-                pongLatch = new CountDownLatch(GlobalConfig.getInstance().getProcessCount());
-            } catch (InterruptedException e) {
-                Logger.error(e);
-            }
-        }
     }
 
     /**
@@ -108,9 +85,6 @@ public class Node extends Role {
                                 currTime
                         )
                 );
-            }
-            if (pongLatch != null) {
-                pongLatch.countDown();
             }
         }
     }

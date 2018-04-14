@@ -9,6 +9,7 @@ import network.address.MulticastAddress;
 import network.messenger.Multicaster;
 import org.pmw.tinylog.Logger;
 import protocol.commands.NetworkCommand;
+import protocol.commands.SequenceNumber;
 import protocol.commands.ping.Connect_NC;
 import role.Role;
 
@@ -255,6 +256,10 @@ public class GlobalConfig {
             Logger.error(e, "Could not determine process count");
         }
         return -1;
+    }
+
+    public SequenceNumber generateSequenceNumber(Role role) {
+        return new SequenceNumber(System.currentTimeMillis(), role.getRoleId());
     }
 
     /**

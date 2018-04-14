@@ -1,4 +1,5 @@
 import config.GlobalConfig;
+import config.UserSettings;
 import mpi.MPIException;
 import network.address.MulticastAddress;
 import network.address.TCPAddress;
@@ -12,6 +13,8 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import static network.ConnectionProtocol.TCP_CONNECTION;
+
 /**
  * Assumes a single JVM is running per Node.
  */
@@ -20,36 +23,18 @@ public class SocketMainMultiJVM {
     public static void main(String[] args) throws UnknownHostException, InterruptedException, MPIException {
         long timeStart = System.currentTimeMillis();
 
-        Logger.info("Args received: " + Arrays.toString(args));
-        int nTasks = 3;     //Number of tasks to complete. Usually equals to (numNodes * numTasksPerNode)
-        int multicastPort = 9090;
-        String multicastGroup = "all-systems.mcast.net";
-        boolean monitorSystem = true;
-        if(args != null){
-            if(args.length >= 1){
-                nTasks = Integer.parseInt(args[0]);
-            }
-            if(args.length >= 2){
-                monitorSystem = Boolean.valueOf(args[1]);
-            }
-            if(args.length >= 3){
-                multicastPort = Integer.parseInt(args[2]);
-            }
-            if(args.length >= 4){
-                multicastGroup = args[3];
-            }
-        }
+        UserSettings settings = new UserSettings(args, TCP_CONNECTION);
 
         SystemMonitor sysInfo = null;
         TestFramework testFramework = null;
 
-        if(monitorSystem){
+        if(settings.isMonitorSystem()){
             sysInfo = SystemMonitor.collectEvery(500, TimeUnit.MILLISECONDS);
         }
 
         InetAddress ip = TCPAddress.resolveIpAddress();
 
-        MulticastAddress multicastAddress = new MulticastAddress(multicastGroup, multicastPort);
+        MulticastAddress multicastAddress = new MulticastAddress(settings.getGroupName(), settings.getGroupId());
         TCPAddress tcpAddress = new TCPAddress(ip, 0);
 
         GlobalConfig.getInstance().initTCP(false, multicastAddress);
@@ -58,7 +43,7 @@ public class SocketMainMultiJVM {
 
         if(node.isLeader()){    // the node is pinger.
             /* start tests */
-            testFramework = TestFramework.doPingTests(node, nTasks);
+            testFramework = TestFramework.doPingTests(node, settings.getTaskCount());
 
             /* send end signal to all nodes */
             node.signalEndToAll();

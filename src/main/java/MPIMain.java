@@ -1,4 +1,5 @@
 import config.GlobalConfig;
+import config.UserSettings;
 import mpi.MPI;
 import mpi.MPIException;
 import network.address.MPIAddress;
@@ -10,6 +11,8 @@ import testframework.TestFramework;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import static network.ConnectionProtocol.MPI_CONNECTION;
+
 /**
  * Ping-Pong test for MPI
  */
@@ -18,22 +21,12 @@ public class MPIMain {
     public static void main(String[] args) throws MPIException, InterruptedException {
         long timeStart = System.currentTimeMillis();
 
-        Logger.info("Args received: " + Arrays.toString(args));
-        int groupId = MPI.ANY_TAG;
-        boolean monitorSystem = false;
-        if(args != null){
-            if(args.length >= 1){
-                groupId = Integer.parseInt(args[0]);
-            }
-            if(args.length >= 2){
-                monitorSystem = Boolean.valueOf(args[1]);
-            }
-        }
+        UserSettings settings = new UserSettings(args, MPI_CONNECTION);
 
         SystemMonitor sysInfo = null;
         TestFramework testFramework = null;
 
-        if(monitorSystem){
+        if(settings.isMonitorSystem()){
             sysInfo = SystemMonitor.collectEvery(500, TimeUnit.MILLISECONDS);;
         }
 
@@ -43,7 +36,7 @@ public class MPIMain {
 
         int totalProcesses = GlobalConfig.getInstance().getProcessCount();
 
-        Node node = new Node(new MPIAddress(rank, groupId));
+        Node node = new Node(new MPIAddress(rank, settings.getGroupId()));
 
         if(node.isLeader()){
             /* start tests */

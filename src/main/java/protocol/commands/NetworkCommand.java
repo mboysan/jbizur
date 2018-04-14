@@ -44,6 +44,10 @@ public class NetworkCommand implements Serializable {
      */
     private String payload;
 
+    private SequenceNumber msgId;
+
+    private SequenceNumber assocMsgId;
+
     public NetworkCommand() {
 
     }
@@ -215,6 +219,24 @@ public class NetworkCommand implements Serializable {
 
     public NetworkCommand setPayload(String payload) {
         this.payload = payload;
+        return this;
+    }
+
+    public SequenceNumber getMsgId() {
+        return msgId;
+    }
+
+    public NetworkCommand setMsgId(SequenceNumber msgId) {
+        this.msgId = msgId;
+        return this;
+    }
+
+    public SequenceNumber getAssocMsgId() {
+        return assocMsgId;
+    }
+
+    public NetworkCommand setAssocMsgId(SequenceNumber assocMsgId) {
+        this.assocMsgId = assocMsgId;
         return this;
     }
 

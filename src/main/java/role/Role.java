@@ -6,9 +6,13 @@ import network.messenger.MessageReceiver;
 import network.messenger.MessageSender;
 import org.pmw.tinylog.Logger;
 import protocol.commands.NetworkCommand;
+import protocol.commands.SequenceNumber;
 import protocol.commands.ping.ConnectOK_NC;
 import protocol.commands.ping.Connect_NC;
+import protocol.commands.ping.SignalEnd_NC;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -38,6 +42,8 @@ public abstract class Role {
      */
     private final CountDownLatch readyLatch = new CountDownLatch(1);
 
+    private final Map<String, CountDownLatch> messageSyncMap = new ConcurrentHashMap<>();
+
     /**
      * @param baseAddress see {@link #myAddress}. The address may be modified by the {@link MessageReceiver} after
      *                    role has been started.
@@ -47,7 +53,7 @@ public abstract class Role {
         roleId = baseAddress.resolveAddressId();
 
         this.messageSender = new MessageSender();
-        start();
+        recvAsync();
 
         readyLatch.await();
 
@@ -57,7 +63,7 @@ public abstract class Role {
     /**
      * Starts the role. Basically starts the message receiver service.
      */
-    private void start() {
+    private void recvAsync() {
         new MessageReceiver(this);
     }
 
@@ -81,6 +87,9 @@ public abstract class Role {
      */
     public void handleMessage(NetworkCommand message){
         Logger.debug("[" + getAddress() +"] - " + message);
+
+        countdownMsgLatch(message);
+
         if(message instanceof Connect_NC){
             NetworkCommand connectOK = new ConnectOK_NC()
                     .setSenderAddress(getAddress())
@@ -89,6 +98,38 @@ public abstract class Role {
         }
         if(message instanceof ConnectOK_NC){
             GlobalConfig.getInstance().registerAddress(message.resolveSenderAddress(), this);
+        }
+    }
+
+    protected CountDownLatch prepareForSync(SequenceNumber sequenceNumber, int syncCount) {
+        CountDownLatch msgLatch = messageSyncMap.get(sequenceNumber.toString());
+        if(msgLatch == null){
+            msgLatch = new CountDownLatch(syncCount);
+            messageSyncMap.put(sequenceNumber.toString(), msgLatch);
+        }
+        return msgLatch;
+    }
+
+    protected void countdownMsgLatch(NetworkCommand message) {
+        SequenceNumber assocSeqNum = message.getAssocMsgId();
+        if(assocSeqNum != null) {
+            CountDownLatch msgLatch = messageSyncMap.get(assocSeqNum.toString());
+            if(msgLatch != null){
+                msgLatch.countDown();
+            }
+        }
+    }
+
+    /**
+     * Sends {@link SignalEnd_NC} command to all the processes.
+     */
+    public void signalEndToAll() {
+        for (Address receiverAddress : GlobalConfig.getInstance().getAddresses()) {
+            NetworkCommand signalEnd = new SignalEnd_NC()
+                    .setSenderId(getRoleId())
+                    .setReceiverAddress(receiverAddress)
+                    .setSenderAddress(getAddress());
+            sendMessage(signalEnd);
         }
     }
 
