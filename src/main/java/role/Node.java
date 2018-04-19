@@ -2,9 +2,9 @@ package role;
 
 import config.GlobalConfig;
 import network.address.Address;
+import network.messenger.SyncMessageListener;
 import org.pmw.tinylog.Logger;
 import protocol.commands.NetworkCommand;
-import protocol.commands.SequenceNumber;
 import protocol.commands.ping.Ping_NC;
 import protocol.commands.ping.Pong_NC;
 import testframework.TestFramework;
@@ -31,14 +31,23 @@ public class Node extends Role {
      * Sends {@link Ping_NC} request to all processes.
      */
     public void pingAll() {
-        SequenceNumber seqNum = GlobalConfig.getInstance().generateSequenceNumber(this);
-        CountDownLatch latch = prepareForSync(seqNum, GlobalConfig.getInstance().getProcessCount());
+        String msgId = GlobalConfig.getInstance().generateMsgId(this);
+
+        final CountDownLatch latch = new CountDownLatch(GlobalConfig.getInstance().getProcessCount());
+        SyncMessageListener listener = new SyncMessageListener(msgId) {
+            @Override
+            public void handleMessage(NetworkCommand message) {
+                latch.countDown();
+            }
+        };
+        attachMsgListener(listener);
+
         for (Address receiverAddress : GlobalConfig.getInstance().getAddresses()) {
             NetworkCommand ping = new Ping_NC()
                     .setSenderId(getRoleId())
                     .setReceiverAddress(receiverAddress)
                     .setSenderAddress(getAddress())
-                    .setAssocMsgId(seqNum);
+                    .setAssocMsgId(msgId);
             sendMessage(ping);
         }
         try {
@@ -46,6 +55,7 @@ public class Node extends Role {
         } catch (InterruptedException e) {
             Logger.error(e);
         }
+        detachMsgListener(listener);
     }
 
     /**
@@ -57,7 +67,7 @@ public class Node extends Role {
                 .setSenderId(getRoleId())
                 .setReceiverAddress(message.resolveSenderAddress())
                 .setSenderAddress(getAddress())
-                .setMsgId(GlobalConfig.getInstance().generateSequenceNumber(this))
+                .setMsgId(GlobalConfig.getInstance().generateMsgId(this))
                 .setAssocMsgId(message.getAssocMsgId());
         sendMessage(pong);
     }

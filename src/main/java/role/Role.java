@@ -4,9 +4,9 @@ import config.GlobalConfig;
 import network.address.Address;
 import network.messenger.MessageReceiver;
 import network.messenger.MessageSender;
+import network.messenger.SyncMessageListener;
 import org.pmw.tinylog.Logger;
 import protocol.commands.NetworkCommand;
-import protocol.commands.SequenceNumber;
 import protocol.commands.ping.ConnectOK_NC;
 import protocol.commands.ping.Connect_NC;
 import protocol.commands.ping.SignalEnd_NC;
@@ -19,6 +19,8 @@ import java.util.concurrent.CountDownLatch;
  * Each node is defined as a role.
  */
 public abstract class Role {
+
+    private final Map<String, SyncMessageListener> syncMessageListeners = new ConcurrentHashMap<>();
 
     /**
      * Id of the role
@@ -42,8 +44,6 @@ public abstract class Role {
      */
     private final CountDownLatch readyLatch = new CountDownLatch(1);
 
-    private final Map<String, CountDownLatch> messageSyncMap = new ConcurrentHashMap<>();
-
     /**
      * @param baseAddress see {@link #myAddress}. The address may be modified by the {@link MessageReceiver} after
      *                    role has been started.
@@ -53,18 +53,11 @@ public abstract class Role {
         roleId = baseAddress.resolveAddressId();
 
         this.messageSender = new MessageSender();
-        recvAsync();
+        new MessageReceiver(this);
 
         readyLatch.await();
 
         GlobalConfig.getInstance().registerRole(this);
-    }
-
-    /**
-     * Starts the role. Basically starts the message receiver service.
-     */
-    private void recvAsync() {
-        new MessageReceiver(this);
     }
 
     /**
@@ -88,34 +81,26 @@ public abstract class Role {
     public void handleMessage(NetworkCommand message){
         Logger.debug("[" + getAddress() +"] - " + message);
 
-        countdownMsgLatch(message);
-
-        if(message instanceof Connect_NC){
-            NetworkCommand connectOK = new ConnectOK_NC()
-                    .setSenderAddress(getAddress())
-                    .setReceiverAddress(message.resolveSenderAddress());
-            sendMessage(connectOK);
+        boolean isHandled = false;
+        String assocMsgId = message.getAssocMsgId();
+        if(assocMsgId != null){
+            SyncMessageListener listener = syncMessageListeners.get(assocMsgId);
+            if(listener != null){
+                isHandled = true;
+                listener.handleMessage(message);
+                message.setHandled(true);   //TODO: might need to find a better solution to this.
+            }
         }
-        if(message instanceof ConnectOK_NC){
-            GlobalConfig.getInstance().registerAddress(message.resolveSenderAddress(), this);
-        }
-    }
 
-    protected CountDownLatch prepareForSync(SequenceNumber sequenceNumber, int syncCount) {
-        CountDownLatch msgLatch = messageSyncMap.get(sequenceNumber.toString());
-        if(msgLatch == null){
-            msgLatch = new CountDownLatch(syncCount);
-            messageSyncMap.put(sequenceNumber.toString(), msgLatch);
-        }
-        return msgLatch;
-    }
-
-    protected void countdownMsgLatch(NetworkCommand message) {
-        SequenceNumber assocSeqNum = message.getAssocMsgId();
-        if(assocSeqNum != null) {
-            CountDownLatch msgLatch = messageSyncMap.get(assocSeqNum.toString());
-            if(msgLatch != null){
-                msgLatch.countDown();
+        if(!isHandled){
+            if(message instanceof Connect_NC){
+                NetworkCommand connectOK = new ConnectOK_NC()
+                        .setSenderAddress(getAddress())
+                        .setReceiverAddress(message.resolveSenderAddress());
+                sendMessage(connectOK);
+            }
+            if(message instanceof ConnectOK_NC){
+                GlobalConfig.getInstance().registerAddress(message.resolveSenderAddress(), this);
             }
         }
     }
@@ -161,6 +146,14 @@ public abstract class Role {
      */
     public void setReady(){
         readyLatch.countDown();
+    }
+
+    protected void attachMsgListener(SyncMessageListener listener){
+        syncMessageListeners.putIfAbsent(listener.getMsgId(), listener);
+    }
+
+    public void detachMsgListener(SyncMessageListener listener){
+        syncMessageListeners.remove(listener.getMsgId());
     }
 
     @Override

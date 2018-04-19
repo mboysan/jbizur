@@ -44,9 +44,11 @@ public class NetworkCommand implements Serializable {
      */
     private String payload;
 
-    private SequenceNumber msgId;
+    private String msgId;
 
-    private SequenceNumber assocMsgId;
+    private String assocMsgId;
+
+    private boolean isHandled = false;
 
     public NetworkCommand() {
 
@@ -222,21 +224,30 @@ public class NetworkCommand implements Serializable {
         return this;
     }
 
-    public SequenceNumber getMsgId() {
+    public String getMsgId() {
         return msgId;
     }
 
-    public NetworkCommand setMsgId(SequenceNumber msgId) {
+    public NetworkCommand setMsgId(String msgId) {
         this.msgId = msgId;
         return this;
     }
 
-    public SequenceNumber getAssocMsgId() {
+    public String getAssocMsgId() {
         return assocMsgId;
     }
 
-    public NetworkCommand setAssocMsgId(SequenceNumber assocMsgId) {
+    public NetworkCommand setAssocMsgId(String assocMsgId) {
         this.assocMsgId = assocMsgId;
+        return this;
+    }
+
+    public boolean isHandled() {
+        return isHandled;
+    }
+
+    public NetworkCommand setHandled(boolean handled) {
+        isHandled = handled;
         return this;
     }
 

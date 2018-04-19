@@ -1,6 +1,8 @@
 import config.GlobalConfig;
 import mpi.MPIException;
 import network.address.TCPAddress;
+import org.pmw.tinylog.Logger;
+import role.BizurNode;
 import role.Node;
 import testframework.SystemMonitor;
 import testframework.TestFramework;
@@ -15,8 +17,6 @@ import java.util.concurrent.TimeUnit;
 public class SocketMainSingleJVM {
 
     public static void main(String[] args) throws IOException, InterruptedException, MPIException {
-        SystemMonitor sysInfo = SystemMonitor.collectEvery(500, TimeUnit.MILLISECONDS);
-
         int totalNodes = 3;
         if(args != null && args.length == 1){
             totalNodes = Integer.parseInt(args[0]);
@@ -28,20 +28,16 @@ public class SocketMainSingleJVM {
 
         /* Start pinger and pongers */
         for (int i = 1; i < totalNodes; i++) {  // first index will be reserved to pinger
-            Node ponger = new Node(new TCPAddress(ip, 0));
+            BizurNode ponger = new BizurNode(new TCPAddress(ip, 0));
         }
-        Node pinger = new Node(new TCPAddress(ip, 0));
+        BizurNode pinger = new BizurNode(new TCPAddress(ip, 0));
 
-        /* start tests */
-        TestFramework testFramework = TestFramework.doPingTests(pinger, totalNodes);
+//        pinger.startElection();
+        pinger.set("Hello", "World");
 
-        /* send end signal to all nodes */
-        pinger.signalEndToAll();
+        String val = pinger.get("Hello");
+        Logger.debug("receieved val: " + val);
 
         GlobalConfig.getInstance().end();
-
-        testFramework.printAllOnConsole();
-
-        sysInfo.printOnConsole();
     }
 }
