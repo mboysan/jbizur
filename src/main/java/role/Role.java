@@ -96,11 +96,11 @@ public abstract class Role {
             if(message instanceof Connect_NC){
                 NetworkCommand connectOK = new ConnectOK_NC()
                         .setSenderAddress(getAddress())
-                        .setReceiverAddress(message.resolveSenderAddress());
+                        .setReceiverAddress(message.getSenderAddress());
                 sendMessage(connectOK);
             }
             if(message instanceof ConnectOK_NC){
-                GlobalConfig.getInstance().registerAddress(message.resolveSenderAddress(), this);
+                GlobalConfig.getInstance().registerAddress(message.getSenderAddress(), this);
             }
         }
     }

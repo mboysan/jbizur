@@ -1,8 +1,6 @@
 package testframework;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.pmw.tinylog.Logger;
-import protocol.commands.NetworkCommand;
 import role.Node;
 import testframework.result.LatencyResult;
 import testframework.result.OverallLatencyResult;
@@ -119,20 +117,5 @@ public class TestFramework {
         if(pingTester != null){
             pingTester.resultCollector.addResultAsync(latencyResult);
         }
-    }
-
-    /**
-     * Adds additional payload to message to send if applicable. This is done to make sure both MPI and TCP
-     * protocols communicate with same data size.
-     * @param command command to add additional payload
-     * @return the command with modified payload.
-     */
-    public static NetworkCommand addAdditionalPayload(NetworkCommand command){
-        int maxSize = 312;
-        try {
-            command.setPayload(RandomStringUtils.random(maxSize - command.toString().length(),true, false));
-        } catch (IllegalArgumentException ignore){
-        }
-        return command;
     }
 }
