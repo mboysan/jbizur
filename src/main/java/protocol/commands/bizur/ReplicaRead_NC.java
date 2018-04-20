@@ -24,4 +24,12 @@ public class ReplicaRead_NC extends NetworkCommand {
         this.electId = electId;
         return this;
     }
+
+    @Override
+    public String toString() {
+        return "ReplicaRead_NC{" +
+                "index=" + index +
+                ", electId=" + electId +
+                "} " + super.toString();
+    }
 }

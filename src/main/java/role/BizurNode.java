@@ -95,7 +95,7 @@ public class BizurNode extends Role {
 
     private void pleaseVote(PleaseVote_NC pleaseVoteNc) {
         int electId = pleaseVoteNc.getElectId();
-        Address source = pleaseVoteNc.resolveSenderAddress();
+        Address source = pleaseVoteNc.getSenderAddress();
 
         NetworkCommand vote;
         if (electId > votedElectId) {
@@ -175,7 +175,7 @@ public class BizurNode extends Role {
 
     private void replicaWrite(ReplicaWrite_NC replicaWriteNc){
         Bucket bucket = replicaWriteNc.getBucket();
-        Address source = replicaWriteNc.resolveSenderAddress();
+        Address source = replicaWriteNc.getSenderAddress();
 
         NetworkCommand response;
         if(bucket.getVer().getElectId() < votedElectId){
@@ -255,7 +255,7 @@ public class BizurNode extends Role {
     private void replicaRead(ReplicaRead_NC replicaReadNc){
         int index = replicaReadNc.getIndex();
         int electId = replicaReadNc.getElectId();
-        Address source = replicaReadNc.resolveSenderAddress();
+        Address source = replicaReadNc.getSenderAddress();
 
         if(electId < votedElectId){
             NetworkCommand nackRead = new NackRead_NC()

@@ -9,7 +9,6 @@ import org.pmw.tinylog.Logger;
 import protocol.CommandMarshaller;
 import protocol.commands.NetworkCommand;
 import protocol.commands.ping.SignalEnd_NC;
-import testframework.TestFramework;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -85,7 +84,7 @@ public class MessageSenderImpl implements IMessageSender {
             Socket socket = null;
             DataOutputStream dOut = null;
             try {
-                TCPAddress receiverAddress = (TCPAddress) messageToSend.resolveReceiverAddress();
+                TCPAddress receiverAddress = (TCPAddress) messageToSend.getReceiverAddress();
                 byte[] msg = commandMarshaller.marshall(messageToSend, byte[].class);
                 socket = new Socket(receiverAddress.getIp(), receiverAddress.getPortNumber());
                 dOut = new DataOutputStream(socket.getOutputStream());
@@ -137,7 +136,7 @@ public class MessageSenderImpl implements IMessageSender {
          */
         private void runOnMPIAsync() {
             try {
-                MPIAddress receiverAddress = (MPIAddress) messageToSend.resolveReceiverAddress();
+                MPIAddress receiverAddress = (MPIAddress) messageToSend.getReceiverAddress();
                 byte[] msg = commandMarshaller.marshall(messageToSend, byte[].class);
 
                 IntBuffer intBuffer = MPI.newIntBuffer(1).put(0, msg.length);
@@ -146,7 +145,7 @@ public class MessageSenderImpl implements IMessageSender {
 //                    MPI.COMM_WORLD.iSend(intBuffer, intBuffer.capacity(), MPI.INT, receiverAddress.getRank(), tag);  //send msg length first
                     MPI.COMM_WORLD.iSend(byteBuffer, byteBuffer.capacity(), MPI.BYTE, receiverAddress.getRank(), receiverAddress.getGroupId());
                 }
-            } catch (MPIException | IOException e) {
+            } catch (MPIException e) {
                 Logger.error(e, "Send err, msg: " + messageToSend);
             }
         }
@@ -156,7 +155,7 @@ public class MessageSenderImpl implements IMessageSender {
          */
         private void runOnMPISync(){
             try {
-                MPIAddress receiverAddress = (MPIAddress) messageToSend.resolveReceiverAddress();
+                MPIAddress receiverAddress = (MPIAddress) messageToSend.getReceiverAddress();
                 byte[] msg = commandMarshaller.marshall(messageToSend, byte[].class);
 
                 /*
@@ -168,7 +167,7 @@ public class MessageSenderImpl implements IMessageSender {
                 synchronized (MPI.COMM_WORLD) {
                     MPI.COMM_WORLD.send(msg, msg.length, MPI.BYTE, receiverAddress.getRank(), receiverAddress.getGroupId());
                 }
-            } catch (MPIException | IOException e) {
+            } catch (MPIException e) {
                 Logger.error(e, "Send err, msg: " + messageToSend);
             }
         }

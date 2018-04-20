@@ -65,7 +65,7 @@ public class Node extends Role {
     private void pong(Ping_NC message) {
         NetworkCommand pong = new Pong_NC()
                 .setSenderId(getRoleId())
-                .setReceiverAddress(message.resolveSenderAddress())
+                .setReceiverAddress(message.getSenderAddress())
                 .setSenderAddress(getAddress())
                 .setMsgId(GlobalConfig.getInstance().generateMsgId(this))
                 .setAssocMsgId(message.getAssocMsgId());

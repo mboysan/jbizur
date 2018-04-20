@@ -94,7 +94,7 @@ public class MessageReceiverImpl implements IMessageReceiver {
                         dIn.readFully(msg, 0, msg.length); // read the message
                     }
                     */
-                    byte[] msg = new byte[512];    //fixed size byte[]
+                    byte[] msg = new byte[2048];    //fixed size byte[]
                     dIn.read(msg);
                     if(msg != null){
                         NetworkCommand message = commandMarshaller.unmarshall(new String(msg, StandardCharsets.UTF_8));

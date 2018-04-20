@@ -1,12 +1,9 @@
 package protocol;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
 import protocol.commands.NetworkCommand;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -14,19 +11,20 @@ import java.nio.charset.StandardCharsets;
  */
 public class CommandMarshaller {
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private XStream xstream;
+
+    public CommandMarshaller() {
+        xstream = new XStream(new JettisonMappedXmlDriver());
+//        xstream.setMode(XStream.NO_REFERENCES);
+    }
 
     /**
      * Marshalls the obj into String.
      * @param obj command to marshall into String
      * @return obj marshalled into String.
-     * @throws JsonProcessingException in case of json parsing exceptions.
      */
-    public String marshall(NetworkCommand obj) throws JsonProcessingException {
-        String objAsJson = mapper.writeValueAsString(obj);
-        JSONObject jsonObject = new JSONObject(objAsJson);
-        jsonObject.put("_type", obj.getClass().getName());
-        return jsonObject.toString();
+    public String marshall(NetworkCommand obj) {
+        return xstream.toXML(obj);
     }
 
     /**
@@ -34,9 +32,8 @@ public class CommandMarshaller {
      * @param type class type to marshall the command for.
      * @param <T>  type to marshall the command for.
      * @return obj marshalled into requested type.
-     * @throws JsonProcessingException in case of json parsing exceptions.
      */
-    public <T> T marshall(NetworkCommand obj, Class<T> type) throws JsonProcessingException {
+    public <T> T marshall(NetworkCommand obj, Class<T> type) {
         String jsonStr = marshall(obj);
         if(type.isAssignableFrom(String.class)){
             return (T) jsonStr;
@@ -51,16 +48,8 @@ public class CommandMarshaller {
     /**
      * @param commandAsJson command as json string.
      * @return command unmarshalled into its associated {@link NetworkCommand}.
-     * @throws IOException in case of json related operations.
      */
-    public NetworkCommand unmarshall(String commandAsJson) throws IOException, JSONException {
-        JSONObject jsonObject = new JSONObject(commandAsJson);
-        try{
-            Class clazz = Class.forName(jsonObject.getString("_type"));
-            jsonObject.remove("_type");
-            return mapper.readValue(jsonObject.toString(), (Class<NetworkCommand>) clazz);
-        }catch (ClassNotFoundException | ClassCastException e){
-            throw new IOException(e);
-        }
+    public NetworkCommand unmarshall(String commandAsJson) {
+        return (NetworkCommand) xstream.fromXML(commandAsJson);
     }
 }
