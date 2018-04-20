@@ -1,10 +1,9 @@
 package role;
 
+import annotations.ForTestingOnly;
 import config.GlobalConfig;
 import network.address.Address;
-import network.messenger.MessageReceiver;
-import network.messenger.MessageSender;
-import network.messenger.SyncMessageListener;
+import network.messenger.*;
 import org.pmw.tinylog.Logger;
 import protocol.commands.NetworkCommand;
 import protocol.commands.ping.ConnectOK_NC;
@@ -33,7 +32,11 @@ public abstract class Role {
     /**
      * Message sender service.
      */
-    private final MessageSender messageSender;
+    private final IMessageSender messageSender;
+    /**
+     * Message sender service.
+     */
+    private final IMessageReceiver messageReceiver;
     /**
      * Defines if this role is the leader or not.
      */
@@ -42,20 +45,45 @@ public abstract class Role {
     /**
      * Indicates if the node is ready for registration by calling {@link GlobalConfig#registerRole(Role)}.
      */
-    private final CountDownLatch readyLatch = new CountDownLatch(1);
+    private final CountDownLatch readyLatch;
 
     /**
-     * @param baseAddress see {@link #myAddress}. The address may be modified by the {@link MessageReceiver} after
+     * @param baseAddress see {@link #myAddress}. The address may be modified by the {@link MessageReceiverImpl} after
      *                    role has been started.
      */
     Role(Address baseAddress) throws InterruptedException {
+        this(baseAddress, null, null, null);
+    }
+
+    /**
+     * Designed to be used by the unit testing framework, hence protected access.
+     *
+     * @param baseAddress see {@link #myAddress}. The address may be modified by the {@link MessageReceiverImpl} after
+     *                    role has been started.
+     * @param messageSender message sender service.
+     * @param messageReceiver message receiver service.
+     */
+    @ForTestingOnly
+    protected Role(Address baseAddress,
+                   IMessageSender messageSender,
+                   IMessageReceiver messageReceiver,
+                   CountDownLatch readyLatch) throws InterruptedException
+    {
         this.myAddress = baseAddress;
         roleId = baseAddress.resolveAddressId();
 
-        this.messageSender = new MessageSender();
-        new MessageReceiver(this);
+        if(messageSender == null){
+            messageSender = new MessageSenderImpl();
+        }
+        if(messageReceiver == null){
+            messageReceiver = new MessageReceiverImpl(this);
+        }
+        this.messageSender = messageSender;
+        this.messageReceiver = messageReceiver;
+        this.messageReceiver.startRecv();
 
-        readyLatch.await();
+        this.readyLatch = readyLatch == null ? new CountDownLatch(1) : readyLatch;
+        this.readyLatch.await();
 
         GlobalConfig.getInstance().registerRole(this);
     }
@@ -135,7 +163,7 @@ public abstract class Role {
     }
 
     /**
-     * @param modifiedAddr address modified by the {@link MessageReceiver} if applicable.
+     * @param modifiedAddr address modified by the {@link MessageReceiverImpl} if applicable.
      */
     public void setAddress(Address modifiedAddr){
         this.myAddress = modifiedAddr;

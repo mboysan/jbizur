@@ -1,5 +1,6 @@
 package network.address;
 
+import network.messenger.MessageReceiverImpl;
 import org.pmw.tinylog.Logger;
 
 import java.io.BufferedReader;
@@ -33,7 +34,7 @@ public class TCPAddress extends Address {
 
     /**
      * @param ip         ip address
-     * @param portNumber port number. If set to 0, then {@link network.messenger.MessageReceiver} will find an
+     * @param portNumber port number. If set to 0, then {@link MessageReceiverImpl} will find an
      *                   available port automatically. Otherwise, the port specified will be used.
      */
     public TCPAddress(InetAddress ip, int portNumber) {

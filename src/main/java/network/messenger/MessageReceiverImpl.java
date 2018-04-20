@@ -22,7 +22,7 @@ import java.util.concurrent.Executors;
 /**
  * The message receiver wrapper for the communication protocols defined in {@link network.ConnectionProtocol}.
  */
-public class MessageReceiver {
+public class MessageReceiverImpl implements IMessageReceiver {
 
     private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
@@ -40,9 +40,15 @@ public class MessageReceiver {
      *
      * @param roleInstance sets {@link #roleInstance}
      */
-    public MessageReceiver(Role roleInstance) {
+    public MessageReceiverImpl(Role roleInstance) {
         this.roleInstance = roleInstance;
+    }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void startRecv(){
         switch (GlobalConfig.getInstance().getConnectionProtocol()) {
             case TCP_CONNECTION:
                 new TCPReceiver().start();

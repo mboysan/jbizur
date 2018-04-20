@@ -27,15 +27,17 @@ public class SocketMainSingleJVM {
         InetAddress ip = TCPAddress.resolveIpAddress();
 
         /* Start pinger and pongers */
+        BizurNode ponger = null;
         for (int i = 1; i < totalNodes; i++) {  // first index will be reserved to pinger
-            BizurNode ponger = new BizurNode(new TCPAddress(ip, 0));
+            ponger = new BizurNode(new TCPAddress(ip, 0));
         }
         BizurNode pinger = new BizurNode(new TCPAddress(ip, 0));
 
 //        pinger.startElection();
         pinger.set("Hello", "World");
 
-        String val = pinger.get("Hello");
+//        String val = pinger.get("Hello");
+        String val = ponger.get("Hello");
         Logger.debug("receieved val: " + val);
 
         GlobalConfig.getInstance().end();

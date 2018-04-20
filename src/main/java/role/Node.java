@@ -31,7 +31,7 @@ public class Node extends Role {
      * Sends {@link Ping_NC} request to all processes.
      */
     public void pingAll() {
-        String msgId = GlobalConfig.getInstance().generateMsgId(this);
+        String msgId = GlobalConfig.getInstance().generateMsgId();
 
         final CountDownLatch latch = new CountDownLatch(GlobalConfig.getInstance().getProcessCount());
         SyncMessageListener listener = new SyncMessageListener(msgId) {
@@ -67,7 +67,7 @@ public class Node extends Role {
                 .setSenderId(getRoleId())
                 .setReceiverAddress(message.getSenderAddress())
                 .setSenderAddress(getAddress())
-                .setMsgId(GlobalConfig.getInstance().generateMsgId(this))
+                .setMsgId(message.getAssocMsgId())
                 .setAssocMsgId(message.getAssocMsgId());
         sendMessage(pong);
     }

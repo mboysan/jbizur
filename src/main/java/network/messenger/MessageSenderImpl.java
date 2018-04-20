@@ -21,7 +21,7 @@ import java.util.concurrent.Executors;
 /**
  * The message sender wrapper for the communication protocols defined in {@link network.ConnectionProtocol}.
  */
-public class MessageSender {
+public class MessageSenderImpl implements IMessageSender {
 
     private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
@@ -31,13 +31,14 @@ public class MessageSender {
     private final CommandMarshaller commandMarshaller = new CommandMarshaller();
 
 
-    public MessageSender() {
+    public MessageSenderImpl() {
     }
 
     /**
+     * {@inheritDoc}
      * Initializes the message sender. It then creates the appropriate handler to send the message.
-     * @param message the command to send
      */
+    @Override
     public void send(NetworkCommand message) {
         Runnable sender = null;
         switch (GlobalConfig.getInstance().getConnectionProtocol()) {
