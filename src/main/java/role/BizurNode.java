@@ -4,12 +4,15 @@ import config.GlobalConfig;
 import datastore.bizur.Bucket;
 import datastore.bizur.Ver;
 import network.address.Address;
+import network.messenger.IMessageReceiver;
+import network.messenger.IMessageSender;
 import network.messenger.SyncMessageListener;
 import org.pmw.tinylog.Logger;
 import protocol.commands.NetworkCommand;
 import protocol.commands.bizur.*;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 
 public class BizurNode extends Role {
 
@@ -21,8 +24,14 @@ public class BizurNode extends Role {
     private Bucket[] localBuckets = new Bucket[1];
 
     public BizurNode(Address baseAddress) throws InterruptedException {
-        super(baseAddress);
+        this(baseAddress, null, null, null);
+    }
 
+    protected BizurNode(Address baseAddress,
+                        IMessageSender messageSender,
+                        IMessageReceiver messageReceiver,
+                        CountDownLatch readyLatch) throws InterruptedException {
+        super(baseAddress, messageSender, messageReceiver, readyLatch);
         initBuckets(localBuckets.length);
     }
 
@@ -243,7 +252,7 @@ public class BizurNode extends Role {
         return null;
     }
 
-    public void replicaRead(ReplicaRead_NC replicaReadNc){
+    private void replicaRead(ReplicaRead_NC replicaReadNc){
         int index = replicaReadNc.getIndex();
         int electId = replicaReadNc.getElectId();
         Address source = replicaReadNc.resolveSenderAddress();
