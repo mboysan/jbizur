@@ -1,7 +1,5 @@
 package network.address;
 
-import network.address.Address;
-
 public class MockAddress extends Address {
 
     private final String address;

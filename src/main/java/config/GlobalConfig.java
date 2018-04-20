@@ -1,5 +1,6 @@
 package config;
 
+import annotations.ForTestingOnly;
 import mpi.MPI;
 import mpi.MPIException;
 import network.ConnectionProtocol;
@@ -170,31 +171,12 @@ public class GlobalConfig {
         }
         if(isNew){
             addresses.add(toRegister);
-            electAsLeader(roleRef);
             if(isSingleJVM){
                 resetEndLatch(getProcessCount());
             } else {
                 resetEndLatch(1);
             }
             Logger.info(String.format("Address [%s] registered on role [%s]", toRegister, roleRef));
-        }
-    }
-
-    /**
-     * Assigns the role as the leader if its address is in index 0 of the sorted addresses.
-     * @param role role to assign as leader if applicable.
-     */
-    private void electAsLeader(Role role) {
-        List<String> addressesAsStrings = addresses.stream()
-                .map(Address::toString).sorted(new Comparator<String>() {
-                    public int compare(String o1, String o2) {
-                        return o1.compareTo(o2);
-                    }
-                }).collect(Collectors.toList());
-        if(addressesAsStrings.get(0).equals(role.getAddress().toString())){
-            role.setLeader(true);
-        } else {
-            role.setLeader(false);
         }
     }
 
@@ -261,10 +243,6 @@ public class GlobalConfig {
         return getProcessCount()/2 + 1;
     }
 
-    public String generateMsgId(Role role) {
-        return (System.currentTimeMillis() ^ System.nanoTime()) + "," + role.getRoleId();
-    }
-
     public String generateMsgId(){
         return UUID.randomUUID().toString();
     }
@@ -276,13 +254,8 @@ public class GlobalConfig {
         return connectionProtocol;
     }
 
-    private String addressesToString(){
-        String[] arr = new String[getAddresses().size()];
-        int idx = 0;
-        for (Address address : getAddresses()) {
-            arr[idx] = address.toString();
-            idx++;
-        }
-        return Arrays.toString(arr);
+    @ForTestingOnly
+    public synchronized void reset(){
+        getAddresses().clear();
     }
 }

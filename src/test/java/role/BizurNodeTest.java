@@ -5,8 +5,8 @@ import network.address.MockAddress;
 import network.messenger.MessageReceiverMock;
 import network.messenger.MessageSenderMock;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -15,46 +15,77 @@ import java.util.concurrent.CountDownLatch;
 public class BizurNodeTest {
 
     private static int NODE_COUNT = 3;
-    private BizurNode[] roles = new BizurNode[NODE_COUNT];
+    private BizurNode[] bizurNodes = new BizurNode[NODE_COUNT];
 
     private final MessageSenderMock messageSenderMock = new MessageSenderMock();
 
-    @BeforeClass
-    public static void initClass(){
-        GlobalConfig.getInstance().initTCP(true);
-    }
-
     @Before
     public void setUp() throws Exception {
+        GlobalConfig.getInstance().initTCP(true);
+
         for (int i = 0; i < NODE_COUNT; i++) {
-            roles[i] = new BizurNode(
+            bizurNodes[i] = new BizurNode(
                     new MockAddress(UUID.randomUUID().toString()),
                     messageSenderMock,
                     new MessageReceiverMock(),
                     new CountDownLatch(0)
             );
-            messageSenderMock.registerRole(roles[i].getAddress().toString(), roles[i]);
+            messageSenderMock.registerRole(bizurNodes[i].getAddress().toString(), bizurNodes[i]);
         }
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
+        GlobalConfig.getInstance().reset();
     }
 
     @Test
-    public void startElection() {
-        BizurNode bizurNode = roles[0];
+    public void startElectionTest() {
+        for (int i = 0; i < bizurNodes.length; i++) {
+            bizurNodes[i].startElection();
+            if(i==0){
+                Assert.assertTrue(bizurNodes[i].isLeader());
+            } else {
+                Assert.assertFalse(bizurNodes[i].isLeader());
+            }
+        }
+
+/*
+        BizurNode bizurNode = bizurNodes[0];
 
         bizurNode.startElection();
-
+        for (BizurNode role : bizurNodes) {
+            if (role == bizurNode){
+                Assert.assertTrue(role.isLeader());
+            } else {
+                Assert.assertFalse(role.isLeader());
+            }
+        }*/
     }
 
     @Test
-    public void get() {
-    }
+    public void keyValueTest() {
+        BizurNode bizurNode = bizurNodes[0];
 
-    @Test
-    public void set() {
+        String expKey = UUID.randomUUID().toString();
+        String expVal = UUID.randomUUID().toString();
+
+        bizurNode.set(expKey, expVal);
+
+        String actVal = bizurNode.get(expKey);
+        Assert.assertEquals(expVal, actVal);
+
+
+
+        BizurNode bizurNode2 = bizurNodes[1];
+
+        expKey = UUID.randomUUID().toString();
+        expVal = UUID.randomUUID().toString();
+
+        bizurNode2.set(expKey, expVal);
+
+        actVal = bizurNode2.get(expKey);
+        Assert.assertEquals(expVal, actVal);
     }
 
     @Test

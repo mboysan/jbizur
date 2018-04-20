@@ -1,7 +1,6 @@
 package network.messenger;
 
-import config.GlobalConfig;
-import network.messenger.IMessageSender;
+import protocol.CommandMarshaller;
 import protocol.commands.NetworkCommand;
 import role.Role;
 
@@ -11,10 +10,15 @@ import java.util.Map;
 public class MessageSenderMock implements IMessageSender {
 
     public Map<String, Role> rolesMap = new HashMap<>();
+    CommandMarshaller commandMarshaller = new CommandMarshaller();
 
     @Override
     public void send(NetworkCommand command) {
-        Role role = rolesMap.get(command.resolveReceiverAddress().toString());
+        /* command is marshalled then unmarshalled to prevent receiving process to use the same object
+           with the sending process. This can be thought of as a deep-copy of the command object. */
+        command = commandMarshaller.unmarshall(commandMarshaller.marshall(command));
+
+        Role role = rolesMap.get(command.getReceiverAddress().toString());
         if(role != null){
             role.handleMessage(command);
         }

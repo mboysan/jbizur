@@ -1,5 +1,6 @@
 package role;
 
+import annotations.ForTestingOnly;
 import config.GlobalConfig;
 import network.address.Address;
 import network.messenger.*;
@@ -62,6 +63,7 @@ public abstract class Role {
      * @param messageSender message sender service.
      * @param messageReceiver message receiver service.
      */
+    @ForTestingOnly
     protected Role(Address baseAddress,
                    IMessageSender messageSender,
                    IMessageReceiver messageReceiver,
