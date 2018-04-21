@@ -1,6 +1,7 @@
 package role;
 
 import config.GlobalConfig;
+import config.LoggerConfig;
 import network.address.MockAddress;
 import network.messenger.MessageReceiverMock;
 import network.messenger.MessageSenderMock;
@@ -8,21 +9,30 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.pmw.tinylog.Level;
+import org.pmw.tinylog.Logger;
 
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class BizurNodeTest {
 
-    private static int NODE_COUNT = 3;
+    private static int NODE_COUNT = 5;
     private BizurNode[] bizurNodes = new BizurNode[NODE_COUNT];
 
-    private final MessageSenderMock messageSenderMock = new MessageSenderMock();
+    private MessageSenderMock messageSenderMock;
 
     @Before
     public void setUp() throws Exception {
+        LoggerConfig.configureLogger(Level.DEBUG);
+
         GlobalConfig.getInstance().initTCP(true);
 
+        this.messageSenderMock = new MessageSenderMock();
         for (int i = 0; i < NODE_COUNT; i++) {
             bizurNodes[i] = new BizurNode(
                     new MockAddress(UUID.randomUUID().toString()),
@@ -36,6 +46,8 @@ public class BizurNodeTest {
 
     @After
     public void tearDown() {
+        LoggerConfig.configureLogger(Level.DEBUG);
+
         GlobalConfig.getInstance().reset();
     }
 
@@ -43,7 +55,7 @@ public class BizurNodeTest {
     public void startElectionTest() {
         for (int i = 0; i < bizurNodes.length; i++) {
             bizurNodes[i].startElection();
-            if(i==0){
+            if (i == 0) {
                 Assert.assertTrue(bizurNodes[i].isLeader());
             } else {
                 Assert.assertFalse(bizurNodes[i].isLeader());
@@ -64,7 +76,7 @@ public class BizurNodeTest {
     }
 
     @Test
-    public void keyValueTest() {
+    public void keyValueInsertTest() {
         BizurNode bizurNode = bizurNodes[0];
 
         String expKey = UUID.randomUUID().toString();
@@ -76,7 +88,6 @@ public class BizurNodeTest {
         Assert.assertEquals(expVal, actVal);
 
 
-
         BizurNode bizurNode2 = bizurNodes[1];
 
         expKey = UUID.randomUUID().toString();
@@ -86,6 +97,61 @@ public class BizurNodeTest {
 
         actVal = bizurNode2.get(expKey);
         Assert.assertEquals(expVal, actVal);
+
+
+        BizurNode bizurNode3 = bizurNodes[2];
+
+        expKey = UUID.randomUUID().toString();
+        expVal = UUID.randomUUID().toString();
+
+        bizurNode3.set(expKey, expVal);
+
+        actVal = bizurNode3.get(expKey);
+        Assert.assertEquals(expVal, actVal);
+    }
+
+    @Test
+    public void keyValueInsertMultiThreadTest() throws Throwable {
+        long seed = System.currentTimeMillis();
+        Logger.info("Seed: " + seed);
+        Random random = new Random(seed);
+
+        int testCount = 100;
+
+        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        CountDownLatch latch = new CountDownLatch(testCount);
+
+        AtomicReference<Throwable> caughtException = new AtomicReference<>(null);
+        for (int i = 0; i < testCount; i++) {
+            executor.execute(() -> {
+                try {
+                    if (caughtException.get() != null) {
+                        return;
+                    }
+
+                    BizurNode bizurNode = bizurNodes[random.nextInt(NODE_COUNT)];
+
+                    String testKey = UUID.randomUUID().toString();
+                    String expVal = UUID.randomUUID().toString();
+
+                    Assert.assertTrue(bizurNode.set(testKey, expVal));
+                    String actVal = bizurNode.get(testKey);
+
+                    Assert.assertEquals(expVal, actVal);
+
+                } catch (Throwable e) {
+                    caughtException.compareAndSet(null, e);
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+
+        if (caughtException.get() != null) {
+            throw caughtException.get();
+        }
     }
 
     @Test

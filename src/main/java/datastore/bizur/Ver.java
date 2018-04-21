@@ -1,24 +1,31 @@
 package datastore.bizur;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class Ver {
-    private int electId;
-    private int counter;
+    private AtomicInteger electId = new AtomicInteger(0);
+    private AtomicInteger counter = new AtomicInteger(0);
 
     public int getElectId() {
-        return electId;
+        return electId.get();
     }
 
     public Ver setElectId(int electId) {
-        this.electId = electId;
+        this.electId.set(electId);
         return this;
     }
 
     public int getCounter() {
-        return counter;
+        return counter.get();
     }
 
     public Ver setCounter(int counter) {
-        this.counter = counter;
+        this.counter.set(counter);
+        return this;
+    }
+
+    public Ver incrementCounter(){
+        this.counter.getAndIncrement();
         return this;
     }
 }

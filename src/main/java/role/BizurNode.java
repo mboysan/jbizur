@@ -87,11 +87,8 @@ public class BizurNode extends Role {
             sendMessage(pleaseVote);
         });
 
-        try {
-            listener.getProcessesLatch().await();
+        if(listener.waitForResponses()){
             setLeader(listener.isMajorityAcked());
-        } catch (InterruptedException e) {
-            Logger.error(e);
         }
         detachMsgListener(listener);
     }
@@ -131,7 +128,7 @@ public class BizurNode extends Role {
 
     private boolean write(Bucket bucket) {
         bucket.getVer().setElectId(electId.get());
-        bucket.getVer().setCounter(bucket.getVer().getCounter() + 1);
+        bucket.getVer().incrementCounter();
 
         String msgId = GlobalConfig.getInstance().generateMsgId();
 
@@ -162,18 +159,16 @@ public class BizurNode extends Role {
             sendMessage(replicaWrite);
         });
 
-        try {
-            listener.getProcessesLatch().await();
+        boolean isSuccess = false;
+        if(listener.waitForResponses()){
             if(listener.isMajorityAcked()){
-                return true;
+                isSuccess = true;
             } else {
                 setLeader(false);
             }
-        } catch (InterruptedException e) {
-            Logger.error(e);
         }
         detachMsgListener(listener);
-        return false;
+        return isSuccess;
     }
 
     private void replicaWrite(ReplicaWrite_NC replicaWriteNc){
@@ -190,7 +185,7 @@ public class BizurNode extends Role {
         } else {
             votedElectId.set(bucket.getVer().getElectId());
             leaderAddress.set(source);
-            localBuckets[bucket.getIndex()] = bucket;
+            localBuckets[bucket.getIndex()].replaceWith(bucket);
 
             response = new AckWrite_NC()
                     .setAssocMsgId(replicaWriteNc.getAssocMsgId())
@@ -241,18 +236,16 @@ public class BizurNode extends Role {
             sendMessage(replicaRead);
         });
 
-        try {
-            listener.getProcessesLatch().await();
+        Bucket toReturn = null;
+        if(listener.waitForResponses()){
             if(listener.isMajorityAcked()){
-                return localBuckets[index];
+                toReturn = localBuckets[index];
             } else {
                 setLeader(false);
             }
-        } catch (InterruptedException e) {
-            Logger.error(e);
         }
         detachMsgListener(listener);
-        return null;
+        return toReturn;
     }
 
     private void replicaRead(ReplicaRead_NC replicaReadNc){
@@ -332,21 +325,18 @@ public class BizurNode extends Role {
             sendMessage(replicaRead);
         });
 
-        try {
-            listener.getProcessesLatch().await();
-
+        boolean isSuccess = false;
+        if(listener.waitForResponses()){
             if(listener.isMajorityAcked()){
                 maxVerBucket[0].getVer().setElectId(electId);
                 maxVerBucket[0].getVer().setCounter(0);
-                return write(maxVerBucket[0]);
+                isSuccess = write(maxVerBucket[0]);
             } else {
                 setLeader(false);
             }
-        } catch (InterruptedException e) {
-            Logger.error(e);
         }
         detachMsgListener(listener);
-        return false;
+        return isSuccess;
     }
 
     /* ***************************************************************************
@@ -356,7 +346,10 @@ public class BizurNode extends Role {
     public String get(String key) {
         int index = 0;  //fixme
         Bucket bucket = read(index);
-        return bucket != null ? bucket.getBucketMap().get(key) : null;
+        if(bucket != null){
+            return bucket.getBucketMap().get(key);
+        }
+        return null;
     }
 
     public boolean set(String key, String value){

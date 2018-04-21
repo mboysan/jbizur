@@ -1,10 +1,12 @@
 package network.messenger;
 
 import config.GlobalConfig;
+import org.pmw.tinylog.Logger;
 import protocol.commands.NetworkCommand;
 import role.Role;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class SyncMessageListener {
@@ -25,7 +27,7 @@ public abstract class SyncMessageListener {
         return msgId;
     }
 
-    public CountDownLatch getProcessesLatch() {
+    protected CountDownLatch getProcessesLatch() {
         return processesLatch;
     }
 
@@ -41,6 +43,19 @@ public abstract class SyncMessageListener {
         for (long i = 0; i < getProcessesLatch().getCount(); i++) {
             getProcessesLatch().countDown();
         }
+    }
+
+    public boolean waitForResponses(long timeout, TimeUnit timeUnit) {
+        try {
+            return getProcessesLatch().await(timeout, timeUnit);
+        } catch (InterruptedException e) {
+            Logger.error(e);
+        }
+        return false;
+    }
+
+    public boolean waitForResponses() {
+        return waitForResponses(GlobalConfig.RESPONSE_TIMEOUT_SEC, TimeUnit.SECONDS);
     }
 
     @Override

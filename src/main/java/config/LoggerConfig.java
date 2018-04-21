@@ -8,9 +8,13 @@ import org.pmw.tinylog.Level;
  */
 public class LoggerConfig {
     public static void configureLogger(){
-        configRefined(Level.DEBUG);
-//        configRefined(Level.INFO);
-//        configRefined(Level.ERROR);
+        configureLogger(Level.DEBUG);
+//        configureLogger(Level.INFO);
+//        configureLogger(Level.ERROR);
+    }
+
+    public static void configureLogger(Level level){
+        configRefined(level);
     }
 
     /**

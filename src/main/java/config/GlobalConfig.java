@@ -36,6 +36,11 @@ public class GlobalConfig {
     private static GlobalConfig ourInstance = new GlobalConfig();
 
     /**
+     * Timeout (in seconds) for responses between the processes.
+     */
+    public static long RESPONSE_TIMEOUT_SEC = 5;
+
+    /**
      * indicates if there are more than one node running on a single JVM. Meaning, if true, the nodes are initiated
      * in a single JVM and tests are done in that JVM. Otherwise, each node is assumed to have its own dedicated JVM.
      */

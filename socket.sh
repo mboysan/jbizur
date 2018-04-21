@@ -2,7 +2,7 @@
 
 # Used to test the Java Socket functionality locally. Uses mpi as the parallelization methodology.
 
-mvn clean install
+mvn clean install -DskipTests
 
 cd ./target
 count=3

@@ -3,7 +3,7 @@
 # Used to test the MPI functionality locally.
 
 # build java application
-mvn clean install
+mvn clean install -DskipTests
 
 # go to target and run MPIMain class
 cd ./target
