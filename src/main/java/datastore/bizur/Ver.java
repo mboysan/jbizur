@@ -28,4 +28,18 @@ public class Ver {
         this.counter.getAndIncrement();
         return this;
     }
+
+    public int compareTo(Ver other){
+        if(getElectId() > other.getElectId()){
+            return 1;
+        } else if (getElectId() == other.getElectId()){
+            return Integer.compare(getCounter(), other.getCounter());
+        } else {
+            return -1;
+        }
+    }
+
+    public static int compare(Ver v1, Ver v2){
+        return v1.compareTo(v2);
+    }
 }

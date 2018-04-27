@@ -3,27 +3,28 @@ package role;
 import annotations.ForTestingOnly;
 import config.GlobalConfig;
 import datastore.bizur.Bucket;
-import datastore.bizur.Ver;
 import network.address.Address;
 import network.messenger.IMessageReceiver;
 import network.messenger.IMessageSender;
 import network.messenger.SyncMessageListener;
-import org.pmw.tinylog.Logger;
 import protocol.commands.NetworkCommand;
 import protocol.commands.bizur.*;
 
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class BizurNode extends Role {
 
-    private AtomicInteger electId = new AtomicInteger(0);
-    private AtomicInteger votedElectId = new AtomicInteger(0);
-    private AtomicReference<Address> leaderAddress = new AtomicReference<>(null);
+    private static final int BUCKET_COUNT = 1;
 
-    private Bucket[] localBuckets = new Bucket[1];
+    private AtomicInteger electId;
+    private AtomicInteger votedElectId;
+    private AtomicReference<Address> leaderAddress;
+
+    private Bucket[] localBuckets;
 
     public BizurNode(Address baseAddress) throws InterruptedException {
         this(baseAddress, null, null, null);
@@ -35,18 +36,23 @@ public class BizurNode extends Role {
                         IMessageReceiver messageReceiver,
                         CountDownLatch readyLatch) throws InterruptedException {
         super(baseAddress, messageSender, messageReceiver, readyLatch);
-        initBuckets(localBuckets.length);
+
+        initNode();
+        initBuckets(BUCKET_COUNT);
+    }
+
+    private void initNode() {
+        int eId = ((int) System.nanoTime()) + getAddress().hashCode();
+        electId = new AtomicInteger(eId);
+        votedElectId = new AtomicInteger(0);
+        leaderAddress = new AtomicReference<>(null);
     }
 
     private void initBuckets(int count) {
+        localBuckets = new Bucket[count];
         for (int i = 0; i < count; i++) {
-            Ver v = new Ver()
-                    .setCounter(0)
-                    .setElectId(0);
             Bucket b = new Bucket()
-                    .setIndex(i)
-                    .setVer(v)
-                    .setBucketMap(new ConcurrentHashMap<>());
+                    .setIndex(i);
             localBuckets[i] = b;
         }
     }
@@ -55,7 +61,12 @@ public class BizurNode extends Role {
      * Algorithm 1 - Leader Election
      * ***************************************************************************/
 
-    public void startElection() {
+    public synchronized boolean tryElectLeader(){
+        startElection();
+        return isLeader();
+    }
+
+    private void startElection() {
         electId.getAndIncrement();
 
         String msgId = GlobalConfig.getInstance().generateMsgId();
@@ -93,7 +104,7 @@ public class BizurNode extends Role {
         detachMsgListener(listener);
     }
 
-    private synchronized void pleaseVote(PleaseVote_NC pleaseVoteNc) {
+    private void pleaseVote(PleaseVote_NC pleaseVoteNc) {
         int electId = pleaseVoteNc.getElectId();
         Address source = pleaseVoteNc.getSenderAddress();
 
@@ -151,7 +162,7 @@ public class BizurNode extends Role {
 
         GlobalConfig.getInstance().getAddresses().forEach(receiverAddress -> {
             NetworkCommand replicaWrite = new ReplicaWrite_NC()
-                    .setBucket(bucket)
+                    .setBucketView(bucket.createView())
                     .setAssocMsgId(msgId)
                     .setSenderId(getRoleId())
                     .setReceiverAddress(receiverAddress)
@@ -172,7 +183,7 @@ public class BizurNode extends Role {
     }
 
     private void replicaWrite(ReplicaWrite_NC replicaWriteNc){
-        Bucket bucket = replicaWriteNc.getBucket();
+        Bucket bucket = Bucket.createBucketFromView(replicaWriteNc.getBucketView());
         Address source = replicaWriteNc.getSenderAddress();
 
         NetworkCommand response;
@@ -185,7 +196,7 @@ public class BizurNode extends Role {
         } else {
             votedElectId.set(bucket.getVer().getElectId());
             leaderAddress.set(source);
-            localBuckets[bucket.getIndex()].replaceWith(bucket);
+            localBuckets[bucket.getIndex()].replaceWithBucket(bucket);
 
             response = new AckWrite_NC()
                     .setAssocMsgId(replicaWriteNc.getAssocMsgId())
@@ -265,7 +276,7 @@ public class BizurNode extends Role {
             leaderAddress.set(source);
 
             NetworkCommand ackRead = new AckRead_NC()
-                    .setBucket(localBuckets[index])
+                    .setBucketView(localBuckets[index].createView())
                     .setAssocMsgId(replicaReadNc.getAssocMsgId())
                     .setSenderId(getRoleId())
                     .setSenderAddress(getAddress())
@@ -293,13 +304,12 @@ public class BizurNode extends Role {
                     getProcessesLatch().countDown();
 
                     AckRead_NC ackRead = ((AckRead_NC) command);
-                    Bucket bucket = ackRead.getBucket();
+                    Bucket bucket = Bucket.createBucketFromView(ackRead.getBucketView());
 
                     if(maxVerBucket[0] == null){
                         maxVerBucket[0] = bucket;
                     } else {
-                        if((bucket.getVer().getElectId() + bucket.getVer().getCounter()) >
-                                ((maxVerBucket[0].getVer().getElectId() + maxVerBucket[0].getVer().getCounter()))){
+                        if(bucket.getVer().compareTo(maxVerBucket[0].getVer()) > 0){
                             maxVerBucket[0] = bucket;
                         }
                     }
@@ -343,23 +353,44 @@ public class BizurNode extends Role {
      * Algorithm 5 - Key-Value API
      * ***************************************************************************/
 
-    public String get(String key) {
+    public synchronized String get(String key) {
         int index = 0;  //fixme
         Bucket bucket = read(index);
         if(bucket != null){
-            return bucket.getBucketMap().get(key);
+            return bucket.getOp(key);
         }
         return null;
     }
 
-    public boolean set(String key, String value){
+    public synchronized boolean set(String key, String value){
         int index = 0; //fixme
         Bucket bucket = read(index);
         if (bucket != null) {
-            bucket.getBucketMap().put(key, value);
+            bucket.putOp(key, value);
             return write(bucket);
         }
         return false;
+    }
+
+    public synchronized boolean delete(String key) {
+        int index = 0; //fixme
+        Bucket bucket = read(index);
+        if(bucket != null){
+            bucket.removeOp(key);
+            return write(bucket);
+        }
+        return false;
+    }
+
+    public Set<String> iterateKeys() {
+        Set<String> res = new HashSet<>();
+        for (int index = 0; index < BUCKET_COUNT; index++) {
+            Bucket bucket = read(index);
+            if(bucket != null){
+                res.addAll(bucket.getKeySet());
+            }
+        }
+        return res;
     }
 
     @Override

@@ -1,24 +1,24 @@
 package protocol.commands.bizur;
 
-import datastore.bizur.Bucket;
+import datastore.bizur.BucketView;
 import protocol.commands.NetworkCommand;
 
 public class AckRead_NC extends NetworkCommand {
-    private Bucket bucket;
+    private BucketView bucketView;
 
-    public Bucket getBucket() {
-        return bucket;
+    public BucketView getBucketView() {
+        return bucketView;
     }
 
-    public AckRead_NC setBucket(Bucket bucket) {
-        this.bucket = bucket;
+    public AckRead_NC setBucketView(BucketView bucketView) {
+        this.bucketView = bucketView;
         return this;
     }
 
     @Override
     public String toString() {
         return "AckRead_NC{" +
-                "bucket=" + bucket +
+                "bucketView=" + bucketView +
                 "} " + super.toString();
     }
 }
