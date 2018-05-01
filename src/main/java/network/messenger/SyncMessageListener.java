@@ -16,8 +16,12 @@ public abstract class SyncMessageListener {
     private final String msgId;
 
     public SyncMessageListener(String msgId) {
+        this(msgId, GlobalConfig.getInstance().getProcessCount());
+    }
+
+    public SyncMessageListener(String msgId, int latchCount){
         this.msgId = msgId;
-        this.processesLatch = new CountDownLatch(GlobalConfig.getInstance().getProcessCount());
+        this.processesLatch = new CountDownLatch(latchCount);
         this.ackCount = new AtomicInteger(0);
     }
 

@@ -42,7 +42,7 @@ public class BizurNode extends Role {
     }
 
     private void initNode() {
-        int eId = ((int) System.nanoTime()) + getAddress().hashCode();
+        int eId = Math.abs((int) System.currentTimeMillis() + getRoleId().hashCode());
         electId = new AtomicInteger(eId);
         votedElectId = new AtomicInteger(0);
         leaderAddress = new AtomicReference<>(null);
@@ -57,14 +57,22 @@ public class BizurNode extends Role {
         }
     }
 
+    private void updateLeader(boolean isLeader){
+        setLeader(isLeader && (leaderAddress.get() != null && leaderAddress.get().isSame(getAddress())));
+    }
+
+    private void updateLeader(Address source){
+        if(source != null) {
+            leaderAddress.getAndUpdate(address -> {
+                setLeader(source.isSame(getAddress()));
+                return source;
+            });
+        }
+    }
+
     /* ***************************************************************************
      * Algorithm 1 - Leader Election
      * ***************************************************************************/
-
-    public synchronized boolean tryElectLeader(){
-        startElection();
-        return isLeader();
-    }
 
     private void startElection() {
         electId.getAndIncrement();
@@ -99,25 +107,27 @@ public class BizurNode extends Role {
         });
 
         if(listener.waitForResponses()){
-            setLeader(listener.isMajorityAcked());
+            if(listener.isMajorityAcked()){
+                updateLeader(true);
+            }
         }
         detachMsgListener(listener);
     }
 
-    private void pleaseVote(PleaseVote_NC pleaseVoteNc) {
+    private synchronized void pleaseVote(PleaseVote_NC pleaseVoteNc) {
         int electId = pleaseVoteNc.getElectId();
         Address source = pleaseVoteNc.getSenderAddress();
 
         NetworkCommand vote;
         if (electId > votedElectId.get()) {
             votedElectId.set(electId);
-            leaderAddress.set(source);
+            updateLeader(source);
             vote = new AckVote_NC()
                     .setAssocMsgId(pleaseVoteNc.getAssocMsgId())
                     .setSenderId(getRoleId())
                     .setReceiverAddress(source)
                     .setSenderAddress(getAddress());
-        } else if(electId == votedElectId.get() && source == leaderAddress.get()) {
+        } else if(electId == votedElectId.get() && source.isSame(leaderAddress.get())) {
             vote = new AckVote_NC()
                     .setAssocMsgId(pleaseVoteNc.getAssocMsgId())
                     .setSenderId(getRoleId())
@@ -195,7 +205,7 @@ public class BizurNode extends Role {
                     .setSenderAddress(getAddress());
         } else {
             votedElectId.set(bucket.getVer().getElectId());
-            leaderAddress.set(source);
+            updateLeader(source);
             localBuckets[bucket.getIndex()].replaceWithBucket(bucket);
 
             response = new AckWrite_NC()
@@ -273,7 +283,7 @@ public class BizurNode extends Role {
             sendMessage(nackRead);
         } else {
             votedElectId.set(electId);
-            leaderAddress.set(source);
+            updateLeader(source);
 
             NetworkCommand ackRead = new AckRead_NC()
                     .setBucketView(localBuckets[index].createView())
@@ -302,6 +312,7 @@ public class BizurNode extends Role {
             public void handleMessage(NetworkCommand command) {
                 if(command instanceof AckRead_NC){
                     getProcessesLatch().countDown();
+                    getAckCount().incrementAndGet();
 
                     AckRead_NC ackRead = ((AckRead_NC) command);
                     Bucket bucket = Bucket.createBucketFromView(ackRead.getBucketView());
@@ -329,6 +340,7 @@ public class BizurNode extends Role {
             NetworkCommand replicaRead = new ReplicaRead_NC()
                     .setIndex(index)
                     .setElectId(electId)
+                    .setSenderId(getRoleId())
                     .setSenderAddress(getAddress())
                     .setReceiverAddress(receiverAddress)
                     .setAssocMsgId(msgId);
@@ -353,7 +365,7 @@ public class BizurNode extends Role {
      * Algorithm 5 - Key-Value API
      * ***************************************************************************/
 
-    public synchronized String get(String key) {
+    private synchronized String _get(String key) {
         int index = 0;  //fixme
         Bucket bucket = read(index);
         if(bucket != null){
@@ -362,7 +374,7 @@ public class BizurNode extends Role {
         return null;
     }
 
-    public synchronized boolean set(String key, String value){
+    private synchronized boolean _set(String key, String value){
         int index = 0; //fixme
         Bucket bucket = read(index);
         if (bucket != null) {
@@ -372,7 +384,7 @@ public class BizurNode extends Role {
         return false;
     }
 
-    public synchronized boolean delete(String key) {
+    private synchronized boolean _delete(String key) {
         int index = 0; //fixme
         Bucket bucket = read(index);
         if(bucket != null){
@@ -382,7 +394,7 @@ public class BizurNode extends Role {
         return false;
     }
 
-    public Set<String> iterateKeys() {
+    private synchronized Set<String> _iterateKeys() {
         Set<String> res = new HashSet<>();
         for (int index = 0; index < BUCKET_COUNT; index++) {
             Bucket bucket = read(index);
@@ -391,6 +403,150 @@ public class BizurNode extends Role {
             }
         }
         return res;
+    }
+
+
+    /* ***************************************************************************
+     * Public API
+     * ***************************************************************************/
+
+    private <T> T routeRequestAndGet(NetworkCommand command) {
+        final Object[] resp = new Object[1];
+        String msgId = GlobalConfig.getInstance().generateMsgId();
+        SyncMessageListener listener = new SyncMessageListener(msgId, 1) {
+            @Override
+            public void handleMessage(NetworkCommand command) {
+                resp[0] = (T) command.getPayload();
+                getProcessesLatch().countDown();
+            }
+        };
+        attachMsgListener(listener);
+
+        command.setAssocMsgId(msgId);
+
+        sendMessage(command);
+        try{
+            if(listener.waitForResponses()){
+                return (T) resp[0];
+            } else {
+                startElection();
+                routeRequestAndGet(command.setReceiverAddress(leaderAddress.get()));
+            }
+        } finally {
+            detachMsgListener(listener);
+        }
+        return null;
+    }
+
+    public boolean tryElectLeader() {
+        startElection();
+        return isLeader();
+    }
+
+    private Address validateAndGetLeaderAddress() {
+        /*
+        return leaderAddress.updateAndGet(address -> {
+            while (address == null) {
+                startElection();
+            }
+            return address;
+        });
+        */
+        Address prevAddr = leaderAddress.get();
+        while(leaderAddress.get() == null){
+            startElection();
+        }
+        if(prevAddr != leaderAddress.get()){
+            System.out.println("Leader changed");
+        }
+        return leaderAddress.get();
+    }
+
+    public String get(String key) {
+        if(isLeader()){
+            return _get(key);
+        }
+        Address lead = validateAndGetLeaderAddress();
+        return routeRequestAndGet(
+                new ApiGet_NC()
+                        .setKey(key)
+                        .setSenderId(getRoleId())
+                        .setReceiverAddress(lead)
+                        .setSenderAddress(getAddress()));
+    }
+    private void getByLeader(ApiGet_NC getNc) {
+        String val = _get(getNc.getKey());
+        sendMessage(
+                new NetworkCommand()
+                        .setPayload(val)
+                        .setReceiverAddress(getNc.getSenderAddress())
+                        .setAssocMsgId(getNc.getAssocMsgId())
+        );
+    }
+
+    public boolean set(String key, String val) {
+        if(isLeader()){
+            return _set(key, val);
+        }
+        Address lead = validateAndGetLeaderAddress();
+        return routeRequestAndGet(
+                new ApiSet_NC()
+                        .setKey(key)
+                        .setVal(val)
+                        .setSenderId(getRoleId())
+                        .setReceiverAddress(lead)
+                        .setSenderAddress(getAddress()));
+    }
+    private void setByLeader(ApiSet_NC setNc) {
+        boolean isSuccess = _set(setNc.getKey(), setNc.getVal());
+        sendMessage(
+                new NetworkCommand()
+                        .setPayload(isSuccess)
+                        .setReceiverAddress(setNc.getSenderAddress())
+                        .setSenderAddress(getAddress())
+                        .setAssocMsgId(setNc.getAssocMsgId())
+        );
+    }
+
+    public boolean delete(String key) {
+        if(isLeader()){
+            return _delete(key);
+        }
+        return routeRequestAndGet(
+                new ApiDelete_NC()
+                        .setKey(key)
+                        .setSenderId(getRoleId())
+                        .setReceiverAddress(leaderAddress.get())
+                        .setSenderAddress(getAddress()));
+    }
+    private void deleteByLeader(ApiDelete_NC deleteNc) {
+        boolean isDeleted = _delete(deleteNc.getKey());
+        sendMessage(
+                new NetworkCommand()
+                        .setPayload(isDeleted)
+                        .setReceiverAddress(deleteNc.getSenderAddress())
+                        .setAssocMsgId(deleteNc.getAssocMsgId())
+        );
+    }
+
+    public Set<String> iterateKeys() {
+        if(isLeader()){
+            return _iterateKeys();
+        }
+        return routeRequestAndGet(
+                new ApiIterKeys_NC()
+                        .setSenderId(getRoleId())
+                        .setReceiverAddress(leaderAddress.get())
+                        .setSenderAddress(getAddress()));
+    }
+    private void iterateKeysByLeader(ApiIterKeys_NC iterKeysNc) {
+        Set<String> keys = _iterateKeys();
+        sendMessage(
+                new NetworkCommand()
+                        .setPayload(keys)
+                        .setReceiverAddress(iterKeysNc.getSenderAddress())
+                        .setAssocMsgId(iterKeysNc.getAssocMsgId())
+        );
     }
 
     @Override
@@ -405,6 +561,20 @@ public class BizurNode extends Role {
         }
         if (message instanceof PleaseVote_NC) {
             pleaseVote(((PleaseVote_NC) message));
+        }
+
+        /* Internal API routed requests */
+        if(message instanceof ApiGet_NC){
+            getByLeader((ApiGet_NC) message);
+        }
+        if(message instanceof ApiSet_NC){
+            setByLeader((ApiSet_NC) message);
+        }
+        if(message instanceof ApiDelete_NC){
+            deleteByLeader((ApiDelete_NC) message);
+        }
+        if(message instanceof ApiIterKeys_NC){
+            iterateKeysByLeader((ApiIterKeys_NC) message);
         }
     }
 

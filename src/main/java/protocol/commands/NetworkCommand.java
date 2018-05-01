@@ -32,7 +32,7 @@ public class NetworkCommand implements Serializable {
     /**
      * Any additional payload to send.
      */
-    private String payload;
+    private Object payload;
 
     private String msgId;
 
@@ -115,11 +115,11 @@ public class NetworkCommand implements Serializable {
         return timeStamp;
     }
 
-    public String getPayload() {
+    public Object getPayload() {
         return payload;
     }
 
-    public NetworkCommand setPayload(String payload) {
+    public NetworkCommand setPayload(Object payload) {
         this.payload = payload;
         return this;
     }

@@ -11,12 +11,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
+import utils.RunnerWithExceptionCatcher;
 
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class BizurNodeTest {
@@ -58,24 +60,92 @@ public class BizurNodeTest {
     }
 
     /**
-     * Tests the leader election flow. The node that initiates the {@link BizurNode#startElection()} procedure
-     * is always elected as the leader in this case.
+     * Simple test for the leader election flow.
      */
     @Test
-    public void startElectionTest() {
+    public void leaderElectionTest() {
         Random random = getRandom();
-        for (int i = 0; i < 10; i++) {
-            BizurNode leader = bizurNodes[random.nextInt(bizurNodes.length)];
-            leader.tryElectLeader();
-//            Assert.assertTrue(leader.isLeader());
+
+        BizurNode bizurNode = bizurNodes[random.nextInt(bizurNodes.length)];
+        bizurNode.tryElectLeader();
+
+        int leaderCnt = 0;
+        for (BizurNode node : bizurNodes) {
+            leaderCnt += node.isLeader() ? 1 : 0;
         }
+        Assert.assertEquals(1, leaderCnt);
+    }
+
+    /**
+     * Tests the leader election flow but when multiple nodes initiate the same procedure at the same time.
+     * @throws Throwable any exception caught during lambda function calls.
+     */
+    @Test
+    public void leaderElectionMultiThreadTest() throws Throwable {
+        Random random = getRandom();
+
+        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        CountDownLatch latch = new CountDownLatch(bizurNodes.length);
+
+        AtomicReference<Throwable> caughtException = new AtomicReference<>(null);
+        for (BizurNode bizurNode : bizurNodes) {
+            executor.execute(() -> {
+                try {
+                    if (caughtException.get() != null) {
+                        return;
+                    }
+                    bizurNode.tryElectLeader();
+                } catch (Throwable e) {
+                    caughtException.compareAndSet(null, e);
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+        latch.await();
+
+        int leaderCnt = 0;
+        for (BizurNode node : bizurNodes) {
+            leaderCnt += node.isLeader() ? 1 : 0;
+        }
+        try{
+            Assert.assertEquals(1, leaderCnt);
+        } catch (Throwable e) {
+            caughtException.compareAndSet(null, e);
+        }
+
+        if (caughtException.get() != null) {
+            throw caughtException.get();
+        }
+    }
+
+    /**
+     * Tests the leader election flow but when multiple nodes initiate the same procedure at the same time.
+     * @throws Throwable any exception caught during lambda function calls.
+     */
+    @Test
+    public void leaderElectionMultiThreadTest2() throws Throwable {
+        RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(bizurNodes.length, -1);
+        for (BizurNode bizurNode : bizurNodes) {
+            runner.execute(() -> {
+                bizurNode.tryElectLeader();
+            });
+        }
+        runner.awaitCompletion();
+        runner.throwCaughtException();
+
+        int leaderCnt = 0;
+        for (BizurNode node : bizurNodes) {
+            leaderCnt += node.isLeader() ? 1 : 0;
+        }
+        Assert.assertEquals(1, leaderCnt);
     }
 
     /**
      * Test for sequential set/get operations of a set of keys and values on different nodes.
      */
     @Test
-    public void keyValueInsertTest() {
+    public void keyValueSetGetTest() {
         Random random = getRandom();
         for (int i = 0; i < 10; i++) {
             String expKey = UUID.randomUUID().toString();
@@ -90,10 +160,10 @@ public class BizurNodeTest {
     }
 
     @Test
-    public void keyValueInsertMultiThreadTest() throws Throwable {
+    public void keyValueSetGetMultiThreadTest() throws Throwable {
         Random random = getRandom();
 
-        int testCount = 100;
+        int testCount = 50;
 
         ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         CountDownLatch latch = new CountDownLatch(testCount);
@@ -105,13 +175,16 @@ public class BizurNodeTest {
                     if (caughtException.get() != null) {
                         return;
                     }
-
-                    BizurNode bizurNode = bizurNodes[random.nextInt(NODE_COUNT)];
-
                     String testKey = UUID.randomUUID().toString();
                     String expVal = UUID.randomUUID().toString();
+                    BizurNode bizurNode;
 
+                    bizurNode = bizurNodes[random.nextInt(bizurNodes.length)];
+                    bizurNode = bizurNodes[0];
                     Assert.assertTrue(bizurNode.set(testKey, expVal));
+
+                    bizurNode = bizurNodes[random.nextInt(bizurNodes.length)];
+                    bizurNode = bizurNodes[0];
                     Assert.assertEquals(expVal, bizurNode.get(testKey));
                 } catch (Throwable e) {
                     caughtException.compareAndSet(null, e);

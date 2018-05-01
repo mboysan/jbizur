@@ -13,6 +13,7 @@ import protocol.commands.ping.SignalEnd_NC;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Each node is defined as a role.
@@ -40,7 +41,7 @@ public abstract class Role {
     /**
      * Defines if this role is the leader or not.
      */
-    private boolean isLeader = false;
+    private final AtomicBoolean isLeader = new AtomicBoolean(false);
 
     /**
      * Indicates if the node is ready for registration by calling {@link GlobalConfig#registerRole(Role)}.
@@ -155,11 +156,11 @@ public abstract class Role {
     }
 
     public boolean isLeader() {
-        return isLeader;
+        return isLeader.get();
     }
 
     public void setLeader(boolean leader) {
-        isLeader = leader;
+        isLeader.set(leader);
     }
 
     /**
