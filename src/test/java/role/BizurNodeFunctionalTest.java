@@ -4,8 +4,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import utils.RunnerWithExceptionCatcher;
 
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 
 public class BizurNodeFunctionalTest extends BizurNodeTestBase {
 
@@ -145,5 +144,47 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
         }
         runner.awaitCompletion();
         runner.throwAnyCaughtException();
+    }
+
+    /**
+     * Tests the iterate keys procedure. Inserts key/val pairs to the bucket. And while inserting,
+     * iterates over the inserted keys and compares with the expected values.
+     */
+    @Test
+    public void iterateKeysTest() {
+        Random random = getRandom();
+
+        int keyCount = 10;
+
+        Map<String, String> expKeyVals = new HashMap<>();
+
+        for (int i = 0; i < keyCount; i++) {
+            String key = UUID.randomUUID().toString();
+            String val = UUID.randomUUID().toString();
+            BizurNode bizurNode;
+
+            expKeyVals.put(key, val);
+
+            bizurNode = bizurNodes[random.nextInt(bizurNodes.length)];
+            bizurNode.set(key, val);
+
+            bizurNode = bizurNodes[random.nextInt(bizurNodes.length)];
+            Set<String> actKeys = bizurNode.iterateKeys();
+
+            Assert.assertEquals(expKeyVals.size(), actKeys.size());
+
+            for (String actKey : actKeys) {
+                bizurNode = bizurNodes[random.nextInt(bizurNodes.length)];
+                Assert.assertEquals(expKeyVals.get(actKey), bizurNode.get(actKey));
+            }
+        }
+    }
+
+    /**
+     * Tests all the operations by creating as much chaos as possible.
+     */
+    @Test
+    public void chaosTest() throws Throwable {
+        //TODO: implement the chaos test.
     }
 }
