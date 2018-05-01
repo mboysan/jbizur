@@ -438,20 +438,7 @@ public class BizurNode extends Role {
         return null;
     }
 
-    public boolean tryElectLeader() {
-        startElection();
-        return isLeader();
-    }
-
-    private Address validateAndGetLeaderAddress() {
-        /*
-        return leaderAddress.updateAndGet(address -> {
-            while (address == null) {
-                startElection();
-            }
-            return address;
-        });
-        */
+    public Address tryElectLeader() {
         while(leaderAddress.get() == null){
             startElection();
         }
@@ -462,7 +449,7 @@ public class BizurNode extends Role {
         if(isLeader()){
             return _get(key);
         }
-        Address lead = validateAndGetLeaderAddress();
+        Address lead = tryElectLeader();
         return routeRequestAndGet(
                 new ApiGet_NC()
                         .setKey(key)
@@ -484,7 +471,7 @@ public class BizurNode extends Role {
         if(isLeader()){
             return _set(key, val);
         }
-        Address lead = validateAndGetLeaderAddress();
+        Address lead = tryElectLeader();
         return routeRequestAndGet(
                 new ApiSet_NC()
                         .setKey(key)
@@ -508,7 +495,7 @@ public class BizurNode extends Role {
         if(isLeader()){
             return _delete(key);
         }
-        Address lead = validateAndGetLeaderAddress();
+        Address lead = tryElectLeader();
         return routeRequestAndGet(
                 new ApiDelete_NC()
                         .setKey(key)

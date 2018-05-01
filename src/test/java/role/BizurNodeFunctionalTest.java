@@ -122,7 +122,6 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueDeleteMultiThreadTest() throws Throwable {
-//        Random random = getRandom(1525186479301L);
         Random random = getRandom();
 
         int testCount = 50;
@@ -145,10 +144,6 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
             });
         }
         runner.awaitCompletion();
-        try{
-            runner.throwAnyCaughtException();
-        } catch (Throwable t){
-            throw t;
-        }
+        runner.throwAnyCaughtException();
     }
 }
