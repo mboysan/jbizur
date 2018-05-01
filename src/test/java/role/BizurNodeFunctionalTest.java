@@ -1,59 +1,13 @@
 package role;
 
-import config.GlobalConfig;
-import config.LoggerConfig;
-import network.address.MockAddress;
-import network.messenger.MessageReceiverMock;
-import network.messenger.MessageSenderMock;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
-import org.pmw.tinylog.Level;
-import org.pmw.tinylog.Logger;
 import utils.RunnerWithExceptionCatcher;
 
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
 
-public class BizurNodeTest {
-
-    private static final int NODE_COUNT = 3;
-    private final BizurNode[] bizurNodes = new BizurNode[NODE_COUNT];
-
-    private MessageSenderMock messageSenderMock;
-
-    @Before
-    public void setUp() throws Exception {
-        LoggerConfig.configureLogger(Level.DEBUG);
-
-        GlobalConfig.getInstance().initTCP(true);
-
-        this.messageSenderMock = new MessageSenderMock();
-        for (int i = 0; i < NODE_COUNT; i++) {
-            bizurNodes[i] = new BizurNode(
-                    new MockAddress(UUID.randomUUID().toString()),
-                    messageSenderMock,
-                    new MessageReceiverMock(),
-                    new CountDownLatch(0)
-            );
-            messageSenderMock.registerRole(bizurNodes[i].getAddress().toString(), bizurNodes[i]);
-        }
-    }
-
-    @After
-    public void tearDown() {
-        LoggerConfig.configureLogger(Level.DEBUG);
-
-        GlobalConfig.getInstance().reset();
-    }
-
-    protected Random getRandom(){
-        long seed = System.currentTimeMillis();
-        Logger.info("Seed: " + seed);
-        return new Random(seed);
-    }
+public class BizurNodeFunctionalTest extends BizurNodeTestBase {
 
     /**
      * Simple test for the leader election flow.
@@ -168,11 +122,12 @@ public class BizurNodeTest {
      */
     @Test
     public void keyValueDeleteMultiThreadTest() throws Throwable {
+//        Random random = getRandom(1525186479301L);
         Random random = getRandom();
 
         int testCount = 50;
 
-        RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(bizurNodes.length);
+        RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
         for (int i = 0; i < testCount; i++) {
             runner.execute(() -> {
                 String testKey = UUID.randomUUID().toString();
@@ -190,6 +145,10 @@ public class BizurNodeTest {
             });
         }
         runner.awaitCompletion();
-        runner.throwAnyCaughtException();
+        try{
+            runner.throwAnyCaughtException();
+        } catch (Throwable t){
+            throw t;
+        }
     }
 }

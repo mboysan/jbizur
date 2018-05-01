@@ -452,12 +452,8 @@ public class BizurNode extends Role {
             return address;
         });
         */
-        Address prevAddr = leaderAddress.get();
         while(leaderAddress.get() == null){
             startElection();
-        }
-        if(prevAddr != leaderAddress.get()){
-            System.out.println("Leader changed");
         }
         return leaderAddress.get();
     }
@@ -512,11 +508,12 @@ public class BizurNode extends Role {
         if(isLeader()){
             return _delete(key);
         }
+        Address lead = validateAndGetLeaderAddress();
         return routeRequestAndGet(
                 new ApiDelete_NC()
                         .setKey(key)
                         .setSenderId(getRoleId())
-                        .setReceiverAddress(leaderAddress.get())
+                        .setReceiverAddress(lead)
                         .setSenderAddress(getAddress()));
     }
     private void deleteByLeader(ApiDelete_NC deleteNc) {
@@ -525,6 +522,7 @@ public class BizurNode extends Role {
                 new NetworkCommand()
                         .setPayload(isDeleted)
                         .setReceiverAddress(deleteNc.getSenderAddress())
+                        .setSenderAddress(getAddress())
                         .setAssocMsgId(deleteNc.getAssocMsgId())
         );
     }
