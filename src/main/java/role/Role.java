@@ -9,6 +9,7 @@ import protocol.commands.NetworkCommand;
 import protocol.commands.ping.ConnectOK_NC;
 import protocol.commands.ping.Connect_NC;
 import protocol.commands.ping.SignalEnd_NC;
+import protocol.internal.InternalCommand;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,11 +34,11 @@ public abstract class Role {
     /**
      * Message sender service.
      */
-    private final IMessageSender messageSender;
+    protected final IMessageSender messageSender;
     /**
      * Message sender service.
      */
-    private final IMessageReceiver messageReceiver;
+    protected final IMessageReceiver messageReceiver;
     /**
      * Defines if this role is the leader or not.
      */
@@ -46,7 +47,10 @@ public abstract class Role {
     /**
      * Indicates if the node is ready for registration by calling {@link GlobalConfig#registerRole(Role)}.
      */
-    private final CountDownLatch readyLatch;
+    private CountDownLatch readyLatch;
+
+    protected Role rootRole;
+    protected Pinger pinger;
 
     /**
      * @param baseAddress see {@link #myAddress}. The address may be modified by the {@link MessageReceiverImpl} after
@@ -54,6 +58,21 @@ public abstract class Role {
      */
     Role(Address baseAddress) throws InterruptedException {
         this(baseAddress, null, null, null);
+    }
+
+    protected Role(Role rootRole) throws InterruptedException {
+        this(rootRole.getAddress(), rootRole.messageSender, rootRole.messageReceiver);
+        this.rootRole = rootRole;
+    }
+
+    protected Role(Address baseAddress, IMessageSender messageSender, IMessageReceiver messageReceiver) throws InterruptedException {
+        this.myAddress = baseAddress;
+        roleId = baseAddress.resolveAddressId();
+        this.messageSender = messageSender == null ? new MessageSenderImpl(this) : messageSender;
+        this.messageReceiver = messageReceiver == null ? new MessageReceiverImpl(this) : messageReceiver;
+        this.readyLatch = null;
+        this.rootRole = null;
+        this.pinger = null;
     }
 
     /**
@@ -70,23 +89,16 @@ public abstract class Role {
                    IMessageReceiver messageReceiver,
                    CountDownLatch readyLatch) throws InterruptedException
     {
-        this.myAddress = baseAddress;
-        roleId = baseAddress.resolveAddressId();
-
-        if(messageSender == null){
-            messageSender = new MessageSenderImpl();
-        }
-        if(messageReceiver == null){
-            messageReceiver = new MessageReceiverImpl(this);
-        }
-        this.messageSender = messageSender;
-        this.messageReceiver = messageReceiver;
-        this.messageReceiver.startRecv();
+        this(baseAddress, messageSender, messageReceiver);
 
         this.readyLatch = readyLatch == null ? new CountDownLatch(1) : readyLatch;
+        this.messageReceiver.startRecv();
+
         this.readyLatch.await();
 
         GlobalConfig.getInstance().registerRole(this);
+        pinger = new Pinger(this);
+        pinger.pingUnreachableNodesPeriodically();
     }
 
     /**
@@ -105,33 +117,38 @@ public abstract class Role {
 
     /**
      * Handles the provided network message. Each role implements its own message handling mechanism.
-     * @param message the network message to handle.
+     * @param command the network message to handle.
      */
-    public void handleMessage(NetworkCommand message){
-        Logger.debug("[" + getAddress() +"] - " + message);
+    public void handleNetworkCommand(NetworkCommand command){
+        Logger.debug("[" + getAddress() +"] - " + command);
 
         boolean isHandled = false;
-        String assocMsgId = message.getAssocMsgId();
+        String assocMsgId = command.getMsgId();
         if(assocMsgId != null){
             SyncMessageListener listener = syncMessageListeners.get(assocMsgId);
             if(listener != null){
+                listener.handleMessage(command);
                 isHandled = true;
-                listener.handleMessage(message);
-                message.setHandled(true);   //TODO: might need to find a better solution to this.
             }
         }
 
         if(!isHandled){
-            if(message instanceof Connect_NC){
+            if(command instanceof Connect_NC){
                 NetworkCommand connectOK = new ConnectOK_NC()
                         .setSenderAddress(getAddress())
-                        .setReceiverAddress(message.getSenderAddress());
+                        .setReceiverAddress(command.getSenderAddress());
                 sendMessage(connectOK);
             }
-            if(message instanceof ConnectOK_NC){
-                GlobalConfig.getInstance().registerAddress(message.getSenderAddress(), this);
+            if(command instanceof ConnectOK_NC){
+                GlobalConfig.getInstance().registerAddress(command.getSenderAddress(), this);
             }
         }
+    }
+
+    public abstract void handleInternalCommand(InternalCommand command);
+
+    protected void handleNodeFailure(Address failedNodeAddress) {
+        GlobalConfig.getInstance().unregisterAddress(failedNodeAddress, this);
     }
 
     /**
@@ -145,6 +162,7 @@ public abstract class Role {
                     .setSenderAddress(getAddress());
             sendMessage(signalEnd);
         }
+        shutdown();
     }
 
     /**
@@ -176,6 +194,8 @@ public abstract class Role {
     public void setReady(){
         readyLatch.countDown();
     }
+
+    public abstract void shutdown();
 
     protected void attachMsgListener(SyncMessageListener listener){
         syncMessageListeners.putIfAbsent(listener.getMsgId(), listener);

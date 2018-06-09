@@ -4,11 +4,11 @@ import mpi.MPI;
 import mpi.MPIException;
 import network.address.MPIAddress;
 import org.pmw.tinylog.Logger;
-import role.Node;
+import role.BizurNode;
+import role.Role;
 import testframework.SystemMonitor;
 import testframework.TestFramework;
 
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import static network.ConnectionProtocol.MPI_CONNECTION;
@@ -36,11 +36,11 @@ public class MPIMain {
 
         int totalProcesses = GlobalConfig.getInstance().getProcessCount();
 
-        Node node = new Node(new MPIAddress(rank, settings.getGroupId()));
+        Role node = new BizurNode(new MPIAddress(rank, settings.getGroupId()));
 
         if(node.isLeader()){
             /* start tests */
-            testFramework = TestFramework.doPingTests(node, totalProcesses);
+//            testFramework = TestFramework.doPingTests(node, totalProcesses);
 
             /* send end signal to all nodes */
             node.signalEndToAll();

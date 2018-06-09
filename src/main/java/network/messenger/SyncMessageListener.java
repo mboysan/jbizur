@@ -3,7 +3,6 @@ package network.messenger;
 import config.GlobalConfig;
 import org.pmw.tinylog.Logger;
 import protocol.commands.NetworkCommand;
-import role.Role;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -15,11 +14,11 @@ public abstract class SyncMessageListener {
     private final AtomicInteger ackCount;
     private final String msgId;
 
-    public SyncMessageListener(String msgId) {
+    protected SyncMessageListener(String msgId) {
         this(msgId, GlobalConfig.getInstance().getProcessCount());
     }
 
-    public SyncMessageListener(String msgId, int latchCount){
+    protected SyncMessageListener(String msgId, int latchCount){
         this.msgId = msgId;
         this.processesLatch = new CountDownLatch(latchCount);
         this.ackCount = new AtomicInteger(0);
@@ -35,12 +34,12 @@ public abstract class SyncMessageListener {
         return processesLatch;
     }
 
-    public AtomicInteger getAckCount() {
-        return ackCount;
+    public void incrementAckCount(){
+        ackCount.getAndIncrement();
     }
 
     public boolean isMajorityAcked(){
-        return getAckCount().get() >= GlobalConfig.getInstance().getQuorumSize();
+        return ackCount.get() >= GlobalConfig.getInstance().getQuorumSize();
     }
 
     public void end(){

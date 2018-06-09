@@ -1,9 +1,9 @@
 package protocol.commands.bizur;
 
 import datastore.bizur.BucketView;
-import protocol.commands.NetworkCommand;
+import protocol.commands.common.Ack_NC;
 
-public class AckRead_NC extends NetworkCommand {
+public class AckRead_NC extends Ack_NC {
     private BucketView bucketView;
 
     public BucketView getBucketView() {

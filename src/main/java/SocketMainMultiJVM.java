@@ -4,13 +4,13 @@ import mpi.MPIException;
 import network.address.MulticastAddress;
 import network.address.TCPAddress;
 import org.pmw.tinylog.Logger;
-import role.Node;
+import role.BizurNode;
+import role.Role;
 import testframework.SystemMonitor;
 import testframework.TestFramework;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import static network.ConnectionProtocol.TCP_CONNECTION;
@@ -39,11 +39,11 @@ public class SocketMainMultiJVM {
 
         GlobalConfig.getInstance().initTCP(false, multicastAddress);
 
-        Node node = new Node(tcpAddress);
+        Role node = new BizurNode(tcpAddress);
 
         if(node.isLeader()){    // the node is pinger.
             /* start tests */
-            testFramework = TestFramework.doPingTests(node, settings.getTaskCount());
+//            testFramework = TestFramework.doPingTests(node, settings.getTaskCount());
 
             /* send end signal to all nodes */
             node.signalEndToAll();

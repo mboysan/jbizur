@@ -1,7 +1,7 @@
 package testframework;
 
 import org.pmw.tinylog.Logger;
-import role.Node;
+import role.Role;
 import testframework.result.LatencyResult;
 import testframework.result.OverallLatencyResult;
 
@@ -32,7 +32,7 @@ public class TestFramework {
      * @param processCount   total number of processes in system
      * @return this
      */
-    public static TestFramework doPingTests(Node pinger, int processCount){
+    public static TestFramework doPingTests(Role pinger, int processCount){
         isTesting = true;
         if(pingTester == null){
             pingTester = new TestFramework();
@@ -44,7 +44,7 @@ public class TestFramework {
     /**
      * Do ping tests.
      */
-    private void _doPingTests(Node pinger, int processCount){
+    private void _doPingTests(Role pinger, int processCount){
         Logger.info("Starting ping-pong tests...");
 
         resultCollector.addResult(loopPing("pingAll", TestPhase.PHASE_WARMUP, pinger, processCount));
@@ -63,7 +63,7 @@ public class TestFramework {
      * @param testPhase test phase.
      * @param pinger    pinger instance
      */
-    private OverallLatencyResult loopPing(String testGroupName, TestPhase testPhase, Node pinger, int totalProcesses) {
+    private OverallLatencyResult loopPing(String testGroupName, TestPhase testPhase, Role pinger, int totalProcesses) {
         int loopCount = testPhase.getIterations();
 
         int totalPingCount = totalProcesses * loopCount;
@@ -73,7 +73,7 @@ public class TestFramework {
         long[] results = new long[loopCount];
         for (int i = 0; i < loopCount; i++) {
             long start = System.currentTimeMillis();
-            pinger.pingAll();
+//            pinger.pingAll();
             long currTime = System.currentTimeMillis();
             resultCollector.addResultAsync(
                     new LatencyResult(

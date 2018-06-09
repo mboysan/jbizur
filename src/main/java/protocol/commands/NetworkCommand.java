@@ -1,5 +1,6 @@
 package protocol.commands;
 
+import config.GlobalConfig;
 import network.address.Address;
 
 import java.io.Serializable;
@@ -24,24 +25,37 @@ public class NetworkCommand implements Serializable {
     /**
      * Message tag
      */
-    private int tag = MessageTag.ANY_TAG.getTagValue();  //set default tag
+    private int tag;
     /**
      * Message timestamp. Auto-generated.
      */
-    private long timeStamp = System.currentTimeMillis();
+    private long timeStamp;
     /**
      * Any additional payload to send.
      */
     private Object payload;
-
+    /**
+     * Message id associated with this command.
+     */
     private String msgId;
-
-    private String assocMsgId;
-
-    private boolean isHandled = false;
+    /**
+     * To determine if this command is handled or not.
+     */
+    private boolean isHandled;
+    /**
+     * Number of times to retry sending this command in case of a failure.
+     */
+    private int retryCount = 1;
 
     public NetworkCommand() {
+        reset();
+    }
 
+    public void reset() {
+        this.timeStamp = System.currentTimeMillis();
+        this.tag = MessageTag.ANY_TAG.getTagValue();
+        this.isHandled = false;
+        this.retryCount = GlobalConfig.SEND_FAIL_RETRY_COUNT;
     }
 
     /**
@@ -133,21 +147,21 @@ public class NetworkCommand implements Serializable {
         return this;
     }
 
-    public String getAssocMsgId() {
-        return assocMsgId;
-    }
-
-    public NetworkCommand setAssocMsgId(String assocMsgId) {
-        this.assocMsgId = assocMsgId;
-        return this;
-    }
-
     public boolean isHandled() {
         return isHandled;
     }
 
     public NetworkCommand setHandled(boolean handled) {
         isHandled = handled;
+        return this;
+    }
+
+    public int getRetryCount() {
+        return retryCount;
+    }
+
+    public NetworkCommand setRetryCount(int retryCount) {
+        this.retryCount = retryCount;
         return this;
     }
 
@@ -159,10 +173,11 @@ public class NetworkCommand implements Serializable {
                 ", receiverAddr=" + receiverAddr +
                 ", tag=" + tag +
                 ", timeStamp=" + timeStamp +
-                ", payload='" + payload + '\'' +
+                ", payload=" + payload +
                 ", msgId='" + msgId + '\'' +
-                ", assocMsgId='" + assocMsgId + '\'' +
+                ", msgId='" + msgId + '\'' +
                 ", isHandled=" + isHandled +
+                ", retryCount=" + retryCount +
                 '}';
     }
 }

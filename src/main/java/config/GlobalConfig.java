@@ -39,6 +39,10 @@ public class GlobalConfig {
      * Timeout (in seconds) for responses between the processes.
      */
     public static long RESPONSE_TIMEOUT_SEC = 5;
+    /**
+     * Number of times to retry the failing message.
+     */
+    public static int SEND_FAIL_RETRY_COUNT = 0;
 
     /**
      * indicates if there are more than one node running on a single JVM. Meaning, if true, the nodes are initiated
@@ -182,6 +186,17 @@ public class GlobalConfig {
                 resetEndLatch(1);
             }
             Logger.info(String.format("Address [%s] registered on role [%s]", toRegister, roleRef));
+        }
+    }
+
+    public synchronized void unregisterAddress(Address toUnregister, Role roleRef) {
+        if(addresses.remove(toUnregister)) {
+            if(isSingleJVM){
+                resetEndLatch(getProcessCount());
+            } else {
+                resetEndLatch(1);
+            }
+            Logger.info(String.format("Address [%s] unregistered from role [%s]", toUnregister, roleRef));
         }
     }
 

@@ -3,6 +3,8 @@ package role;
 import config.GlobalConfig;
 import config.LoggerConfig;
 import network.address.MockAddress;
+import network.messenger.IMessageSender;
+import network.messenger.MessageReceiverImpl;
 import network.messenger.MessageReceiverMock;
 import network.messenger.MessageSenderMock;
 import org.junit.After;
@@ -17,25 +19,34 @@ import java.util.concurrent.CountDownLatch;
 public class BizurNodeTestBase {
 
     protected static final int NODE_COUNT = 3;
-    protected final BizurNode[] bizurNodes = new BizurNode[NODE_COUNT];
-
-    protected MessageSenderMock messageSenderMock;
+    protected BizurNode[] bizurNodes;
 
     @Before
     public void setUp() throws Exception {
         LoggerConfig.configureLogger(Level.DEBUG);
 
+        bizurNodes = new BizurNode[NODE_COUNT];
+
         GlobalConfig.getInstance().initTCP(true);
 
-        this.messageSenderMock = new MessageSenderMock();
         for (int i = 0; i < NODE_COUNT; i++) {
-            bizurNodes[i] = new BizurNode(
+            bizurNodes[i] = new BizurNodeMock(
                     new MockAddress(UUID.randomUUID().toString()),
-                    messageSenderMock,
+                    new MessageSenderMock(),
                     new MessageReceiverMock(),
                     new CountDownLatch(0)
             );
-            messageSenderMock.registerRole(bizurNodes[i].getAddress().toString(), bizurNodes[i]);
+        }
+
+        for (BizurNode bizurNode : bizurNodes) {
+            if(bizurNode instanceof BizurNodeMock){
+                IMessageSender messageSender = ((BizurNodeMock) bizurNode).getMessageSender();
+                if(messageSender instanceof MessageSenderMock){
+                    for (BizurNode bizurNode1 : bizurNodes){
+                        ((MessageSenderMock) messageSender).registerRole(bizurNode1);
+                    }
+                }
+            }
         }
     }
 

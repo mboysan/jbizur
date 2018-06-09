@@ -1,8 +1,8 @@
 package protocol.commands.bizur;
 
-import protocol.commands.NetworkCommand;
+import protocol.commands.common.Nack_NC;
 
-public class NackRead_NC extends NetworkCommand {
+public class NackRead_NC extends Nack_NC {
     @Override
     public String toString() {
         return "NackRead_NC{} " + super.toString();

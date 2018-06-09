@@ -9,6 +9,8 @@ import org.pmw.tinylog.Logger;
 import protocol.CommandMarshaller;
 import protocol.commands.NetworkCommand;
 import protocol.commands.ping.SignalEnd_NC;
+import protocol.internal.SendFail_IC;
+import role.Role;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -26,12 +28,18 @@ public class MessageSenderImpl implements IMessageSender {
     private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
     /**
+     * The {@link Role} to handle internal commands.
+     */
+    private final Role roleInstance;
+
+    /**
      * The marshaller to marshall the command to send.
      */
     private final CommandMarshaller commandMarshaller = new CommandMarshaller();
 
 
-    public MessageSenderImpl() {
+    public MessageSenderImpl(Role role) {
+        this.roleInstance = role;
     }
 
     /**
@@ -94,6 +102,7 @@ public class MessageSenderImpl implements IMessageSender {
                 dOut.flush();
             } catch (IOException e) {
                 Logger.error("Send err, msg: " + messageToSend + ", " + e, e);
+                roleInstance.handleInternalCommand(new SendFail_IC(messageToSend));
             } finally {
                 if(dOut != null){
                     try {
@@ -147,6 +156,7 @@ public class MessageSenderImpl implements IMessageSender {
                 }
             } catch (MPIException e) {
                 Logger.error(e, "Send err, msg: " + messageToSend);
+                roleInstance.handleInternalCommand(new SendFail_IC(messageToSend));
             }
         }
 
@@ -169,6 +179,7 @@ public class MessageSenderImpl implements IMessageSender {
                 }
             } catch (MPIException e) {
                 Logger.error(e, "Send err, msg: " + messageToSend);
+                roleInstance.handleInternalCommand(new SendFail_IC(messageToSend));
             }
         }
     }

@@ -104,7 +104,7 @@ public class Multicaster {
                         executor.shutdown();
                         break;
                     }
-                    executor.execute(() -> roleInstance.handleMessage(received));
+                    executor.execute(() -> roleInstance.handleNetworkCommand(received));
                 }
                 socket.leaveGroup(group);
                 socket.close();
