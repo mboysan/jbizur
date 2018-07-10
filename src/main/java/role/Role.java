@@ -97,8 +97,8 @@ public abstract class Role {
         this.readyLatch.await();
 
         GlobalConfig.getInstance().registerRole(this);
-        pinger = new Pinger(this);
-        pinger.pingUnreachableNodesPeriodically();
+//        pinger = new Pinger(this);
+//        pinger.pingUnreachableNodesPeriodically();
     }
 
     /**

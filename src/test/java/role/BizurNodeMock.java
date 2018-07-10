@@ -3,7 +3,6 @@ package role;
 import network.address.Address;
 import network.messenger.IMessageReceiver;
 import network.messenger.IMessageSender;
-import network.messenger.MessageSenderMock;
 import protocol.commands.NetworkCommand;
 import protocol.commands.common.Nack_NC;
 
@@ -37,17 +36,6 @@ public class BizurNodeMock extends BizurNode {
 
     public void setHandlerTimeout(boolean handlerTimeout) {
         this.handlerTimeout = handlerTimeout;
-    }
-
-    public boolean isMessageSenderFailed() {
-        return messageSenderBroke;
-    }
-
-    public void setMessageSenderFail(boolean messageSenderBroke) {
-        this.messageSenderBroke = messageSenderBroke;
-        if(messageSender != null && messageSender instanceof MessageSenderMock){
-            ((MessageSenderMock) messageSender).setBroken(true);
-        }
     }
 
     public IMessageSender getMessageSender(){

@@ -15,10 +15,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class Pinger extends Role {
-    protected final long RETRY_PING_TIMEOUT_SEC = 5;
+    protected static long RETRY_PING_TIMEOUT_SEC = 5;
+    protected static long RETRY_PING_COUNT = 5;
 
     private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-    private final Map<Address, Integer> pingMap = new ConcurrentHashMap<>();
+    private final Map<String, Address> strAddrToAddrMap = new ConcurrentHashMap<>();
+    private final Map<Address, Integer> addressRetryMap = new ConcurrentHashMap<>();
 
     public Pinger(Role rootRole) throws InterruptedException {
         super(rootRole);
@@ -26,23 +28,25 @@ public class Pinger extends Role {
 
     public void pingUnreachableNodesPeriodically() {
         executor.scheduleAtFixedRate(() -> {
-            pingMap.forEach((address, i) -> {
+            addressRetryMap.forEach((address, i) -> {
                 if(isNodeReachable(address)) {
-                    pingMap.remove(address);
+                    addressRetryMap.remove(address);
                     GlobalConfig.getInstance().registerAddress(address, rootRole);
                 } else {
-                    int retryCount = pingMap.get(address) + 1;
-                    if(retryCount == 5) {
+                    int retryCount = addressRetryMap.get(address) + 1;
+                    if(retryCount == RETRY_PING_COUNT) {
                         rootRole.handleNodeFailure(address);
                     }
-                    pingMap.put(address, retryCount);
+                    addressRetryMap.put(address, retryCount);
                 }
             });
         },0, RETRY_PING_TIMEOUT_SEC, TimeUnit.SECONDS);
     }
 
     protected void registerUnreachableAddress(Address nodeAddress) {
-        pingMap.putIfAbsent(nodeAddress, 0);
+        if(strAddrToAddrMap.putIfAbsent(nodeAddress.toString(), nodeAddress) == null) {
+            addressRetryMap.putIfAbsent(nodeAddress, 0);
+        }
     }
 
     protected void ping(Address receiverAddress) {
