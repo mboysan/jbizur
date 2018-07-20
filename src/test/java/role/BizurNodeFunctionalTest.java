@@ -1,5 +1,6 @@
 package role;
 
+import config.GlobalConfig;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -15,7 +16,12 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void leaderElectionTest() {
-        getRandomNode().tryElectLeader();
+        for (BizurNode bizurNode : bizurNodes) {
+            if (bizurNode.calculateTurn() == 0) {
+                bizurNode.tryElectLeader();
+                break;
+            }
+        }
 
         int leaderCnt = 0;
         for (BizurNode node : bizurNodes) {
@@ -25,7 +31,6 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
     }
 
     @Test
-    @Ignore
     public void multiLeaderElection() {
         getNode(0).startElection();
         Assert.assertTrue(getNode(0).isLeader());
@@ -79,8 +84,6 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueSetGetMultiThreadTest() throws Throwable {
-        getRandomNode().tryElectLeader();
-
         int testCount = 50;
         RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
         for (int i = 0; i < testCount; i++) {
@@ -124,8 +127,6 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueDeleteMultiThreadTest() throws Throwable {
-        getRandomNode().tryElectLeader();
-
         int testCount = 50;
         RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
         for (int i = 0; i < testCount; i++) {

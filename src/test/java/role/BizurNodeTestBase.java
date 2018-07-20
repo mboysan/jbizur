@@ -24,11 +24,11 @@ public class BizurNodeTestBase {
 
     @Before
     public void setUp() throws Exception {
-        LoggerConfig.configureLogger(Level.DEBUG);
-
         bizurNodes = new BizurNode[NODE_COUNT];
 
         GlobalConfig.getInstance().initTCP(true);
+
+        LoggerConfig.configureLogger(Level.INFO);
 
         for (int i = 0; i < NODE_COUNT; i++) {
             bizurNodes[i] = new BizurNodeMock(
@@ -53,8 +53,6 @@ public class BizurNodeTestBase {
 
     @After
     public void tearDown() {
-        LoggerConfig.configureLogger(Level.DEBUG);
-
         GlobalConfig.getInstance().reset();
     }
 

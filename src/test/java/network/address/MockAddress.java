@@ -15,7 +15,7 @@ public class MockAddress extends Address {
 
     @Override
     public boolean isSame(Address other) {
-        return other.resolveAddressId().equals(address);
+        return other != null && other.resolveAddressId().equals(address);
     }
 
     @Override

@@ -54,28 +54,35 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         // set new key-vals
         setRandomKeyVals();
 
-        System.out.println("isLeader_n0: " + getNode(0).isLeader());
-        System.out.println("isLeader_n1: " + getNode(1).isLeader());
-        System.out.println("isLeader_n2: " + getNode(2).isLeader());
-
         // revive n0 (leader)
         getNode(0).setDead(false);
 
         // set new key-vals
-        setRandomKeyVals();
+//        setRandomKeyVals();
+        setRandomKeyVals(1);
+        setRandomKeyVals(2);
+        setRandomKeyVals(0);
 
 //        validateKeyValsForAllNodes();
-        validateKeyVals(1);
+        validateKeyVals();
     }
 
     private void setRandomKeyVals() {
         for (BizurNode bizurNode : bizurNodes) {
-            String testKey = UUID.randomUUID().toString();
-            String expVal = UUID.randomUUID().toString();
-            if(bizurNode instanceof BizurNodeMock && !((BizurNodeMock) bizurNode).isDead()){
-                bizurNode.set(testKey, expVal);
-                expKeyVals.put(testKey, expVal);
-            }
+            setRandomKeyVals(bizurNode);
+        }
+    }
+
+    private void setRandomKeyVals(int byNodeId) {
+        setRandomKeyVals(getNode(byNodeId));
+    }
+
+    private void setRandomKeyVals(BizurNode byNode) {
+        String testKey = UUID.randomUUID().toString();
+        String expVal = UUID.randomUUID().toString();
+        if(byNode instanceof BizurNodeMock && !((BizurNodeMock) byNode).isDead()){
+            byNode.set(testKey, expVal);
+            expKeyVals.put(testKey, expVal);
         }
     }
 

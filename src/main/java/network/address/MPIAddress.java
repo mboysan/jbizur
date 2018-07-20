@@ -59,6 +59,9 @@ public class MPIAddress extends Address {
 
     @Override
     public boolean isSame(Address other) {
+        if(other == null) {
+            return false;
+        }
         MPIAddress addr = (MPIAddress) other;
         return addr.getRank() == this.getRank() && addr.getGroupId() == this.groupId;
     }

@@ -44,6 +44,8 @@ public class GlobalConfig {
      */
     public static int SEND_FAIL_RETRY_COUNT = 0;
 
+    public static int MAX_ELECTION_WAIT_SEC = 5;
+
     /**
      * indicates if there are more than one node running on a single JVM. Meaning, if true, the nodes are initiated
      * in a single JVM and tests are done in that JVM. Otherwise, each node is assumed to have its own dedicated JVM.

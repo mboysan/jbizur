@@ -16,9 +16,9 @@ import protocol.internal.InternalCommand;
 import protocol.internal.NodeDead_IC;
 import protocol.internal.SendFail_IC;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -30,6 +30,7 @@ public class BizurNode extends Role {
     private AtomicInteger electId;
     private AtomicInteger votedElectId;
     private AtomicReference<Address> leaderAddress;
+    private CountDownLatch leaderUpdateLatch = new CountDownLatch(1);
 
     private Bucket[] localBuckets;
 
@@ -49,8 +50,8 @@ public class BizurNode extends Role {
     }
 
     private void initNode() {
-        int eId = Math.abs((int) System.currentTimeMillis() + getRoleId().hashCode());
-//        int eId = 0;
+//        int eId = Math.abs((int) System.currentTimeMillis() + getRoleId().hashCode());
+        int eId = 0;
         electId = new AtomicInteger(eId);
         votedElectId = new AtomicInteger(0);
         leaderAddress = new AtomicReference<>(null);
@@ -65,20 +66,12 @@ public class BizurNode extends Role {
         }
     }
 
-    private synchronized void updateLeader(){
-        setLeader(leaderAddress.get() != null && leaderAddress.get().isSame(getAddress()));
-    }
-
-    private synchronized void updateLeader(Address source){
-        leaderAddress.set(source);
-        updateLeader();
-    }
-
     /* ***************************************************************************
      * Algorithm 1 - Leader Election
      * ***************************************************************************/
 
     protected void startElection() {
+        electId.set(votedElectId.get());
         electId.incrementAndGet();
 
         String msgId = GlobalConfig.getInstance().generateMsgId();
@@ -87,8 +80,8 @@ public class BizurNode extends Role {
             @Override
             public void handleMessage(NetworkCommand command) {
                 if (command instanceof AckVote_NC) {
-                    getProcessesLatch().countDown();
                     incrementAckCount();
+                    getProcessesLatch().countDown();
                     if(isMajorityAcked()){
                         end();
                     }
@@ -112,7 +105,7 @@ public class BizurNode extends Role {
 
             if(listener.waitForResponses()){
                 if(listener.isMajorityAcked()){
-                    updateLeader();
+                    updateLeader(true);
                 }
             }
         } finally {
@@ -163,8 +156,8 @@ public class BizurNode extends Role {
             @Override
             public void handleMessage(NetworkCommand command) {
                 if(command instanceof AckWrite_NC){
-                    getProcessesLatch().countDown();
                     incrementAckCount();
+                    getProcessesLatch().countDown();
                     if(isMajorityAcked()){
                         end();
                     }
@@ -191,7 +184,7 @@ public class BizurNode extends Role {
                 if(listener.isMajorityAcked()){
                     isSuccess = true;
                 } else {
-                    updateLeader();
+                    updateLeader(false);
                 }
             }
             return isSuccess;
@@ -242,8 +235,8 @@ public class BizurNode extends Role {
             @Override
             public void handleMessage(NetworkCommand command) {
                 if(command instanceof AckRead_NC){
-                    getProcessesLatch().countDown();
                     incrementAckCount();
+                    getProcessesLatch().countDown();
                     if(isMajorityAcked()){
                         end();
                     }
@@ -270,7 +263,7 @@ public class BizurNode extends Role {
                 if(listener.isMajorityAcked()){
                     toReturn = localBuckets[index];
                 } else {
-                    updateLeader();
+                    updateLeader(false);
                 }
             }
             return toReturn;
@@ -321,8 +314,8 @@ public class BizurNode extends Role {
             @Override
             public void handleMessage(NetworkCommand command) {
                 if(command instanceof AckRead_NC){
-                    getProcessesLatch().countDown();
                     incrementAckCount();
+                    getProcessesLatch().countDown();
 
                     AckRead_NC ackRead = ((AckRead_NC) command);
                     Bucket bucket = Bucket.createBucketFromView(ackRead.getBucketView());
@@ -364,7 +357,7 @@ public class BizurNode extends Role {
                     maxVerBucket[0].getVer().setCounter(0);
                     isSuccess = write(maxVerBucket[0]);
                 } else {
-                    updateLeader();
+                    updateLeader(false);
                 }
             }
             return isSuccess;
@@ -456,31 +449,72 @@ public class BizurNode extends Role {
             }
 
             // either timeout or send failed
-            startElection();
-            return routeRequestAndGet(command.setReceiverAddress(leaderAddress.get()), retryCount-1);
+            Address lead = tryElectLeader(true);
+            return routeRequestAndGet(command.setReceiverAddress(lead), retryCount-1);
 
         } finally {
             detachMsgListener(listener);
         }
     }
 
-    public Address tryElectLeader() throws RuntimeException {
-        int retryCount = 5;
-        if (leaderAddress.get() == null) {
-            for (int i = 0; i < retryCount; i++) {
+    public Address tryElectLeader() {
+        return tryElectLeader(false);
+    }
+
+    public Address tryElectLeader(boolean forceElection) throws RuntimeException {
+        if(forceElection) {
+            leaderUpdateLatch = new CountDownLatch(1);
+        }
+        if (leaderAddress.get() == null || forceElection) {
+            if(isNodeTurnToElectLeader(calculateTurn(), leaderAddress.get())){
                 startElection();
-                if (leaderAddress.get() != null) {
-                    return leaderAddress.get();
-                }
-                try {
-                    TimeUnit.SECONDS.sleep(2);
-                } catch (InterruptedException e) {
-                    Logger.error(e);
-                }
             }
-            throw new RuntimeException("Leader could not be elected.");
+        } else if(!isLeader() && leaderAddress.get().isSame(getAddress())) {
+            /* if the node itself knows that it is not the leader, then it needs
+               to find out about the latest elected leader. */
+            //todo
         }
         return leaderAddress.get();
+    }
+
+    private boolean isNodeTurnToElectLeader(int currentTurn, Address prevLeaderAddr) {
+        if(currentTurn <= 0) {
+            return true;
+        }
+        try {
+            leaderUpdateLatch.await(GlobalConfig.MAX_ELECTION_WAIT_SEC * currentTurn, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Logger.error(e);
+        }
+        Address l = leaderAddress.get();
+        if(l != null && !l.isSame(prevLeaderAddr)) {
+            return false;   //leader changed return false
+        }
+        return isNodeTurnToElectLeader(--currentTurn, leaderAddress.get());
+    }
+
+    protected int calculateTurn() {
+        List<String> addresses = new ArrayList<>();
+        GlobalConfig.getInstance().getAddresses().forEach(addr -> {
+            addresses.add(addr.toString());
+        });
+        Collections.sort(addresses);
+        for (int i = 0; i < addresses.size(); i++) {
+            if(addresses.get(i).equals(getAddress().toString())){
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private synchronized void updateLeader(boolean isLeader){
+        setLeader(isLeader && leaderAddress.get() != null && leaderAddress.get().isSame(getAddress()));
+        leaderUpdateLatch.countDown();
+    }
+
+    private synchronized void updateLeader(Address source){
+        leaderAddress.set(source);
+        updateLeader(source.isSame(getAddress()));
     }
 
     public String get(String key) {
