@@ -49,9 +49,6 @@ public abstract class Role {
      */
     private CountDownLatch readyLatch;
 
-    protected Role rootRole;
-    protected Pinger pinger;
-
     /**
      * @param baseAddress see {@link #myAddress}. The address may be modified by the {@link MessageReceiverImpl} after
      *                    role has been started.
@@ -62,7 +59,6 @@ public abstract class Role {
 
     protected Role(Role rootRole) throws InterruptedException {
         this(rootRole.getAddress(), rootRole.messageSender, rootRole.messageReceiver);
-        this.rootRole = rootRole;
     }
 
     protected Role(Address baseAddress, IMessageSender messageSender, IMessageReceiver messageReceiver) throws InterruptedException {
@@ -71,8 +67,6 @@ public abstract class Role {
         this.messageSender = messageSender == null ? new MessageSenderImpl(this) : messageSender;
         this.messageReceiver = messageReceiver == null ? new MessageReceiverImpl(this) : messageReceiver;
         this.readyLatch = null;
-        this.rootRole = null;
-        this.pinger = null;
     }
 
     /**
@@ -97,7 +91,6 @@ public abstract class Role {
         this.readyLatch.await();
 
         GlobalConfig.getInstance().registerRole(this);
-//        pinger = new Pinger(this);
 //        pinger.pingUnreachableNodesPeriodically();
     }
 
@@ -162,7 +155,6 @@ public abstract class Role {
                     .setSenderAddress(getAddress());
             sendMessage(signalEnd);
         }
-        shutdown();
     }
 
     /**
@@ -194,8 +186,6 @@ public abstract class Role {
     public void setReady(){
         readyLatch.countDown();
     }
-
-    public abstract void shutdown();
 
     protected void attachMsgListener(SyncMessageListener listener){
         syncMessageListeners.putIfAbsent(listener.getMsgId(), listener);

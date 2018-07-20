@@ -10,8 +10,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MessageSenderMock implements IMessageSender {
-    private boolean isBroken = false;
-
     private final Map<String, Role> roles = new HashMap<>();
     private final CommandMarshaller commandMarshaller = new CommandMarshaller();
 
@@ -23,7 +21,7 @@ public class MessageSenderMock implements IMessageSender {
 
         Role receiverRole = roles.get(command.getReceiverAddress().toString());
         if(receiverRole instanceof BizurNodeMock) {
-            if(((BizurNodeMock) receiverRole).isDead()) {
+            if(((BizurNodeMock) receiverRole).isDead) {
                 Role senderRole = roles.get(command.getSenderAddress().toString());
                 senderRole.handleInternalCommand(new SendFail_IC(command));
                 return;

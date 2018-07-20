@@ -11,10 +11,12 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
 
     public void setUp() throws Exception {
         super.setUp();
-        Pinger.RETRY_PING_COUNT = 1;
         expKeyVals.clear();
     }
 
+    /**
+     * Tests read/write when a random node failure happens besides the leader.
+     */
     @Test
     public void sendFailTest() {
         // elect leader as n0
@@ -25,13 +27,13 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         setRandomKeyVals();
 
         // kill n1
-        getNode(1).setDead(true);
+        getNode(1).kill();
 
         // set new key-vals
         setRandomKeyVals();
 
         // revive n1
-        getNode(1).setDead(false);
+        getNode(1).revive();
 
         // set new key-vals
         setRandomKeyVals();
@@ -39,6 +41,9 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         validateKeyValsForAllNodes();
     }
 
+    /**
+     * Tests read/write when the leader fails.
+     */
     @Test
     public void sendFailOnLeaderTest() {
         // elect leader as n0
@@ -49,13 +54,13 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         setRandomKeyVals();
 
         // kill n0 (leader)
-        getNode(0).setDead(true);
+        getNode(0).kill();
 
         // set new key-vals
         setRandomKeyVals();
 
         // revive n0 (leader)
-        getNode(0).setDead(false);
+        getNode(0).revive();
 
         /* NB! the algorithm cannot detect the newly elected leader when the old leader is revived.
            the only time that the previous leader knows about this change is when a write operation
@@ -82,7 +87,7 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
     private void setRandomKeyVals(BizurNode byNode) {
         String testKey = UUID.randomUUID().toString();
         String expVal = UUID.randomUUID().toString();
-        if(byNode instanceof BizurNodeMock && !((BizurNodeMock) byNode).isDead()){
+        if(byNode instanceof BizurNodeMock && !((BizurNodeMock) byNode).isDead){
             byNode.set(testKey, expVal);
             expKeyVals.put(testKey, expVal);
         }

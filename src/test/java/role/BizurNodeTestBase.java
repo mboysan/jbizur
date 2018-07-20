@@ -41,7 +41,7 @@ public class BizurNodeTestBase {
 
         for (BizurNode bizurNode : bizurNodes) {
             if(bizurNode instanceof BizurNodeMock){
-                IMessageSender messageSender = ((BizurNodeMock) bizurNode).getMessageSender();
+                IMessageSender messageSender = ((BizurNodeMock) bizurNode).messageSender;
                 if(messageSender instanceof MessageSenderMock){
                     for (BizurNode bizurNode1 : bizurNodes){
                         ((MessageSenderMock) messageSender).registerRole(bizurNode1);

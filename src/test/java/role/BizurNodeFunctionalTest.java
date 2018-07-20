@@ -30,13 +30,16 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
         Assert.assertEquals(1, leaderCnt);
     }
 
+    /**
+     * Tests if another node can be elected leader when election process is forced.
+     */
     @Test
     public void multiLeaderElection() {
-        getNode(0).startElection();
+        getNode(0).tryElectLeader();
         Assert.assertTrue(getNode(0).isLeader());
-        getNode(1).startElection();
+        getNode(1).tryElectLeader(true);
         Assert.assertTrue(getNode(1).isLeader());
-        getNode(2).startElection();
+        getNode(2).tryElectLeader(true);
         Assert.assertTrue(getNode(2).isLeader());
     }
 
@@ -169,13 +172,5 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
                 Assert.assertEquals(expKeyVals.get(actKey), getRandomNode().get(actKey));
             }
         }
-    }
-
-    /**
-     * Tests all the operations by creating as much chaos as possible.
-     */
-    @Test
-    public void chaosTest() throws Throwable {
-        //TODO: implement the chaos test.
     }
 }

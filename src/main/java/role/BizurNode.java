@@ -687,9 +687,4 @@ public class BizurNode extends Role {
             handleNodeFailure(((NodeDead_IC) command).getNodeAddress());
         }
     }
-
-    @Override
-    public void shutdown() {
-        pinger.shutdown();
-    }
 }
