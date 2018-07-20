@@ -469,10 +469,6 @@ public class BizurNode extends Role {
             if(isNodeTurnToElectLeader(calculateTurn(), leaderAddress.get())){
                 startElection();
             }
-        } else if(!isLeader() && leaderAddress.get().isSame(getAddress())) {
-            /* if the node itself knows that it is not the leader, then it needs
-               to find out about the latest elected leader. */
-            //todo
         }
         return leaderAddress.get();
     }

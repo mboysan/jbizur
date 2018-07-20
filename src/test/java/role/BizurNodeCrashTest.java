@@ -57,14 +57,16 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         // revive n0 (leader)
         getNode(0).setDead(false);
 
-        // set new key-vals
-//        setRandomKeyVals();
-        setRandomKeyVals(1);
-        setRandomKeyVals(2);
-        setRandomKeyVals(0);
+        /* NB! the algorithm cannot detect the newly elected leader when the old leader is revived.
+           the only time that the previous leader knows about this change is when a write operation
+           is performed on another node. */
 
-//        validateKeyValsForAllNodes();
-        validateKeyVals();
+        // set new key-vals on another node first.
+        setRandomKeyVals(1);
+        // set new key-vals on all nodes.
+        setRandomKeyVals();
+
+        validateKeyValsForAllNodes();
     }
 
     private void setRandomKeyVals() {
@@ -90,10 +92,6 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         for (BizurNode bizurNode : bizurNodes) {
             validateKeyVals(bizurNode);
         }
-    }
-
-    private void validateKeyVals() {
-        validateKeyVals(getRandomNode());
     }
 
     private void validateKeyVals(int nodeId) {
