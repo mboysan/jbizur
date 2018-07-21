@@ -113,7 +113,7 @@ public class BizurNode extends Role {
         }
     }
 
-    private synchronized void pleaseVote(PleaseVote_NC pleaseVoteNc) {
+    private void pleaseVote(PleaseVote_NC pleaseVoteNc) {
         int electId = pleaseVoteNc.getElectId();
         Address source = pleaseVoteNc.getSenderAddress();
 
@@ -370,44 +370,72 @@ public class BizurNode extends Role {
      * Algorithm 5 - Key-Value API
      * ***************************************************************************/
 
-    private synchronized String _get(String key) {
+    private String _get(String key) {
         int index = 0;  //fixme
-        Bucket bucket = read(index);
-        if(bucket != null){
-            return bucket.getOp(key);
-        }
-        return null;
-    }
-
-    private synchronized boolean _set(String key, String value){
-        int index = 0; //fixme
-        Bucket bucket = read(index);
-        if (bucket != null) {
-            bucket.putOp(key, value);
-            return write(bucket);
-        }
-        return false;
-    }
-
-    private synchronized boolean _delete(String key) {
-        int index = 0; //fixme
-        Bucket bucket = read(index);
-        if(bucket != null){
-            bucket.removeOp(key);
-            return write(bucket);
-        }
-        return false;
-    }
-
-    private synchronized Set<String> _iterateKeys() {
-        Set<String> res = new HashSet<>();
-        for (int index = 0; index < BUCKET_COUNT; index++) {
+        lockBucket(index);
+        try {
             Bucket bucket = read(index);
             if(bucket != null){
-                res.addAll(bucket.getKeySet());
+                return bucket.getOp(key);
+            }
+            return null;
+        } finally {
+            unlockBucket(index);
+        }
+    }
+
+    private boolean _set(String key, String value){
+        int index = 0; //fixme
+        lockBucket(index);
+        try {
+            Bucket bucket = read(index);
+            if (bucket != null) {
+                bucket.putOp(key, value);
+                return write(bucket);
+            }
+            return false;
+        } finally {
+            unlockBucket(index);
+        }
+    }
+
+    private boolean _delete(String key) {
+        int index = 0; //fixme
+        lockBucket(index);
+        try {
+            Bucket bucket = read(index);
+            if(bucket != null){
+                bucket.removeOp(key);
+                return write(bucket);
+            }
+            return false;
+        } finally {
+            unlockBucket(index);
+        }
+    }
+
+    private Set<String> _iterateKeys() {
+        Set<String> res = new HashSet<>();
+        for (int index = 0; index < BUCKET_COUNT; index++) {
+            lockBucket(index);
+            try {
+                Bucket bucket = read(index);
+                if(bucket != null){
+                    res.addAll(bucket.getKeySet());
+                }
+            } finally {
+                unlockBucket(index);
             }
         }
         return res;
+    }
+
+    private void lockBucket(int index) {
+        localBuckets[index].lock();
+    }
+
+    private void unlockBucket(int index) {
+        localBuckets[index].unlock();
     }
 
 
