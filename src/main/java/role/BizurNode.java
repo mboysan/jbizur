@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class BizurNode extends Role {
 
-    private static final int BUCKET_COUNT = 1;
+    private static final int BUCKET_COUNT = 10;
 
     private AtomicInteger electId;
     private AtomicInteger votedElectId;
@@ -371,7 +371,7 @@ public class BizurNode extends Role {
      * ***************************************************************************/
 
     private String _get(String key) {
-        int index = 0;  //fixme
+        int index = hashKey(key);
         lockBucket(index);
         try {
             Bucket bucket = read(index);
@@ -385,7 +385,7 @@ public class BizurNode extends Role {
     }
 
     private boolean _set(String key, String value){
-        int index = 0; //fixme
+        int index = hashKey(key);
         lockBucket(index);
         try {
             Bucket bucket = read(index);
@@ -400,7 +400,7 @@ public class BizurNode extends Role {
     }
 
     private boolean _delete(String key) {
-        int index = 0; //fixme
+        int index = hashKey(key);
         lockBucket(index);
         try {
             Bucket bucket = read(index);
@@ -428,6 +428,19 @@ public class BizurNode extends Role {
             }
         }
         return res;
+    }
+
+    /**
+     * Taken from <a href="https://algs4.cs.princeton.edu/34hash/">34hash site</a>.
+     * @param s key to hash.
+     * @return index of the bucket.
+     */
+    protected static int hashKey(String s) {
+        int R = 31;
+        int hash = 0;
+        for (int i = 0; i < s.length(); i++)
+            hash = (R * hash + s.charAt(i)) % BUCKET_COUNT;
+        return hash;
     }
 
     private void lockBucket(int index) {
