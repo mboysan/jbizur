@@ -3,14 +3,11 @@ import config.UserSettings;
 import mpi.MPIException;
 import network.address.MulticastAddress;
 import network.address.TCPAddress;
-import org.pmw.tinylog.Logger;
 import role.BizurNode;
-import role.Role;
-import testframework.SystemMonitor;
-import testframework.TestFramework;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static network.ConnectionProtocol.TCP_CONNECTION;
@@ -21,16 +18,7 @@ import static network.ConnectionProtocol.TCP_CONNECTION;
 public class SocketMainMultiJVM {
 
     public static void main(String[] args) throws UnknownHostException, InterruptedException, MPIException {
-        long timeStart = System.currentTimeMillis();
-
         UserSettings settings = new UserSettings(args, TCP_CONNECTION);
-
-        SystemMonitor sysInfo = null;
-        TestFramework testFramework = null;
-
-        if(settings.isMonitorSystem()){
-            sysInfo = SystemMonitor.collectEvery(500, TimeUnit.MILLISECONDS);
-        }
 
         InetAddress ip = TCPAddress.resolveIpAddress();
 
@@ -39,28 +27,19 @@ public class SocketMainMultiJVM {
 
         GlobalConfig.getInstance().initTCP(false, multicastAddress);
 
-        Role node = new BizurNode(tcpAddress);
+        BizurNode node = new BizurNode(tcpAddress);
 
-        if(node.isLeader()){    // the node is pinger.
-            /* start tests */
-//            testFramework = TestFramework.doPingTests(node, settings.getTaskCount());
+        TimeUnit.SECONDS.sleep(10);
 
-            /* send end signal to all nodes */
-            node.signalEndToAll();
+        boolean b = true;
+        while (b) {
+            String key = UUID.randomUUID().toString();
+            node.set(key, UUID.randomUUID().toString());
+            node.delete(key);
         }
+
+        node.signalEndToAll();
 
         GlobalConfig.getInstance().end();
-
-        TimeUnit.MILLISECONDS.sleep(500);
-
-        if(testFramework != null){
-            testFramework.printAllOnConsole();
-        }
-
-        if(sysInfo != null){
-            sysInfo.printOnConsole();
-        }
-
-        Logger.info("Total time (ms): " + (System.currentTimeMillis() - timeStart));
     }
 }

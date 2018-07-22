@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class BizurNode extends Role {
 
-    private static final int BUCKET_COUNT = 10;
+    private static final int BUCKET_COUNT = 1;
 
     private AtomicInteger electId;
     private AtomicInteger votedElectId;
@@ -48,7 +48,7 @@ public class BizurNode extends Role {
         initBuckets(BUCKET_COUNT);
     }
 
-    private void initNode() {
+    protected void initNode() {
 //        int eId = Math.abs((int) System.currentTimeMillis() + getRoleId().hashCode());
         int eId = 0;
         electId = new AtomicInteger(eId);
@@ -56,7 +56,7 @@ public class BizurNode extends Role {
         leaderAddress = new AtomicReference<>(null);
     }
 
-    private void initBuckets(int count) {
+    protected void initBuckets(int count) {
         localBuckets = new Bucket[count];
         for (int i = 0; i < count; i++) {
             Bucket b = new Bucket()
@@ -455,11 +455,11 @@ public class BizurNode extends Role {
      * Public API
      * ***************************************************************************/
 
-    private <T> T routeRequestAndGet(NetworkCommand command) {
+    protected  <T> T routeRequestAndGet(NetworkCommand command) {
         return routeRequestAndGet(command, 1);
     }
 
-    private <T> T routeRequestAndGet(NetworkCommand command, int retryCount) throws OperationFailedError {
+    protected <T> T routeRequestAndGet(NetworkCommand command, int retryCount) throws OperationFailedError {
         if (retryCount < 0) {
             throw new OperationFailedError("Routing failed for command: " + command);
         }
@@ -499,13 +499,10 @@ public class BizurNode extends Role {
     }
 
     public Address resolveLeader() {
-        if(isLeader()) {
-            return getAddress();
-        }
         return tryElectLeader(false);
     }
 
-    public Address tryElectLeader(boolean forceElection) throws RuntimeException {
+    protected Address tryElectLeader(boolean forceElection) throws RuntimeException {
         if(forceElection) {
             leaderUpdateLatch = new CountDownLatch(1);
         }
@@ -719,6 +716,30 @@ public class BizurNode extends Role {
         }
         if(command instanceof ApiIterKeys_NC){
             iterateKeysByLeader((ApiIterKeys_NC) command);
+        }
+
+        Object payload = "%%%%%%";
+        /* Internal API routed requests */
+        if(command instanceof ClientApiGet_NC){
+            payload = get(((ClientApiGet_NC) command).getKey());
+        }
+        if(command instanceof ClientApiSet_NC){
+            payload = set(((ClientApiSet_NC) command).getKey(), ((ClientApiSet_NC) command).getVal());
+        }
+        if(command instanceof ClientApiDelete_NC){
+            payload = delete(((ClientApiDelete_NC) command).getKey());
+        }
+        if(command instanceof ClientApiIterKeys_NC){
+            payload = iterateKeys();
+        }
+
+        if(!payload.equals("%%%%%%")) {
+            sendMessage(new LeaderResponse_NC()
+                    .setPayload(payload)
+                    .setSenderId(getRoleId())
+                    .setReceiverAddress(command.getSenderAddress())
+                    .setSenderAddress(getAddress())
+                    .setMsgId(command.getMsgId()));
         }
     }
 

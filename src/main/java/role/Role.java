@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public abstract class Role {
 
-    private final Map<String, SyncMessageListener> syncMessageListeners = new ConcurrentHashMap<>();
+    protected final Map<String, SyncMessageListener> syncMessageListeners = new ConcurrentHashMap<>();
 
     /**
      * Id of the role
