@@ -3,14 +3,13 @@ package network.messenger;
 import protocol.CommandMarshaller;
 import protocol.commands.NetworkCommand;
 import protocol.internal.SendFail_IC;
+import role.BizurNodeMock;
 import role.Role;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class MessageSenderMock implements IMessageSender {
-    private boolean isBroken = false;
-
     private final Map<String, Role> roles = new HashMap<>();
     private final CommandMarshaller commandMarshaller = new CommandMarshaller();
 
@@ -20,25 +19,15 @@ public class MessageSenderMock implements IMessageSender {
            with the sending process. This can be thought of as a deep-copy of the command object. */
         command = commandMarshaller.unmarshall(commandMarshaller.marshall(command));
 
-        if(isBroken){
-            Role role = roles.get(command.getSenderAddress().toString());
-            if(role != null){
-                role.handleInternalCommand(new SendFail_IC(command));
-            }
-        } else {
-            Role role = roles.get(command.getReceiverAddress().toString());
-            if(role != null) {
-                role.handleNetworkCommand(command);
+        Role receiverRole = roles.get(command.getReceiverAddress().toString());
+        if(receiverRole instanceof BizurNodeMock) {
+            if(((BizurNodeMock) receiverRole).isDead) {
+                Role senderRole = roles.get(command.getSenderAddress().toString());
+                senderRole.handleInternalCommand(new SendFail_IC(command));
+                return;
             }
         }
-    }
-
-    public boolean isBroken() {
-        return isBroken;
-    }
-
-    public void setBroken(boolean broken) {
-        isBroken = broken;
+        receiverRole.handleNetworkCommand(command);
     }
 
     public void registerRole(Role role){

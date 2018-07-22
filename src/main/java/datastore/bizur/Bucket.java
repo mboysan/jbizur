@@ -1,5 +1,7 @@
 package datastore.bizur;
 
+import org.pmw.tinylog.Logger;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -8,6 +10,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Bucket {
+
+    private final BucketLock bucketLock = new BucketLock();
 
     private final Object mapLock = new Object();
     private Map<String,String> bucketMap = new ConcurrentHashMap<>();
@@ -93,5 +97,17 @@ public class Bucket {
             ver.get().setCounter(bucketView.getVerCounter());
         }
         return this;
+    }
+
+    public void lock() {
+        try {
+            bucketLock.lock();
+        } catch (InterruptedException e) {
+            Logger.error(e);
+        }
+    }
+
+    public void unlock() {
+        bucketLock.unlock();
     }
 }

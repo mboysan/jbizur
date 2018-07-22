@@ -4,7 +4,6 @@ import config.GlobalConfig;
 import config.LoggerConfig;
 import network.address.MockAddress;
 import network.messenger.IMessageSender;
-import network.messenger.MessageReceiverImpl;
 import network.messenger.MessageReceiverMock;
 import network.messenger.MessageSenderMock;
 import org.junit.After;
@@ -18,16 +17,18 @@ import java.util.concurrent.CountDownLatch;
 
 public class BizurNodeTestBase {
 
+    protected Random random = getRandom();
+
     protected static final int NODE_COUNT = 3;
     protected BizurNode[] bizurNodes;
 
     @Before
     public void setUp() throws Exception {
-        LoggerConfig.configureLogger(Level.DEBUG);
-
         bizurNodes = new BizurNode[NODE_COUNT];
 
         GlobalConfig.getInstance().initTCP(true);
+
+        LoggerConfig.configureLogger(Level.INFO);
 
         for (int i = 0; i < NODE_COUNT; i++) {
             bizurNodes[i] = new BizurNodeMock(
@@ -40,7 +41,7 @@ public class BizurNodeTestBase {
 
         for (BizurNode bizurNode : bizurNodes) {
             if(bizurNode instanceof BizurNodeMock){
-                IMessageSender messageSender = ((BizurNodeMock) bizurNode).getMessageSender();
+                IMessageSender messageSender = ((BizurNodeMock) bizurNode).messageSender;
                 if(messageSender instanceof MessageSenderMock){
                     for (BizurNode bizurNode1 : bizurNodes){
                         ((MessageSenderMock) messageSender).registerRole(bizurNode1);
@@ -52,8 +53,6 @@ public class BizurNodeTestBase {
 
     @After
     public void tearDown() {
-        LoggerConfig.configureLogger(Level.DEBUG);
-
         GlobalConfig.getInstance().reset();
     }
 
@@ -65,6 +64,14 @@ public class BizurNodeTestBase {
     protected Random getRandom(long seed) {
         Logger.info("Seed: " + seed);
         return new Random(seed);
+    }
+
+    protected BizurNodeMock getRandomNode() {
+        return getNode(-1);
+    }
+
+    protected BizurNodeMock getNode(int inx) {
+        return (BizurNodeMock) bizurNodes[inx == -1 ? random.nextInt(bizurNodes.length) : inx];
     }
 
 }
