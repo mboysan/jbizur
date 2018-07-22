@@ -29,12 +29,12 @@ public class SocketMainSingleJVM {
         }
         BizurNode pinger = new BizurNode(new TCPAddress(ip, 0));
 
-//        pinger.startElection();
         pinger.set("Hello", "World");
 
-//        String val = pinger.get("Hello");
         String val = ponger.get("Hello");
         Logger.debug("receieved val: " + val);
+
+        pinger.signalEndToAll();
 
         GlobalConfig.getInstance().end();
     }

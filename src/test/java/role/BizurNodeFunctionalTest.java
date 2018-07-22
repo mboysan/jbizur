@@ -1,12 +1,9 @@
 package role;
 
-import config.GlobalConfig;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import utils.RunnerWithExceptionCatcher;
 
-import java.lang.annotation.Repeatable;
 import java.util.*;
 
 public class BizurNodeFunctionalTest extends BizurNodeTestBase {
@@ -18,7 +15,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
     public void leaderElectionTest() {
         for (BizurNode bizurNode : bizurNodes) {
             if (bizurNode.calculateTurn() == 0) {
-                bizurNode.tryElectLeader();
+                bizurNode.resolveLeader();
                 break;
             }
         }
@@ -35,7 +32,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void multiLeaderElection() {
-        getNode(0).tryElectLeader();
+        getNode(0).resolveLeader();
         Assert.assertTrue(getNode(0).isLeader());
         getNode(1).tryElectLeader(true);
         Assert.assertTrue(getNode(1).isLeader());
@@ -52,7 +49,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
         RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(bizurNodes.length);
         for (BizurNode bizurNode : bizurNodes) {
             runner.execute(() -> {
-                bizurNode.tryElectLeader();
+                bizurNode.resolveLeader();
             });
         }
         runner.awaitCompletion();

@@ -18,7 +18,6 @@ import protocol.internal.SendFail_IC;
 
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -471,10 +470,11 @@ public class BizurNode extends Role {
             public void handleMessage(NetworkCommand command) {
                 if(command instanceof Nack_NC) {
                     resp[0] = new SendFail_IC(command);
-                } else {
+                    getProcessesLatch().countDown();
+                } else if (command instanceof LeaderResponse_NC){
                     resp[0] = command.getPayload();
+                    getProcessesLatch().countDown();
                 }
-                getProcessesLatch().countDown();
             }
         };
         attachMsgListener(listener);
@@ -489,7 +489,7 @@ public class BizurNode extends Role {
                 }
             }
 
-            // either timeout or send failed
+            // leader is unreachable, elect new leader and route request again.
             Address lead = tryElectLeader(true);
             return routeRequestAndGet(command.setReceiverAddress(lead), retryCount-1);
 
@@ -498,7 +498,10 @@ public class BizurNode extends Role {
         }
     }
 
-    public Address tryElectLeader() {
+    public Address resolveLeader() {
+        if(isLeader()) {
+            return getAddress();
+        }
         return tryElectLeader(false);
     }
 
@@ -558,7 +561,7 @@ public class BizurNode extends Role {
         if(isLeader()){
             return _get(key);
         }
-        Address lead = tryElectLeader();
+        Address lead = resolveLeader();
         return routeRequestAndGet(
                 new ApiGet_NC()
                         .setKey(key)
@@ -569,7 +572,7 @@ public class BizurNode extends Role {
     private void getByLeader(ApiGet_NC getNc) {
         String val = _get(getNc.getKey());
         sendMessage(
-                new NetworkCommand()
+                new LeaderResponse_NC()
                         .setPayload(val)
                         .setReceiverAddress(getNc.getSenderAddress())
                         .setMsgId(getNc.getMsgId())
@@ -580,7 +583,7 @@ public class BizurNode extends Role {
         if(isLeader()){
             return _set(key, val);
         }
-        Address lead = tryElectLeader();
+        Address lead = resolveLeader();
         return routeRequestAndGet(
                 new ApiSet_NC()
                         .setKey(key)
@@ -592,7 +595,7 @@ public class BizurNode extends Role {
     private void setByLeader(ApiSet_NC setNc) {
         boolean isSuccess = _set(setNc.getKey(), setNc.getVal());
         sendMessage(
-                new NetworkCommand()
+                new LeaderResponse_NC()
                         .setPayload(isSuccess)
                         .setReceiverAddress(setNc.getSenderAddress())
                         .setSenderAddress(getAddress())
@@ -604,7 +607,7 @@ public class BizurNode extends Role {
         if(isLeader()){
             return _delete(key);
         }
-        Address lead = tryElectLeader();
+        Address lead = resolveLeader();
         return routeRequestAndGet(
                 new ApiDelete_NC()
                         .setKey(key)
@@ -615,7 +618,7 @@ public class BizurNode extends Role {
     private void deleteByLeader(ApiDelete_NC deleteNc) {
         boolean isDeleted = _delete(deleteNc.getKey());
         sendMessage(
-                new NetworkCommand()
+                new LeaderResponse_NC()
                         .setPayload(isDeleted)
                         .setReceiverAddress(deleteNc.getSenderAddress())
                         .setSenderAddress(getAddress())
@@ -636,7 +639,7 @@ public class BizurNode extends Role {
     private void iterateKeysByLeader(ApiIterKeys_NC iterKeysNc) {
         Set<String> keys = _iterateKeys();
         sendMessage(
-                new NetworkCommand()
+                new LeaderResponse_NC()
                         .setPayload(keys)
                         .setReceiverAddress(iterKeysNc.getSenderAddress())
                         .setMsgId(iterKeysNc.getMsgId())
@@ -682,7 +685,7 @@ public class BizurNode extends Role {
         super.handleNodeFailure(failedNodeAddress);
         if(failedNodeAddress.isSame(leaderAddress.get())){
             /* Handle leader failure */
-            tryElectLeader();
+            resolveLeader();
         }
     }
 
