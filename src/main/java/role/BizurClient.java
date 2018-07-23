@@ -3,6 +3,8 @@ package role;
 import config.GlobalConfig;
 import exceptions.OperationFailedError;
 import network.address.Address;
+import network.messenger.IMessageReceiver;
+import network.messenger.IMessageSender;
 import network.messenger.SyncMessageListener;
 import protocol.commands.NetworkCommand;
 import protocol.commands.bizur.*;
@@ -11,6 +13,7 @@ import protocol.commands.ping.ConnectOK_NC;
 import protocol.internal.SendFail_IC;
 
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -19,7 +22,11 @@ public class BizurClient extends BizurNode {
     private Address[] addresses;
 
     public BizurClient(Address baseAddress) throws InterruptedException {
-        super(baseAddress);
+        this(baseAddress, null, null, null);
+    }
+
+    public BizurClient(Address baseAddress, IMessageSender messageSender, IMessageReceiver messageReceiver, CountDownLatch readyLatch) throws InterruptedException {
+        super(baseAddress, messageSender, messageReceiver, readyLatch);
         addresses = convertAddressSetToArray();
     }
 

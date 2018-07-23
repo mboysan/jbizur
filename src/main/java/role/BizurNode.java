@@ -718,7 +718,8 @@ public class BizurNode extends Role {
             iterateKeysByLeader((ApiIterKeys_NC) command);
         }
 
-        Object payload = "%%%%%%";
+        String uniqueKey = UUID.randomUUID().toString();
+        Object payload = uniqueKey;
         /* Internal API routed requests */
         if(command instanceof ClientApiGet_NC){
             payload = get(((ClientApiGet_NC) command).getKey());
@@ -733,7 +734,7 @@ public class BizurNode extends Role {
             payload = iterateKeys();
         }
 
-        if(!payload.equals("%%%%%%")) {
+        if(!uniqueKey.equals(payload)) {
             sendMessage(new LeaderResponse_NC()
                     .setPayload(payload)
                     .setSenderId(getRoleId())
