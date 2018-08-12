@@ -1,18 +1,17 @@
-import config.GlobalConfig;
+package ee.ut.bench.tests.througput;
+
+import ee.ut.jbizur.config.GlobalConfig;
+import ee.ut.jbizur.network.address.TCPAddress;
+import ee.ut.jbizur.role.BizurClient;
+import ee.ut.jbizur.role.BizurNode;
 import mpi.MPIException;
-import network.address.TCPAddress;
 import org.pmw.tinylog.Logger;
-import role.BizurClient;
-import role.BizurNode;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Set;
 
-/**
- * Ping-Pong test for Java TCP Sockets. Initiates the tests on a single JVM, used for easy debugging.
- */
-public class SocketMainSingleJVMClient {
+public class JBizurThroughputTest {
 
     public static void main(String[] args) throws IOException, InterruptedException, MPIException {
         int totalNodes = 3;
