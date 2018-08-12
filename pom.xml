@@ -61,12 +61,12 @@
         <repository>
             <id>project-common</id>
             <name>Project Common</name>
-            <url>https://github.com/mboysan/jbizur/raw/repository/</url>
+            <url>https://raw.githubusercontent.com/mboysan/jbizur/repository/</url>
         </repository>
     </repositories>
 
     <dependencies>
-        <!-- https://github.com/mboysan/jbizur/raw/repository/org/open-mpi/open-mpi/3.0.0/open-mpi-3.0.0.jar -->
+        <!-- https://raw.githubusercontent.com/mboysan/jbizur/repository/org/open-mpi/open-mpi/3.0.0/open-mpi-3.0.0.jar -->
         <dependency>
             <groupId>org.open-mpi</groupId>
             <artifactId>open-mpi</artifactId>
