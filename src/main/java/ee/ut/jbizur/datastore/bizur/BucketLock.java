@@ -1,4 +1,4 @@
-package ee.ut.jbizur.bizur;
+package ee.ut.jbizur.datastore.bizur;
 
 public class BucketLock {
     private boolean isLocked = false;

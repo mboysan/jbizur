@@ -1,6 +1,6 @@
 package ee.ut.jbizur.protocol.commands.bizur;
 
-import ee.ut.jbizur.bizur.BucketView;
+import ee.ut.jbizur.datastore.bizur.BucketView;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 
 public class ReplicaWrite_NC extends NetworkCommand {

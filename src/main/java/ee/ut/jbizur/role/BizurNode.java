@@ -2,7 +2,7 @@ package ee.ut.jbizur.role;
 
 import ee.ut.jbizur.annotations.ForTestingOnly;
 import ee.ut.jbizur.config.GlobalConfig;
-import ee.ut.jbizur.bizur.Bucket;
+import ee.ut.jbizur.datastore.bizur.Bucket;
 import ee.ut.jbizur.exceptions.OperationFailedError;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.messenger.IMessageReceiver;

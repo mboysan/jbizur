@@ -1,4 +1,4 @@
-package ee.ut.jbizur.bizur;
+package ee.ut.jbizur.datastore.bizur;
 
 import org.pmw.tinylog.Logger;
 
