@@ -6,7 +6,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * A utility class that is used as an executor but used to report any exceptions caught when {@link #execute(Runnable)}
+ * A utility class that is used as an executor but used to report any ee.ut.jbizur.exceptions caught when {@link #execute(Runnable)}
  * method is run.
  */
 public class RunnerWithExceptionCatcher {
@@ -36,10 +36,10 @@ public class RunnerWithExceptionCatcher {
     }
 
     /**
-     * Runs the <tt>runnable</tt> passed with the {@link #executor}. Catches any exceptions ({@link Throwable})
+     * Runs the <tt>runnable</tt> passed with the {@link #executor}. Catches any ee.ut.jbizur.exceptions ({@link Throwable})
      * caught during the execution of the runnable's {@link Runnable#run()} method.
      *
-     * @param runnable the runnable to execute and report any exceptions caught when running it.
+     * @param runnable the runnable to execute and report any ee.ut.jbizur.exceptions caught when running it.
      */
     public void execute(Runnable runnable) {
         executor.execute(() -> {

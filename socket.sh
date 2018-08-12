@@ -6,7 +6,7 @@ mvn clean install -DskipTests
 
 cd ./target
 count=3
-mpirun --oversubscribe -np $count java -cp *jar-with-dependencies.jar SocketMainMultiJVM $count false
+mpirun --oversubscribe -np $count java -cp *jar-with-dependencies.jar ee.ut.jbizur.SocketMainMultiJVM $count false
 
 # arguments:
 # arg1 = the count of the nodes.
