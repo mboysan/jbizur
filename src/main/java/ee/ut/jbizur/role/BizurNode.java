@@ -313,9 +313,6 @@ public class BizurNode extends Role {
             @Override
             public void handleMessage(NetworkCommand command) {
                 if(command instanceof AckRead_NC){
-                    incrementAckCount();
-                    getProcessesLatch().countDown();
-
                     AckRead_NC ackRead = ((AckRead_NC) command);
                     Bucket bucket = Bucket.createBucketFromView(ackRead.getBucketView());
 
@@ -326,6 +323,9 @@ public class BizurNode extends Role {
                             maxVerBucket[0] = bucket;
                         }
                     }
+
+                    incrementAckCount();
+                    getProcessesLatch().countDown();
 
                     if(isMajorityAcked()){
                         end();

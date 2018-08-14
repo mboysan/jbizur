@@ -26,7 +26,7 @@ public class BizurNodeTestBase {
     public void setUp() throws Exception {
         bizurNodes = new BizurNode[NODE_COUNT];
 
-        GlobalConfig.getInstance().initTCP(true);
+        GlobalConfig.getInstance().initTCP();
 
         LoggerConfig.configureLogger(Level.INFO);
 

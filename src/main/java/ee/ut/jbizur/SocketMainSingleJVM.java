@@ -20,7 +20,7 @@ public class SocketMainSingleJVM {
             totalNodes = Integer.parseInt(args[0]);
         }
 
-        GlobalConfig.getInstance().initTCP(true);
+        GlobalConfig.getInstance().initTCP();
 
         InetAddress ip = TCPAddress.resolveIpAddress();
 

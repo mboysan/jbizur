@@ -78,8 +78,12 @@ public class GlobalConfig {
         this.addresses = Collections.newSetFromMap(new ConcurrentHashMap<>());
     }
 
-    public void initTCP(boolean isSingleJVM){
-        initTCP(isSingleJVM, null);
+    public void initTCP(){
+        initTCP(true, null);
+    }
+
+    public void initTCP(MulticastAddress multicastAddress) {
+        initTCP(multicastAddress == null, multicastAddress);
     }
 
     /**
