@@ -1,6 +1,7 @@
 package ee.ut.bench.tests.througput;
 
 import ee.ut.jbizur.config.GlobalConfig;
+import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.role.BizurClient;
 import ee.ut.jbizur.role.BizurNode;
@@ -9,37 +10,65 @@ import org.pmw.tinylog.Logger;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
+import java.util.TimerTask;
 
+@Deprecated
 public class JBizurThroughputTest {
 
     public static void main(String[] args) throws IOException, InterruptedException, MPIException {
-        int totalNodes = 3;
-        if(args != null && args.length == 1){
-            totalNodes = Integer.parseInt(args[0]);
-        }
-
-        GlobalConfig.getInstance().initTCP(true);
+        MulticastAddress multicastAddress = new MulticastAddress("all-systems.mcast.net", 9090);
+        GlobalConfig.getInstance().initTCP(false, multicastAddress);
 
         InetAddress ip = TCPAddress.resolveIpAddress();
 
-        /* Start pinger and pongers */
-        BizurNode node = null;
-        for (int i = 0; i < totalNodes; i++) {  // first index will be reserved to pinger
-            node = new BizurNode(new TCPAddress(ip, 0));
-        }
         BizurClient client = new BizurClient(new TCPAddress(ip, 0));
+//        BizurNode client = new BizurNode(new TCPAddress(ip, 0));
 
-        client.set("Hello", "World");
+        client.set("init","consensus");
 
-        String val = client.get("Hello");
-        Logger.debug("receieved val: " + val);
+        int opCount = 1_000;
 
-        Set<String> keys = client.iterateKeys();
-        Logger.debug("recv keyset: " + keys.toString());
+        long[] lats = new long[opCount];
+        long[][] ops = new long[opCount][3];
 
-        client.signalEndToAll();
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < opCount; i++) {
+            long initTime = System.currentTimeMillis();
+            client.set("k" + i, "v" + i);
+            long endTime = System.currentTimeMillis();
 
-        GlobalConfig.getInstance().end();
+            lats[i] = endTime - initTime;
+            ops[i] = new long[]{endTime, (endTime - start), (i + 1)};
+        }
+
+        print(csvLats(lats));
+        print(csvOps(ops));
+    }
+
+    static String csvLats(long[] lats) {
+        StringBuilder sb = new StringBuilder("lat");
+        for (long lat : lats) {
+            sb.append(lat).append(String.format("%n"));
+        }
+        return sb.toString();
+    }
+
+    static String csvOps(long[][] ops) {
+        String nl = String.format("%n");
+        StringBuilder sb = new StringBuilder("timeStamp,spentTime,opCount" + nl);
+        for (int i = 0; i < ops.length; i++) {
+            for (int i1 = 0; i1 < ops[i].length; i1++) {
+                sb.append(ops[i][i1]).append(",");
+            }
+            sb.append(nl);
+        }
+        return sb.toString();
+    }
+
+    static void print(String results) {
+        System.out.println(results);
     }
 }
