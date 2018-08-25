@@ -10,6 +10,7 @@ import ee.ut.jbizur.role.BizurNode;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Ping-Pong test for Java TCP Sockets. Initiates the tests on a single JVM, used for easy debugging.
@@ -31,6 +32,9 @@ public class SocketMainSingleJVMClient {
         for (int i = 0; i < totalNodes; i++) {  // first index will be reserved to pinger
             node = new BizurNode(new TCPAddress(ip, 0));
         }
+
+        TimeUnit.SECONDS.sleep(5);
+
         BizurClient client = new BizurClient(new TCPAddress(ip, 0));
 
         client.set("Hello", "World");

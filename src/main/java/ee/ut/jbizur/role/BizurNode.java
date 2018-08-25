@@ -63,6 +63,7 @@ public class BizurNode extends Role {
                     .setIndex(i);
             localBuckets[i] = b;
         }
+        Logger.info("buckets are initialized!");
     }
 
     /* ***************************************************************************
