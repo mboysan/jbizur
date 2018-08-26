@@ -25,7 +25,7 @@ public abstract class AbstractDBWrapper {
         this.random = new Random(seed);
     }
 
-    abstract void init(String... args) throws Exception;
+    protected abstract void init(String... args) throws Exception;
     public abstract void reset();
 
     public <T> T run(DBOperation operation, String... args) {

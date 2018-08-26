@@ -17,13 +17,14 @@ public class LatencyTest extends AbstractTest {
 
     @Override
     public IResultSet run() {
-        long[] lats = new long[OPERATION_COUNT];
+        long[][] lats = new long[OPERATION_COUNT][2];
         for (int i = 0; i < OPERATION_COUNT; i++) {
             long initTime = System.currentTimeMillis();
             for (DBOperation dbOperation : dbOperations) {
                 dbWrapper.run(dbOperation, "k" + i, "v" + i);
             }
-            lats[i] = System.currentTimeMillis() - initTime;
+            long endTime = System.currentTimeMillis();
+            lats[i] = new long[]{endTime, (endTime - initTime)};
         }
         return new LatResultSet(lats);
     }
@@ -34,17 +35,19 @@ public class LatencyTest extends AbstractTest {
     }
 
     private class LatResultSet implements IResultSet {
-        private final long[] lats;
+        private final long[][] lats;
 
-        public LatResultSet(long[] lats) {
+        public LatResultSet(long[][] lats) {
             this.lats = lats;
         }
 
         public String toCSV() {
             String nl = String.format("%n");
-            StringBuilder sb = new StringBuilder("opNumber" + nl);
+            StringBuilder sb = new StringBuilder("timestamp,opNumber,lat" + nl);
             for (int i = 0; i < lats.length; i++) {
-                sb.append(i).append(",").append(lats[i]).append(nl);
+                for (int i1 = 0; i1 < lats[i].length; i1++) {
+                    sb.append(lats[i][i1]).append(",").append(i).append(",").append(lats[i]).append(nl);
+                }
             }
             return sb.toString();
         }
@@ -52,6 +55,11 @@ public class LatencyTest extends AbstractTest {
         @Override
         public void print() {
             System.out.println(toCSV());
+        }
+
+        @Override
+        public Object getData() {
+            return lats;
         }
     }
 }
