@@ -4,20 +4,20 @@ import ee.ut.bench.util.DBWrapperMock;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class ThroughputTestTest extends AbstractTestBase {
+public class LatencyTestTest extends AbstractTestBase {
 
     @Override
     public void setUp() {
-        test = new ThroughputTest(new DBWrapperMock());
+        test = new LatencyTest(new DBWrapperMock());
     }
 
     @Test
     @Override
     public void testRunParallel() {
-        changeSettings(100, 23);
+        changeSettings(23, 100);
         runAndCheck();
 
-        changeSettings(23, 100);
+        changeSettings(100, 23);
         runAndCheck();
 
         changeSettings(25, 100);
@@ -38,13 +38,12 @@ public class ThroughputTestTest extends AbstractTestBase {
     private void runAndCheck() {
         test.dbWrapper.reset();
 
-        int opCount = ThroughputTest.OPERATION_COUNT;
-        int queueDepth = ThroughputTest.QUEUE_DEPTH;
+        int opCount = LatencyTest.OPERATION_COUNT;
 
         IResultSet resultSet = test.runParallel();
         long[][] data = (long[][]) resultSet.getData();
 
-        int expCount = (int) Math.ceil((double)opCount / (double)queueDepth);
+        int expCount = opCount;
 
         Assert.assertEquals(expCount, data.length);
         for (long[] datum : data) {
@@ -55,7 +54,7 @@ public class ThroughputTestTest extends AbstractTestBase {
     }
 
     private static void changeSettings(int opCount, int queueDepth) {
-        ThroughputTest.OPERATION_COUNT = opCount;
-        ThroughputTest.QUEUE_DEPTH = queueDepth;
+        LatencyTest.OPERATION_COUNT = opCount;
+        LatencyTest.QUEUE_DEPTH = queueDepth;
     }
 }

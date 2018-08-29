@@ -4,10 +4,10 @@ import ee.ut.bench.tests.AbstractTest;
 import ee.ut.bench.tests.IResultSet;
 import ee.ut.bench.tests.LatencyTest;
 import ee.ut.bench.tests.ThroughputTest;
+import ee.ut.bench.util.AbstractDBWrapper;
 import ee.ut.bench.util.BizurWrapper;
 import ee.ut.bench.util.DBOperation;
 import ee.ut.bench.util.DBWrapperFactory;
-import ee.ut.bench.util.AbstractDBWrapper;
 
 public class TestInit {
 
@@ -19,22 +19,49 @@ public class TestInit {
         this.dbWrapper = DBWrapperFactory.buildAndInit(BizurWrapper.class, args);
     }
 
+    void warmup() {
+        System.out.println("----------- Warming up " + dbWrapper.toString());
+
+        int backupLatOpCount = LatencyTest.OPERATION_COUNT;
+        int backupTputOpCount = ThroughputTest.OPERATION_COUNT;
+
+        LatencyTest.OPERATION_COUNT = 1;
+        ThroughputTest.OPERATION_COUNT = 1;
+
+        AbstractTest latTest = new LatencyTest(dbWrapper, DBOperation.RANDOM);
+        latTest.run();
+        latTest.runParallel();
+
+        AbstractTest tputTest = new ThroughputTest(dbWrapper, DBOperation.RANDOM);
+        tputTest.run();
+        tputTest.runParallel();
+
+        dbWrapper.reset();
+
+        LatencyTest.OPERATION_COUNT = backupLatOpCount;
+        ThroughputTest.OPERATION_COUNT = backupTputOpCount;
+
+        System.out.println("----------- Warming up done for " + dbWrapper.toString());
+    }
+
     void runThroughputTest() {
         AbstractTest tputTest = new ThroughputTest(dbWrapper, DBOperation.DEFAULT);
-        IResultSet tputResultSet = tputTest.run();
-        System.out.println("----------- Throughput Test results for " + dbWrapper.toString());
+        IResultSet tputResultSet = tputTest.runParallel();
+        System.out.println("----------- Parallel Throughput Test results for " + dbWrapper.toString());
         tputResultSet.print();
     }
 
     void runLatencyTest() {
         AbstractTest latTest = new LatencyTest(dbWrapper, DBOperation.DEFAULT);
-        IResultSet latResultSet = latTest.run();
-        System.out.println("----------- Latency Test results for " + dbWrapper.toString());
+        IResultSet latResultSet = latTest.runParallel();
+        System.out.println("----------- Parallel Latency Test results for " + dbWrapper.toString());
         latResultSet.print();
     }
 
     public static void main(String[] args) throws Exception {
         TestInit testInit = new TestInit(args);
+
+        testInit.warmup();
 
         testInit.runThroughputTest();
         testInit.dbWrapper.reset();

@@ -3,9 +3,15 @@ package ee.ut.bench.tests;
 import ee.ut.bench.util.AbstractDBWrapper;
 import ee.ut.bench.util.DBOperation;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class LatencyTest extends AbstractTest {
 
     public static int OPERATION_COUNT = 5;
+    public static int QUEUE_DEPTH = 64;
 
     public LatencyTest(AbstractDBWrapper dbWrapper) {
         super(dbWrapper);
@@ -31,7 +37,33 @@ public class LatencyTest extends AbstractTest {
 
     @Override
     public IResultSet runParallel() {
-        return null;
+        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+        int opsSize = OPERATION_COUNT;
+        long[][] lats = new long[opsSize][3];
+        AtomicInteger opsInx = new AtomicInteger(0);
+        for (int i = OPERATION_COUNT; i > 0; i -= QUEUE_DEPTH) {
+            int queueOpCount = i < QUEUE_DEPTH ? i : QUEUE_DEPTH;
+            CountDownLatch opLatch = new CountDownLatch(queueOpCount);
+            for (int i1 = 0; i1 < queueOpCount; i1++) {
+                int finalI = i;
+                executor.execute(() -> {
+                    long startTime = System.currentTimeMillis();
+                    for (DBOperation dbOperation : dbOperations) {
+                        dbWrapper.run(dbOperation, "k" + finalI, "v" + finalI);
+                    }
+                    long endTime = System.currentTimeMillis();
+                    lats[opsInx.getAndIncrement()] = new long[]{endTime, (endTime - startTime), queueOpCount};
+                    opLatch.countDown();
+                });
+            }
+            try {
+                opLatch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        return new LatResultSet(lats);
     }
 
     private class LatResultSet implements IResultSet {
@@ -43,11 +75,9 @@ public class LatencyTest extends AbstractTest {
 
         public String toCSV() {
             String nl = String.format("%n");
-            StringBuilder sb = new StringBuilder("timestamp,opNumber,lat" + nl);
+            StringBuilder sb = new StringBuilder("timestamp,opNumber,lat,operations" + nl);
             for (int i = 0; i < lats.length; i++) {
-                for (int i1 = 0; i1 < lats[i].length; i1++) {
-                    sb.append(lats[i][i1]).append(",").append(i).append(",").append(lats[i]).append(nl);
-                }
+                sb.append(lats[i][0]).append(",").append(i).append(",").append(lats[i][1]).append(",").append(convertDBOperationsToStr()).append(nl);
             }
             return sb.toString();
         }

@@ -1,5 +1,7 @@
 package ee.ut.bench.tests;
 
+import ee.ut.bench.util.DBWrapperMock;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
@@ -15,6 +17,10 @@ public abstract class AbstractTestBase {
         long seed = System.currentTimeMillis() ^ 2;
         System.out.println("Seed for test: " + seed);
         random = new Random(seed);
+    }
+
+    protected void checkDBOperationCount(int expectedOpCount) {
+        Assert.assertEquals(expectedOpCount, ((DBWrapperMock) test.dbWrapper).opCount.get());
     }
 
     @Before

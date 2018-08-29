@@ -74,12 +74,9 @@ public class ThroughputTest extends AbstractTest {
 
         public String toCSV() {
             String nl = String.format("%n");
-            StringBuilder sb = new StringBuilder("timeStamp,spentTime(ms),opCount" + nl);
+            StringBuilder sb = new StringBuilder("timeStamp,spentTime(ms),opCount,operations" + nl);
             for (int i = 0; i < ops.length; i++) {
-                for (int i1 = 0; i1 < ops[i].length; i1++) {
-                    sb.append(ops[i][i1]).append(",");
-                }
-                sb.append(nl);
+                sb.append(ops[i][0]).append(",").append(ops[i][1]).append(",").append(ops[i][2]).append(",").append(convertDBOperationsToStr()).append(nl);
             }
             return sb.toString();
         }
