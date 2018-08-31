@@ -22,13 +22,9 @@ public class InitMainMultiJVM {
     public static void main(String[] args) throws UnknownHostException, InterruptedException, MPIException {
         UserSettings settings = new UserSettings(args, TCP_CONNECTION);
 
-        MulticastAddress multicastAddress = new MulticastAddress("all-systems.mcast.net", 9090);
-        if (settings.getGroupName() != null && settings.getGroupId() >= 0) {
-            multicastAddress = new MulticastAddress(settings.getGroupName(), settings.getGroupId());
-        }
+        MulticastAddress multicastAddress = new MulticastAddress(settings.getGroupName(), settings.getGroupId());
 
-        InetAddress ip = TCPAddress.resolveIpAddress();
-        TCPAddress tcpAddress = new TCPAddress(ip, 0);
+        TCPAddress tcpAddress = new TCPAddress(TCPAddress.resolveIpAddress(), 0);
 
         GlobalConfig.getInstance().initTCP(multicastAddress);
 

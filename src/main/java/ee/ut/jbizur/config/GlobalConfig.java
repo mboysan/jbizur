@@ -237,6 +237,7 @@ public class GlobalConfig {
         if (connectionProtocol == MPI_CONNECTION) {
             MPI.Finalize();
         }
+        ourInstance = new GlobalConfig();   //fixme: temporary, put a reset method or something.
         Logger.info(String.format("Finalized [%s]", connectionProtocol));
     }
 
