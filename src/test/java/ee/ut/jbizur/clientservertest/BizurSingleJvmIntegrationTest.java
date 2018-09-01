@@ -3,7 +3,6 @@ package ee.ut.jbizur.clientservertest;
 import ee.ut.jbizur.config.GlobalConfig;
 import ee.ut.jbizur.config.UserSettings;
 import ee.ut.jbizur.network.ConnectionProtocol;
-import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.role.BizurClient;
 import ee.ut.jbizur.role.BizurNode;
@@ -13,6 +12,7 @@ import utils.RunnerWithExceptionCatcher;
 import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 @Ignore
@@ -24,13 +24,13 @@ public class BizurSingleJvmIntegrationTest {
     protected BizurNode[] nodes;
     protected BizurClient client;
 
+    Random random = initRandom();
+
     @Before
     public void setUp() throws Exception {
         userSettings = new UserSettings(null, ConnectionProtocol.TCP_CONNECTION);
 
-        MulticastAddress multicastAddress = new MulticastAddress(userSettings.getGroupName(), userSettings.getGroupId());
-
-        GlobalConfig.getInstance().initTCP(multicastAddress);
+        GlobalConfig.getInstance().initTCP();
 
         InetAddress ip = TCPAddress.resolveIpAddress();
 
@@ -97,6 +97,16 @@ public class BizurSingleJvmIntegrationTest {
         }
         runner.awaitCompletion();
         runner.throwAnyCaughtException();
+    }
+
+    public BizurNode getRandomNode() {
+        return nodes[random.nextInt(TOTAL_NODE_COUNT)];
+    }
+
+    public static Random initRandom() {
+        long seed = System.currentTimeMillis();
+        System.out.println("seed: " + seed);
+        return new Random(seed);
     }
 
 }

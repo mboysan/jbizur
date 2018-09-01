@@ -532,6 +532,7 @@ public class BizurNode extends Role {
     }
 
     protected int calculateTurn() {
+        Logger.debug("calculating turn for " + getAddress());
         List<String> addresses = new ArrayList<>();
         GlobalConfig.getInstance().getAddresses().forEach(addr -> {
             addresses.add(addr.toString());
