@@ -1,6 +1,6 @@
 package ee.ut.bench.tests;
 
-import ee.ut.bench.util.DBWrapperMock;
+import ee.ut.bench.db.DBClientWrapperMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -20,7 +20,7 @@ public abstract class AbstractTestBase {
     }
 
     protected void checkDBOperationCount(int expectedOpCount) {
-        Assert.assertEquals(expectedOpCount, ((DBWrapperMock) test.dbWrapper).opCount.get());
+        Assert.assertEquals(expectedOpCount, ((DBClientWrapperMock) test.dbWrapper).opCount.get());
     }
 
     @Before

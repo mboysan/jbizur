@@ -72,10 +72,33 @@
             <artifactId>open-mpi</artifactId>
             <version>3.0.0</version>
         </dependency>
+        <!-- https://raw.githubusercontent.com/mboysan/jbizur/repository/ee/ut/jbizur/1.0-SNAPSHOT/jbizur-1.0-SNAPSHOT.jar -->
         <dependency>
             <groupId>ee.ut</groupId>
             <artifactId>jbizur</artifactId>
             <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <!-- Atomix -->
+        <dependency>
+            <groupId>io.atomix</groupId>
+            <artifactId>atomix</artifactId>
+            <version>3.0.0-rc4</version>
+        </dependency>
+        <dependency>
+            <groupId>io.atomix</groupId>
+            <artifactId>atomix-raft</artifactId>
+            <version>3.0.0-rc4</version>
+        </dependency>
+        <dependency>
+            <groupId>io.atomix</groupId>
+            <artifactId>atomix-primary-backup</artifactId>
+            <version>3.0.0-rc4</version>
+        </dependency>
+        <dependency>
+            <groupId>io.atomix</groupId>
+            <artifactId>atomix-gossip</artifactId>
+            <version>3.0.0-rc4</version>
         </dependency>
 
         <!-- TESTING -->

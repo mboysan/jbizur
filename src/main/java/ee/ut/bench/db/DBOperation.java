@@ -1,4 +1,4 @@
-package ee.ut.bench.util;
+package ee.ut.bench.db;
 
 public enum DBOperation {
     SET,GET,DELETE,ITERATE_KEYS,

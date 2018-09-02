@@ -1,7 +1,7 @@
 package ee.ut.bench.tests;
 
-import ee.ut.bench.util.AbstractDBWrapper;
-import ee.ut.bench.util.DBOperation;
+import ee.ut.bench.db.AbstractDBClientWrapper;
+import ee.ut.bench.db.DBOperation;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -12,11 +12,11 @@ public class ThroughputTest extends AbstractTest {
     public static int OPERATION_COUNT = 5;
     public static int QUEUE_DEPTH = 64;
 
-    public ThroughputTest(AbstractDBWrapper dbWrapper) {
+    public ThroughputTest(AbstractDBClientWrapper dbWrapper) {
         super(dbWrapper);
     }
 
-    public ThroughputTest(AbstractDBWrapper dbWrapper, DBOperation... dbOperations) {
+    public ThroughputTest(AbstractDBClientWrapper dbWrapper, DBOperation... dbOperations) {
         super(dbWrapper, dbOperations);
     }
 

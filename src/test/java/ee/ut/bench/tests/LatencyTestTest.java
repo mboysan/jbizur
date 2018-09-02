@@ -1,6 +1,6 @@
 package ee.ut.bench.tests;
 
-import ee.ut.bench.util.DBWrapperMock;
+import ee.ut.bench.db.DBClientWrapperMock;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -8,7 +8,7 @@ public class LatencyTestTest extends AbstractTestBase {
 
     @Override
     public void setUp() {
-        test = new LatencyTest(new DBWrapperMock());
+        test = new LatencyTest(new DBClientWrapperMock());
     }
 
     @Test

@@ -1,6 +1,6 @@
 package ee.ut.bench.tests;
 
-import ee.ut.bench.util.DBWrapperMock;
+import ee.ut.bench.db.DBClientWrapperMock;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -8,7 +8,7 @@ public class ThroughputTestTest extends AbstractTestBase {
 
     @Override
     public void setUp() {
-        test = new ThroughputTest(new DBWrapperMock());
+        test = new ThroughputTest(new DBClientWrapperMock());
     }
 
     @Test

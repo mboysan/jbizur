@@ -1,22 +1,22 @@
 package ee.ut.bench;
 
+import ee.ut.bench.db.BizurClientWrapper;
 import ee.ut.bench.tests.AbstractTest;
 import ee.ut.bench.tests.IResultSet;
 import ee.ut.bench.tests.LatencyTest;
 import ee.ut.bench.tests.ThroughputTest;
-import ee.ut.bench.util.AbstractDBWrapper;
-import ee.ut.bench.util.BizurWrapper;
-import ee.ut.bench.util.DBOperation;
-import ee.ut.bench.util.DBWrapperFactory;
+import ee.ut.bench.db.AbstractDBClientWrapper;
+import ee.ut.bench.db.DBOperation;
+import ee.ut.bench.db.DBWrapperFactory;
 
 public class TestInit {
 
-    private final AbstractDBWrapper dbWrapper;
+    private final AbstractDBClientWrapper dbWrapper;
 
     public TestInit(String[] args) throws Exception {
         ThroughputTest.OPERATION_COUNT = 5;
         LatencyTest.OPERATION_COUNT = 5;
-        this.dbWrapper = DBWrapperFactory.buildAndInit(BizurWrapper.class, args);
+        this.dbWrapper = DBWrapperFactory.buildAndInit(BizurClientWrapper.class, args);
     }
 
     void warmup() {

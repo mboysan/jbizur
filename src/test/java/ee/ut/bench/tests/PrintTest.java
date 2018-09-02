@@ -1,6 +1,6 @@
 package ee.ut.bench.tests;
 
-import ee.ut.bench.util.DBWrapperMock;
+import ee.ut.bench.db.DBClientWrapperMock;
 import org.junit.Test;
 
 public class PrintTest {
@@ -9,14 +9,14 @@ public class PrintTest {
     public void latencyPrintTest() {
         LatencyTest.OPERATION_COUNT = 100;
         LatencyTest.QUEUE_DEPTH = 5;
-        executeAndPrint(new LatencyTest(new DBWrapperMock()));
+        executeAndPrint(new LatencyTest(new DBClientWrapperMock()));
     }
 
     @Test
     public void throughputPrintTest() {
         ThroughputTest.OPERATION_COUNT = 100;
         ThroughputTest.QUEUE_DEPTH = 5;
-        executeAndPrint(new ThroughputTest(new DBWrapperMock()));
+        executeAndPrint(new ThroughputTest(new DBClientWrapperMock()));
     }
 
     private void executeAndPrint(AbstractTest test) {

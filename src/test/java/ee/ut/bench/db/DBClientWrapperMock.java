@@ -1,13 +1,13 @@
-package ee.ut.bench.util;
+package ee.ut.bench.db;
 
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class DBWrapperMock extends AbstractDBWrapper {
+public class DBClientWrapperMock extends AbstractDBClientWrapper {
 
     public AtomicInteger opCount = new AtomicInteger(0);
 
-    public DBWrapperMock() {
+    public DBClientWrapperMock() {
 
     }
 

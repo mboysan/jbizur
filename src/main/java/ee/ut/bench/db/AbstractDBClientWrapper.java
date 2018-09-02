@@ -1,4 +1,4 @@
-package ee.ut.bench.util;
+package ee.ut.bench.db;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -6,12 +6,12 @@ import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-public abstract class AbstractDBWrapper {
+public abstract class AbstractDBClientWrapper {
 
     private Random random;
     protected List<DBOperation> availableRandomOperations;
 
-    public AbstractDBWrapper() {
+    public AbstractDBClientWrapper() {
         initRandom();
         this.availableRandomOperations = Arrays
                 .stream(DBOperation.values())

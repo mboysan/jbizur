@@ -1,20 +1,20 @@
 package ee.ut.bench.tests;
 
-import ee.ut.bench.util.AbstractDBWrapper;
-import ee.ut.bench.util.DBOperation;
+import ee.ut.bench.db.AbstractDBClientWrapper;
+import ee.ut.bench.db.DBOperation;
 
 import java.util.StringJoiner;
 
 public abstract class AbstractTest {
 
-    protected final AbstractDBWrapper dbWrapper;
+    protected final AbstractDBClientWrapper dbWrapper;
     protected final DBOperation[] dbOperations;
 
-    public AbstractTest(AbstractDBWrapper dbWrapper) {
+    public AbstractTest(AbstractDBClientWrapper dbWrapper) {
         this(dbWrapper, DBOperation.DEFAULT);
     }
 
-    public AbstractTest(AbstractDBWrapper dbWrapper, DBOperation... dbOperations) {
+    public AbstractTest(AbstractDBClientWrapper dbWrapper, DBOperation... dbOperations) {
         this.dbWrapper = dbWrapper;
         this.dbOperations = dbOperations;
     }

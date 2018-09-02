@@ -1,4 +1,4 @@
-package ee.ut.bench.util;
+package ee.ut.bench.db;
 
 import ee.ut.jbizur.config.GlobalConfig;
 import ee.ut.jbizur.network.address.MulticastAddress;
@@ -10,7 +10,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Set;
 
-public class BizurWrapper extends AbstractDBWrapper {
+public class BizurClientWrapper extends AbstractDBClientWrapper {
 
     private BizurNode node;
 
@@ -54,6 +54,6 @@ public class BizurWrapper extends AbstractDBWrapper {
 
     @Override
     public String toString() {
-        return "BizurWrapper";
+        return "BizurClientWrapper";
     }
 }
