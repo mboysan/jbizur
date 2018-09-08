@@ -1,59 +1,85 @@
 package ee.ut.bench.db;
 
-import config.UserSettings;
-import ee.ut.jbizur.network.address.TCPAddress;
+import ee.ut.bench.config.ClientConfig;
+import ee.ut.bench.config.MemberConfig;
 import io.atomix.core.Atomix;
+import io.atomix.core.map.AtomicMap;
 import io.atomix.core.map.DistributedMap;
+import io.atomix.core.profile.Profile;
+import io.atomix.protocols.raft.MultiRaftProtocol;
+import io.atomix.protocols.raft.ReadConsistency;
 import io.atomix.utils.net.Address;
-import network.ConnectionProtocol;
 
 import java.util.Collection;
 
 public class AtomixDBClientWrapper extends AbstractDBClientWrapper {
 
     private Atomix client;
-    private DistributedMap<String, String> distributedMap;
+    private DistributedMap<String, String> keyValueStore;
 
     @Override
-    protected void init(String... args) throws Exception {
-        UserSettings settings = new UserSettings(args, ConnectionProtocol.TCP_CONNECTION);
-
-        String ipAddr = String.format("%s:%s", TCPAddress.resolveIpAddress().getHostAddress(), "0");
-        String multicastAddr = String.format("%s:%s", settings.getGroupName(), settings.getGroupId());
+    protected void init() {
+        String id = ClientConfig.getClientId();
+        String address = ClientConfig.compileTCPAddress();
+        String multicastAddr = ClientConfig.compileMulticastAddress();
+        String[] members = MemberConfig.getMemberIds();
 
         client = Atomix.builder()
-                .withMemberId("benchmarkclient")
-                .withAddress(ipAddr)
+                .withMemberId(id)
+                .withAddress(address)
                 .withMulticastEnabled()
                 .withMulticastAddress(Address.from(multicastAddr))
+                .withProfiles(Profile.client())
                 .build();
-        distributedMap = client.getMap("benchmarkmap");
+        client.start().join();
+//        keyValueStore = client.getAtomicMap("benchmarkmap");
+        keyValueStore = createDistributedMap("benchmarkmap");
+    }
+
+    private AtomicMap<String, String> createAtomicMap(String name) {
+        if (!client.isRunning()) {
+            throw new IllegalStateException("client should be initialized first");
+        }
+        MultiRaftProtocol protocol = MultiRaftProtocol.builder()
+                .withReadConsistency(ReadConsistency.LINEARIZABLE)
+                .build();
+        return client
+                .<String, String>atomicMapBuilder(name)
+                .withProtocol(protocol)
+                .build();
+    }
+
+    private DistributedMap<String, String> createDistributedMap(String name) {
+        if (!client.isRunning()) {
+            throw new IllegalStateException("client should be initialized first");
+        }
+        return client.getMap(name);
     }
 
     @Override
     public void reset() {
-        distributedMap.forEach((s, s2) -> {
-            distributedMap.remove(s);
-        });
+        for (String key : keyValueStore.keySet()) {
+            keyValueStore.remove(key);
+        }
     }
 
     @Override
     public <T> T set(String key, String value) {
-        return (T) distributedMap.put(key, value);
+        return (T) keyValueStore.put(key, value);
     }
 
     @Override
     public <T> T get(String key) {
-        return (T) distributedMap.get(key);
+        return (T) keyValueStore.get(key);
     }
 
     @Override
     public <T> T delete(String key) {
-        return (T) distributedMap.remove(key);
+        return (T) keyValueStore.remove(key);
     }
 
     @Override
     public Collection<String> iterateKeys() {
-        return distributedMap.keySet();
+        return keyValueStore.keySet();
     }
 }

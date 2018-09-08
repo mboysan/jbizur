@@ -1,5 +1,6 @@
 package ee.ut.bench.tests;
 
+import ee.ut.bench.config.TestConfig;
 import ee.ut.bench.db.AbstractDBClientWrapper;
 import ee.ut.bench.db.DBOperation;
 
@@ -10,8 +11,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class LatencyTest extends AbstractTest {
 
-    public static int OPERATION_COUNT = 5;
-    public static int QUEUE_DEPTH = 64;
+    public static int OPERATION_COUNT;
+    public static int QUEUE_DEPTH;
 
     public LatencyTest(AbstractDBClientWrapper dbWrapper) {
         super(dbWrapper);
@@ -19,6 +20,19 @@ public class LatencyTest extends AbstractTest {
 
     public LatencyTest(AbstractDBClientWrapper dbWrapper, DBOperation... dbOperations) {
         super(dbWrapper, dbOperations);
+    }
+
+    @Override
+    protected void configure() {
+        OPERATION_COUNT = TestConfig.getLatencyOperationCount();
+        QUEUE_DEPTH = TestConfig.getLatencyQueueDepth();
+    }
+
+    @Override
+    public LatencyTest configureWarmup() {
+        OPERATION_COUNT = TestConfig.getLatencyWarmupOperationCount();
+        QUEUE_DEPTH = TestConfig.getLatencyWarmupQueueDepth();
+        return this;
     }
 
     @Override

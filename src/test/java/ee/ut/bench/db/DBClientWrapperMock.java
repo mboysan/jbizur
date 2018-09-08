@@ -12,7 +12,7 @@ public class DBClientWrapperMock extends AbstractDBClientWrapper {
     }
 
     @Override
-    protected void init(String... args) throws Exception {
+    protected void init() throws Exception {
         reset();
     }
 

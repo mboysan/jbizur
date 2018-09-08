@@ -15,7 +15,7 @@ public class BizurClientWrapper extends AbstractDBClientWrapper {
     private BizurNode node;
 
     @Override
-    public void init(String... args) throws InterruptedException, UnknownHostException {
+    public void init() throws InterruptedException, UnknownHostException {
         MulticastAddress multicastAddress = new MulticastAddress("all-systems.mcast.net", 9090);
         GlobalConfig.getInstance().initTCP(false, multicastAddress);
 

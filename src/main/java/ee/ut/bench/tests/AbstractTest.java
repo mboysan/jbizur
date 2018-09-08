@@ -17,9 +17,14 @@ public abstract class AbstractTest {
     public AbstractTest(AbstractDBClientWrapper dbWrapper, DBOperation... dbOperations) {
         this.dbWrapper = dbWrapper;
         this.dbOperations = dbOperations;
+        configure();
     }
 
+    protected abstract void configure();
+    public abstract AbstractTest configureWarmup();
+
     public abstract IResultSet run();
+
     public abstract IResultSet runParallel();
 
     protected String convertDBOperationsToStr() {

@@ -1,5 +1,6 @@
 package ee.ut.bench.tests;
 
+import ee.ut.bench.config.TestConfig;
 import ee.ut.bench.db.AbstractDBClientWrapper;
 import ee.ut.bench.db.DBOperation;
 
@@ -9,8 +10,8 @@ import java.util.concurrent.Executors;
 
 public class ThroughputTest extends AbstractTest {
 
-    public static int OPERATION_COUNT = 5;
-    public static int QUEUE_DEPTH = 64;
+    public static int OPERATION_COUNT;
+    public static int QUEUE_DEPTH;
 
     public ThroughputTest(AbstractDBClientWrapper dbWrapper) {
         super(dbWrapper);
@@ -18,6 +19,19 @@ public class ThroughputTest extends AbstractTest {
 
     public ThroughputTest(AbstractDBClientWrapper dbWrapper, DBOperation... dbOperations) {
         super(dbWrapper, dbOperations);
+    }
+
+    @Override
+    protected void configure() {
+        OPERATION_COUNT = TestConfig.getThroughputOperationCount();
+        QUEUE_DEPTH = TestConfig.getThroughputQueueDepth();
+    }
+
+    @Override
+    public ThroughputTest configureWarmup() {
+        OPERATION_COUNT = TestConfig.getThroughputWarmupOperationCount();
+        QUEUE_DEPTH = TestConfig.getThroughputWarmupQueueDepth();
+        return this;
     }
 
     @Override
@@ -38,7 +52,7 @@ public class ThroughputTest extends AbstractTest {
     public IResultSet runParallel() {
         ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
-        int opsSize = (int) Math.ceil((double)OPERATION_COUNT / (double)QUEUE_DEPTH);
+        int opsSize = (int) Math.ceil((double) OPERATION_COUNT / (double) QUEUE_DEPTH);
         long[][] ops = new long[opsSize][3];
         int opsInx = 0;
         for (int i = OPERATION_COUNT; i > 0; i -= QUEUE_DEPTH) {

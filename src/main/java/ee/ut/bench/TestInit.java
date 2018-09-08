@@ -1,5 +1,6 @@
 package ee.ut.bench;
 
+import ee.ut.bench.config.ClientConfig;
 import ee.ut.bench.db.BizurClientWrapper;
 import ee.ut.bench.tests.AbstractTest;
 import ee.ut.bench.tests.IResultSet;
@@ -13,33 +14,22 @@ public class TestInit {
 
     private final AbstractDBClientWrapper dbWrapper;
 
-    public TestInit(String[] args) throws Exception {
-        ThroughputTest.OPERATION_COUNT = 5;
-        LatencyTest.OPERATION_COUNT = 5;
-        this.dbWrapper = DBWrapperFactory.buildAndInit(BizurClientWrapper.class, args);
+    public TestInit() throws Exception {
+        this.dbWrapper = DBWrapperFactory.buildAndInit(ClientConfig.getDBWrapperClass());
     }
 
     void warmup() {
         System.out.println("----------- Warming up " + dbWrapper.toString());
 
-        int backupLatOpCount = LatencyTest.OPERATION_COUNT;
-        int backupTputOpCount = ThroughputTest.OPERATION_COUNT;
-
-        LatencyTest.OPERATION_COUNT = 1;
-        ThroughputTest.OPERATION_COUNT = 1;
-
-        AbstractTest latTest = new LatencyTest(dbWrapper, DBOperation.RANDOM);
+        AbstractTest latTest = new LatencyTest(dbWrapper, DBOperation.RANDOM).configureWarmup();
         latTest.run();
         latTest.runParallel();
 
-        AbstractTest tputTest = new ThroughputTest(dbWrapper, DBOperation.RANDOM);
+        AbstractTest tputTest = new ThroughputTest(dbWrapper, DBOperation.RANDOM).configureWarmup();
         tputTest.run();
         tputTest.runParallel();
 
         dbWrapper.reset();
-
-        LatencyTest.OPERATION_COUNT = backupLatOpCount;
-        ThroughputTest.OPERATION_COUNT = backupTputOpCount;
 
         System.out.println("----------- Warming up done for " + dbWrapper.toString());
     }
@@ -59,7 +49,7 @@ public class TestInit {
     }
 
     public static void main(String[] args) throws Exception {
-        TestInit testInit = new TestInit(args);
+        TestInit testInit = new TestInit();
 
         testInit.warmup();
 
