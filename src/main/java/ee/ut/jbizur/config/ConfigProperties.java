@@ -6,20 +6,20 @@ import java.util.Properties;
 
 public class ConfigProperties {
 
-    private static Properties PROPERTIES = loadProperties(ConfigProperties.class, "config.properties");
+    private static Properties PROPERTIES;
     static {
+        loadProperties(ConfigProperties.class, "config.properties");
         LoggerConfig.configureLogger();
     }
 
-    public synchronized static Properties loadProperties(Class clazz, String resourceName) {
-        Properties properties = new Properties();
+    public synchronized static void loadProperties(Class clazz, String resourceName) {
+        PROPERTIES = new Properties();
         try {
             InputStream input = clazz.getClassLoader().getResourceAsStream(resourceName);
-            properties.load(input);
+            PROPERTIES.load(input);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return properties;
     }
 
     static String getString(String key) {
