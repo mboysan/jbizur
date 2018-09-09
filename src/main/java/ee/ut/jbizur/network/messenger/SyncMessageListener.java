@@ -1,27 +1,25 @@
 package ee.ut.jbizur.network.messenger;
 
-import ee.ut.jbizur.config.GlobalConfig;
-import org.pmw.tinylog.Logger;
+import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
+import ee.ut.jbizur.role.RoleSettings;
+import org.pmw.tinylog.Logger;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class SyncMessageListener {
-
     private final CountDownLatch processesLatch;
     private final AtomicInteger ackCount;
     private final String msgId;
+    private final int quorumSize;
 
-    protected SyncMessageListener(String msgId) {
-        this(msgId, GlobalConfig.getInstance().getProcessCount());
-    }
-
-    protected SyncMessageListener(String msgId, int latchCount){
+    protected SyncMessageListener(String msgId, int totalProcessCount){
         this.msgId = msgId;
-        this.processesLatch = new CountDownLatch(latchCount);
+        this.processesLatch = new CountDownLatch(totalProcessCount);
         this.ackCount = new AtomicInteger(0);
+        this.quorumSize = RoleSettings.calcQuorumSize(totalProcessCount);
     }
 
     public abstract void handleMessage(NetworkCommand command);
@@ -39,7 +37,7 @@ public abstract class SyncMessageListener {
     }
 
     public boolean isMajorityAcked(){
-        return ackCount.get() >= GlobalConfig.getInstance().getQuorumSize();
+        return ackCount.get() >= quorumSize;
     }
 
     public void end(){
@@ -58,7 +56,7 @@ public abstract class SyncMessageListener {
     }
 
     public boolean waitForResponses() {
-        return waitForResponses(GlobalConfig.RESPONSE_TIMEOUT_SEC, TimeUnit.SECONDS);
+        return waitForResponses(NodeConfig.getResponseTimeoutSec(), TimeUnit.SECONDS);
     }
 
     @Override

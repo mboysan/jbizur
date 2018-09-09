@@ -3,7 +3,7 @@ package ee.ut.jbizur.network.messenger;
 import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.internal.SendFail_IC;
-import ee.ut.jbizur.role.BizurNodeMock;
+import ee.ut.jbizur.role.bizur.BizurNodeMock;
 import ee.ut.jbizur.role.Role;
 
 import java.util.HashMap;
@@ -31,6 +31,6 @@ public class MessageSenderMock implements IMessageSender {
     }
 
     public void registerRole(Role role){
-        roles.put(role.getAddress().toString(), role);
+        roles.put(role.getConfig().getAddress().toString(), role);
     }
 }

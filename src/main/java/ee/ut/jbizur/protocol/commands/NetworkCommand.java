@@ -1,6 +1,6 @@
 package ee.ut.jbizur.protocol.commands;
 
-import ee.ut.jbizur.config.GlobalConfig;
+import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.network.address.Address;
 
 import java.io.Serializable;
@@ -46,6 +46,10 @@ public class NetworkCommand implements Serializable {
      * Number of times to retry sending this command in case of a failure.
      */
     private int retryCount = 1;
+    /**
+     * a "member" or "client".
+     */
+    private String nodeType;
 
     public NetworkCommand() {
         reset();
@@ -55,7 +59,7 @@ public class NetworkCommand implements Serializable {
         this.timeStamp = System.currentTimeMillis();
         this.tag = MessageTag.ANY_TAG.getTagValue();
         this.isHandled = false;
-        this.retryCount = GlobalConfig.SEND_FAIL_RETRY_COUNT;
+        this.retryCount = NodeConfig.getSendFailRetryCount();
     }
 
     /**
@@ -165,6 +169,15 @@ public class NetworkCommand implements Serializable {
         return this;
     }
 
+    public String getNodeType() {
+        return nodeType;
+    }
+
+    public NetworkCommand setNodeType(String nodeType) {
+        this.nodeType = nodeType;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "NetworkCommand{" +
@@ -178,6 +191,7 @@ public class NetworkCommand implements Serializable {
                 ", msgId='" + msgId + '\'' +
                 ", isHandled=" + isHandled +
                 ", retryCount=" + retryCount +
+                ", nodeType=" + nodeType +
                 '}';
     }
 }

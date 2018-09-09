@@ -134,6 +134,11 @@ public class TCPAddress extends Address {
                 && address.getPortNumber() == this.getPortNumber();
     }
 
+    public static TCPAddress resolveTCPAddress(String ipStr) throws UnknownHostException {
+        String[] arr = ipStr.split(":");
+        return new TCPAddress(arr[0], Integer.parseInt(arr[1]));
+    }
+
     @Override
     public String toString() {
         return "TCPAddress{" +

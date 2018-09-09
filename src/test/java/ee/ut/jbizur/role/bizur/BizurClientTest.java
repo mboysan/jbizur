@@ -1,59 +1,83 @@
-package ee.ut.jbizur.role;
+package ee.ut.jbizur.role.bizur;
 
+import ee.ut.jbizur.config.ClientTestConfig;
+import ee.ut.jbizur.network.address.Address;
+import ee.ut.jbizur.network.address.MockMulticastAddress;
 import ee.ut.jbizur.network.address.MockAddress;
-import ee.ut.jbizur.network.messenger.MessageReceiverMock;
-import ee.ut.jbizur.network.messenger.MessageSenderMock;
 import org.junit.Assert;
 import org.junit.Test;
 import utils.RunnerWithExceptionCatcher;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
+import java.net.UnknownHostException;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public class BizurClientTest extends BizurNodeTestBase {
-
-    protected static int NUM_CLIENTS = 3;
 
     protected final Map<String, String> expKeyVals = new HashMap<>();
     protected BizurClient[] bizurClients;
 
+    @Override
     public void setUp() throws Exception {
         super.setUp();
         expKeyVals.clear();
-        createClients(NUM_CLIENTS);
-        registerClients();
+        createClients();
+        registerRolesToClients();
+        registerClientsToRoles();
+        startClients();
     }
 
     /**
      * Initializes the Bizur Clients.
-     * @param count number of clients to initialize.
      * @throws InterruptedException in case of initialization errors.
      */
-    private void createClients(int count) throws InterruptedException {
-        bizurClients = new BizurClient[count];
-        for (int i = 0; i < count; i++) {
-            BizurClient bizurClient = new BizurClient(
-                    new MockAddress(UUID.randomUUID().toString()),
-                    new MessageSenderMock(),
-                    new MessageReceiverMock(),
-                    new CountDownLatch(0)
-            );
-            bizurClients[i] = bizurClient;
+    private void createClients() throws InterruptedException, UnknownHostException {
+        int clientCount = ClientTestConfig.getClientCount();
+        String[] clients = new String[clientCount];
+        for (int i = 0; i < clients.length; i++) {
+            clients[i] = "client-" + i;
         }
+        bizurClients = new BizurClient[clientCount];
+        for (int i = 0; i < bizurClients.length; i++) {
+            bizurClients[i] = BizurMockBuilder.mockBuilder()
+                    .withMemberId(clients[i])
+                    .withMulticastAddress(new MockMulticastAddress("", 0))
+                    .withAddress(new MockAddress(clients[i]))
+                    .withMemberAddresses(getMemberAddresses())
+                    .buildClient();
+        }
+    }
+
+    protected Set<Address> getMemberAddresses() {
+        Set<Address> addressSet = new HashSet<>();
+        for (BizurNode bizurNode : bizurNodes) {
+            addressSet.add(bizurNode.getConfig().getAddress());
+        }
+        return addressSet;
     }
 
     /**
      * Registers clients to bizur nodes and vise versa.
      */
-    private void registerClients() {
+    private void registerRolesToClients() {
+        for (BizurClient bizurClient : bizurClients) {
+            ((BizurClientMock) bizurClient).registerRoles(bizurNodes);
+        }
+    }
+
+    private void registerClientsToRoles() {
         for (BizurNode bizurNode : bizurNodes) {
-            for (BizurClient bizurClient : bizurClients) {
-                ((MessageSenderMock)(((BizurNodeMock) bizurNode).messageSender)).registerRole(bizurClient);
-                ((MessageSenderMock) bizurClient.messageSender).registerRole(bizurNode);
-            }
+            ((BizurNodeMock) bizurNode).registerRoles(bizurClients);
+        }
+    }
+
+    private void startClients() {
+        CompletableFuture[] futures = new CompletableFuture[bizurClients.length];
+        for (int i = 0; i < bizurClients.length; i++) {
+            futures[i] = bizurClients[i].start();
+        }
+        for (CompletableFuture future : futures) {
+            future.join();
         }
     }
 

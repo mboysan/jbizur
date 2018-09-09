@@ -1,11 +1,11 @@
 package ee.ut.jbizur.network.messenger;
 
 import ee.ut.jbizur.network.address.MulticastAddress;
-import org.pmw.tinylog.Logger;
 import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
 import ee.ut.jbizur.role.Role;
+import org.pmw.tinylog.Logger;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -18,9 +18,11 @@ import java.util.concurrent.Executors;
 
 /**
  * Used for sending multicast messages. Preferably used for process discovery with
- * {@link ee.ut.jbizur.network.ConnectionProtocol#TCP_CONNECTION}
+ * {@link ee.ut.jbizur.network.ConnectionProtocol#TCP}
  */
 public class Multicaster {
+
+    private volatile boolean isRunning = true;
 
     private final MulticastAddress multicastAddress;
 
@@ -41,19 +43,22 @@ public class Multicaster {
         }
         this.multicastAddress = multicastAddress;
         this.roleInstance = roleInstance;
-
         this.receiver = new MulticastReceiver();
-        executor.execute(receiver);
     }
 
     public void multicast(NetworkCommand messageToSend) {
         new MulticastPublisher().multicast(messageToSend);
     }
 
+    public void startRecv() {
+        executor.execute(receiver);
+    }
+
     /**
      * shutdown the multicaster service.
      */
     public void shutdown(){
+        isRunning = false;
         executor.shutdown();
         receiver.end();
     }
@@ -93,17 +98,11 @@ public class Multicaster {
                 InetAddress group = multicastAddress.getMulticastGroupAddr();
                 socket.joinGroup(group);
                 byte[] msg = new byte[512];    //fixed size byte[]
-                while (true) {
+                while (isRunning) {
                     DatagramPacket packet = new DatagramPacket(msg, msg.length);
                     socket.receive(packet);
                     NetworkCommand received = commandMarshaller.unmarshall(
                             new String(packet.getData(), StandardCharsets.UTF_8));
-                    if(received instanceof SignalEnd_NC){
-                        Logger.debug("End signal recv (multicast): " + received);
-                        /* No need to handle the end message. */
-                        executor.shutdown();
-                        break;
-                    }
                     executor.execute(() -> roleInstance.handleNetworkCommand(received));
                 }
                 socket.leaveGroup(group);

@@ -1,18 +1,25 @@
-package ee.ut.jbizur.role;
+package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.GlobalConfig;
+import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.exceptions.OperationFailedError;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.messenger.IMessageReceiver;
 import ee.ut.jbizur.network.messenger.IMessageSender;
+import ee.ut.jbizur.network.messenger.Multicaster;
 import ee.ut.jbizur.network.messenger.SyncMessageListener;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.bizur.*;
 import ee.ut.jbizur.protocol.commands.common.Nack_NC;
 import ee.ut.jbizur.protocol.commands.ping.ConnectOK_NC;
+import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
+import ee.ut.jbizur.protocol.internal.InternalCommand;
+import ee.ut.jbizur.protocol.internal.NewNodeAddressRegistered_IC;
+import ee.ut.jbizur.protocol.internal.NodeAddressUnregistered_IC;
 import ee.ut.jbizur.protocol.internal.SendFail_IC;
+import ee.ut.jbizur.role.RoleSettings;
 
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -20,23 +27,44 @@ import java.util.concurrent.TimeUnit;
 public class BizurClient extends BizurNode {
 
     private Address[] addresses;
+    private final Object addressesLock = new Object();
 
-    public BizurClient(Address baseAddress) throws InterruptedException {
-        this(baseAddress, null, null, null);
+    protected BizurClient(BizurSettings bizurSettings) throws InterruptedException {
+        this(bizurSettings, null, null, null, null);
     }
 
-    public BizurClient(Address baseAddress, IMessageSender messageSender, IMessageReceiver messageReceiver, CountDownLatch readyLatch) throws InterruptedException {
-        super(baseAddress, messageSender, messageReceiver, readyLatch);
-        addresses = convertAddressSetToArray();
+    protected BizurClient(BizurSettings bizurSettings, Multicaster multicaster, IMessageSender messageSender, IMessageReceiver messageReceiver, CountDownLatch readyLatch) throws InterruptedException {
+        super(bizurSettings, multicaster, messageSender, messageReceiver, readyLatch);
+
+        if (isAddressesAlreadyRegistered()) {
+            arrangeAddresses();
+        }
     }
 
     @Override
     protected void initNode() {
-        GlobalConfig.getInstance().unregisterAddress(getAddress(), this);
     }
 
     @Override
-    protected void initBuckets(int count) {
+    protected void initBuckets() {
+    }
+
+    @Override
+    protected void initMulticast() {
+        if (isAddressesAlreadyRegistered()) {
+            return;
+        }
+        super.initMulticast();
+    }
+    @Override
+    public void handleInternalCommand(InternalCommand command) {
+        super.handleInternalCommand(command);
+        if (command instanceof NewNodeAddressRegistered_IC) {
+            arrangeAddresses();
+        }
+        if (command instanceof NodeAddressUnregistered_IC) {
+            arrangeAddresses();
+        }
     }
 
     @Override
@@ -50,49 +78,55 @@ public class BizurClient extends BizurNode {
         }
 
         if(command instanceof ConnectOK_NC){
-            GlobalConfig.getInstance().registerAddress(command.getSenderAddress(), this);
-            addresses = convertAddressSetToArray();
+            getConfig().registerAddress(command.getSenderAddress());
+        }
+        if (command instanceof SignalEnd_NC) {
+            shutdown();
         }
     }
 
     @Override
     public String get(String key) {
+        checkReady();
         return routeRequestAndGet(
                 new ClientApiGet_NC()
                         .setKey(key)
-                        .setSenderId(getRoleId())
+                        .setSenderId(getConfig().getRoleId())
                         .setReceiverAddress(getRandomAddress())
-                        .setSenderAddress(getAddress()));
+                        .setSenderAddress(getConfig().getAddress()));
     }
 
     @Override
     public boolean set(String key, String val) {
+        checkReady();
         return routeRequestAndGet(
                 new ClientApiSet_NC()
                         .setKey(key)
                         .setVal(val)
-                        .setSenderId(getRoleId())
+                        .setSenderId(getConfig().getRoleId())
                         .setReceiverAddress(getRandomAddress())
-                        .setSenderAddress(getAddress()));
+                        .setSenderAddress(getConfig().getAddress()));
     }
 
     @Override
     public boolean delete(String key) {
+        checkReady();
         return routeRequestAndGet(
                 new ClientApiDelete_NC()
                         .setKey(key)
-                        .setSenderId(getRoleId())
+                        .setSenderId(getConfig().getRoleId())
                         .setReceiverAddress(getRandomAddress())
-                        .setSenderAddress(getAddress()));
+                        .setSenderAddress(getConfig().getAddress()));
     }
 
     @Override
     public Set<String> iterateKeys() {
+        checkReady();
         return routeRequestAndGet(
                 new ClientApiIterKeys_NC()
-                        .setSenderId(getRoleId())
+                        .setSenderId(getConfig().getRoleId())
                         .setReceiverAddress(getRandomAddress())
-                        .setSenderAddress(getAddress()));
+                        .setSenderAddress(getConfig().getAddress()));
     }
 
     @Override
@@ -101,7 +135,7 @@ public class BizurClient extends BizurNode {
             throw new OperationFailedError("Routing failed for command: " + command);
         }
         final Object[] resp = new Object[1];
-        String msgId = GlobalConfig.getInstance().generateMsgId();
+        String msgId = RoleSettings.generateMsgId();
         SyncMessageListener listener = new SyncMessageListener(msgId, 1) {
             @Override
             public void handleMessage(NetworkCommand command) {
@@ -119,7 +153,7 @@ public class BizurClient extends BizurNode {
             command.setMsgId(msgId);
             sendMessage(command);
 
-            long waitSec = addresses.length * GlobalConfig.MAX_ELECTION_WAIT_SEC + GlobalConfig.RESPONSE_TIMEOUT_SEC;
+            long waitSec = addresses.length * NodeConfig.getMaxElectionWaitSec() + NodeConfig.getResponseTimeoutSec();
             if (listener.waitForResponses(waitSec, TimeUnit.SECONDS)) {
                 T rsp = (T) resp[0];
                 if(!(rsp instanceof SendFail_IC)) {
@@ -136,12 +170,18 @@ public class BizurClient extends BizurNode {
 
     @Override
     public void signalEndToAll() {
-        GlobalConfig.getInstance().registerAddress(getAddress(), this);
         super.signalEndToAll();
+        handleNetworkCommand(new SignalEnd_NC());
+    }
+
+    private void arrangeAddresses() {
+        synchronized (addressesLock) {
+            addresses = convertAddressSetToArray();
+        }
     }
 
     private Address[] convertAddressSetToArray() {
-        Set<Address> addressSet = GlobalConfig.getInstance().getAddresses();
+        Set<Address> addressSet = getConfig().getMemberAddresses();
         Address[] addresses = new Address[addressSet.size()];
         int i = 0;
         for (Address address : addressSet) {
@@ -151,7 +191,9 @@ public class BizurClient extends BizurNode {
     }
 
     public Address getRandomAddress() {
-        int index = ThreadLocalRandom.current().nextInt(addresses.length);
-        return addresses[index];
+        synchronized (addressesLock) {
+            int index = ThreadLocalRandom.current().nextInt(addresses.length);
+            return addresses[index];
+        }
     }
 }

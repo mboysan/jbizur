@@ -5,4 +5,9 @@ public class MessageReceiverMock implements IMessageReceiver {
     public void startRecv() {
         //nothing needs to be done here
     }
+
+    @Override
+    public void shutdown() {
+
+    }
 }

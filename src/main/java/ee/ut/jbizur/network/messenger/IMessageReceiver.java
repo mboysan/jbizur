@@ -8,4 +8,6 @@ public interface IMessageReceiver {
      * Starts receiving messages with the underlying communication stack.
      */
     void startRecv();
+
+    void shutdown();
 }

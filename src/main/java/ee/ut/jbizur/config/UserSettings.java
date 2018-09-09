@@ -1,7 +1,7 @@
 package ee.ut.jbizur.config;
 
-import mpi.MPI;
 import ee.ut.jbizur.network.ConnectionProtocol;
+import mpi.MPI;
 import org.pmw.tinylog.Logger;
 
 import java.util.Arrays;
@@ -31,10 +31,10 @@ public class UserSettings {
     public UserSettings(String[] args, ConnectionProtocol connectionProtocol){
         Logger.info("Args received: " + Arrays.toString(args));
         switch (connectionProtocol) {
-            case TCP_CONNECTION:
+            case TCP:
                 resolveTCPArgs(args);
                 break;
-            case MPI_CONNECTION:
+            case MPI:
                 resolveMPIArgs(args);
                 break;
         }

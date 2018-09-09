@@ -1,4 +1,4 @@
-package ee.ut.jbizur.role;
+package ee.ut.jbizur.role.bizur;
 
 import org.junit.Assert;
 import org.junit.Test;

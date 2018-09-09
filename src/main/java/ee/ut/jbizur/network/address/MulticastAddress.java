@@ -4,7 +4,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 /**
- * Address used for process discovery. Used internally by {@link ee.ut.jbizur.config.GlobalConfig} and is not exposed to nodes.
+ * Address used for process discovery. Used internally by {@link GlobalConfig} and is not exposed to nodes.
  */
 public class MulticastAddress {
     /**
@@ -31,5 +31,10 @@ public class MulticastAddress {
 
     public int getMulticastPort() {
         return multicastPort;
+    }
+
+    public static MulticastAddress resolveMulticastAddress(String multaddrStr) throws UnknownHostException {
+        String[] arr = multaddrStr.split(":");
+        return new MulticastAddress(arr[0], Integer.parseInt(arr[1]));
     }
 }

@@ -1,19 +1,18 @@
 package ee.ut.jbizur.role;
 
 import ee.ut.jbizur.annotations.ForTestingOnly;
-import ee.ut.jbizur.config.GlobalConfig;
+import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.messenger.*;
-import org.pmw.tinylog.Logger;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.ping.ConnectOK_NC;
 import ee.ut.jbizur.protocol.commands.ping.Connect_NC;
 import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
 import ee.ut.jbizur.protocol.internal.InternalCommand;
+import org.pmw.tinylog.Logger;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -23,14 +22,7 @@ public abstract class Role {
 
     protected final Map<String, SyncMessageListener> syncMessageListeners = new ConcurrentHashMap<>();
 
-    /**
-     * Id of the ee.ut.jbizur.role
-     */
-    private final String roleId;
-    /**
-     * The address of the ee.ut.jbizur.role.
-     */
-    private Address myAddress;
+    protected ScheduledExecutorService multicastExecutor = Executors.newScheduledThreadPool(1);
     /**
      * Message sender service.
      */
@@ -44,68 +36,53 @@ public abstract class Role {
      */
     private final AtomicBoolean isLeader = new AtomicBoolean(false);
 
-    /**
-     * Indicates if the node is ready for registration by calling {@link GlobalConfig#registerRole(Role)}.
-     */
-    private CountDownLatch readyLatch;
+    private final CountDownLatch readyLatch;
 
-    /**
-     * @param baseAddress see {@link #myAddress}. The address may be modified by the {@link MessageReceiverImpl} after
-     *                    ee.ut.jbizur.role has been started.
-     */
-    Role(Address baseAddress) throws InterruptedException {
-        this(baseAddress, null, null, null);
+    private final RoleSettings config;
+    protected final Multicaster multicaster;
+
+    protected Role(RoleSettings config) throws InterruptedException {
+        this(config, null, null, null, null);
     }
 
-    protected Role(Role rootRole) throws InterruptedException {
-        this(rootRole.getAddress(), rootRole.messageSender, rootRole.messageReceiver);
-    }
-
-    protected Role(Address baseAddress, IMessageSender messageSender, IMessageReceiver messageReceiver) throws InterruptedException {
-        this.myAddress = baseAddress;
-        roleId = baseAddress.resolveAddressId();
+    @ForTestingOnly
+    protected Role(RoleSettings config, Multicaster multicaster, IMessageSender messageSender, IMessageReceiver messageReceiver, CountDownLatch readyLatch) throws InterruptedException {
+        this.config = config;
+        this.multicaster = multicaster == null ? new Multicaster(config.getMulticastAddress(), this) : multicaster;
         this.messageSender = messageSender == null ? new MessageSenderImpl(this) : messageSender;
         this.messageReceiver = messageReceiver == null ? new MessageReceiverImpl(this) : messageReceiver;
-        this.readyLatch = null;
-    }
-
-    /**
-     * Designed to be used by the unit testing framework, hence protected access.
-     *
-     * @param baseAddress see {@link #myAddress}. The address may be modified by the {@link MessageReceiverImpl} after
-     *                    ee.ut.jbizur.role has been started.
-     * @param messageSender message sender service.
-     * @param messageReceiver message receiver service.
-     */
-    @ForTestingOnly
-    protected Role(Address baseAddress,
-                   IMessageSender messageSender,
-                   IMessageReceiver messageReceiver,
-                   CountDownLatch readyLatch) throws InterruptedException
-    {
-        this(baseAddress, messageSender, messageReceiver);
-
         this.readyLatch = readyLatch == null ? new CountDownLatch(1) : readyLatch;
-        this.messageReceiver.startRecv();
 
+        this.messageReceiver.startRecv();
         this.readyLatch.await();
 
-        GlobalConfig.getInstance().registerRole(this);
-//        pinger.pingUnreachableNodesPeriodically();
+        initMulticast();
     }
 
-    /**
-     * @return see {@link #myAddress}
-     */
-    public Address getAddress() {
-        return myAddress;
+    protected void initMulticast() {
+        if (isAddressesAlreadyRegistered()) {
+            return;
+        }
+        multicaster.startRecv();
+        multicastExecutor.scheduleAtFixedRate(() -> {
+            if (!checkNodesDiscovered()) {
+                multicaster.multicast(
+                        new Connect_NC()
+                                .setSenderAddress(config.getAddress())
+                                .setNodeType("member")
+                );
+            }
+        }, 0, NodeConfig.getMulticastIntervalMs(), TimeUnit.MILLISECONDS);
     }
 
-    /**
-     * @return see {@link #roleId}
-     */
-    public String getRoleId() {
-        return roleId;
+    protected boolean isAddressesAlreadyRegistered() {
+        return getConfig().getMemberAddresses().size() > 0;
+    }
+
+    protected boolean checkNodesDiscovered() {
+        return RoleValidation.checkStateAndWarn(
+                getConfig().getAnticipatedMemberCount() == getConfig().getMemberAddresses().size(),
+                "Nodes did not find each other yet.");
     }
 
     /**
@@ -113,7 +90,7 @@ public abstract class Role {
      * @param command the ee.ut.jbizur.network message to handle.
      */
     public void handleNetworkCommand(NetworkCommand command){
-        Logger.debug("[" + getAddress() +"] - " + command);
+        Logger.debug("[" + getConfig().getAddress() +"] - " + command);
 
         boolean isHandled = false;
         String assocMsgId = command.getMsgId();
@@ -128,12 +105,18 @@ public abstract class Role {
         if(!isHandled){
             if(command instanceof Connect_NC){
                 NetworkCommand connectOK = new ConnectOK_NC()
-                        .setSenderAddress(getAddress())
-                        .setReceiverAddress(command.getSenderAddress());
+                        .setSenderAddress(getConfig().getAddress())
+                        .setReceiverAddress(command.getSenderAddress())
+                        .setNodeType("member");
                 sendMessage(connectOK);
             }
             if(command instanceof ConnectOK_NC){
-                GlobalConfig.getInstance().registerAddress(command.getSenderAddress(), this);
+                if (command.getNodeType().equals("member")) {
+                    config.registerAddress(command.getSenderAddress());
+                }
+            }
+            if (command instanceof SignalEnd_NC) {
+                shutdown();
             }
         }
     }
@@ -141,18 +124,18 @@ public abstract class Role {
     public abstract void handleInternalCommand(InternalCommand command);
 
     protected void handleNodeFailure(Address failedNodeAddress) {
-        GlobalConfig.getInstance().unregisterAddress(failedNodeAddress, this);
+        config.unregisterAddress(failedNodeAddress);
     }
 
     /**
      * Sends {@link SignalEnd_NC} command to all the processes.
      */
     public void signalEndToAll() {
-        for (Address receiverAddress : GlobalConfig.getInstance().getAddresses()) {
+        for (Address receiverAddress : getConfig().getMemberAddresses()) {
             NetworkCommand signalEnd = new SignalEnd_NC()
-                    .setSenderId(getRoleId())
+                    .setSenderId(getConfig().getRoleId())
                     .setReceiverAddress(receiverAddress)
-                    .setSenderAddress(getAddress());
+                    .setSenderAddress(getConfig().getAddress());
             sendMessage(signalEnd);
         }
     }
@@ -177,7 +160,7 @@ public abstract class Role {
      * @param modifiedAddr address modified by the {@link MessageReceiverImpl} if applicable.
      */
     public void setAddress(Address modifiedAddr){
-        this.myAddress = modifiedAddr;
+        getConfig().setAddress(modifiedAddr);
     }
 
     /**
@@ -185,6 +168,14 @@ public abstract class Role {
      */
     public void setReady(){
         readyLatch.countDown();
+    }
+
+    public abstract CompletableFuture start();
+
+    public void shutdown() {
+        messageReceiver.shutdown();
+        multicaster.shutdown();
+        multicastExecutor.shutdown();
     }
 
     protected void attachMsgListener(SyncMessageListener listener){
@@ -195,11 +186,15 @@ public abstract class Role {
         syncMessageListeners.remove(listener.getMsgId());
     }
 
+    public RoleSettings getConfig() {
+        return config;
+    }
+
     @Override
     public String toString() {
         return "Role{" +
-                "roleId='" + roleId + '\'' +
-                ", myAddress=" + myAddress +
+                "roleId='" + getConfig().getRoleId() + '\'' +
+                ", myAddress=" + getConfig().getAddress() +
                 ", isLeader=" + isLeader +
                 '}';
     }

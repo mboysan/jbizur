@@ -1,16 +1,16 @@
 package ee.ut.jbizur.network.messenger;
 
-import ee.ut.jbizur.config.GlobalConfig;
-import mpi.MPI;
-import mpi.MPIException;
+import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.network.address.MPIAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
-import org.pmw.tinylog.Logger;
 import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
 import ee.ut.jbizur.protocol.internal.SendFail_IC;
 import ee.ut.jbizur.role.Role;
+import mpi.MPI;
+import mpi.MPIException;
+import org.pmw.tinylog.Logger;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -49,11 +49,11 @@ public class MessageSenderImpl implements IMessageSender {
     @Override
     public void send(NetworkCommand message) {
         Runnable sender = null;
-        switch (GlobalConfig.getInstance().getConnectionProtocol()) {
-            case TCP_CONNECTION:
+        switch (NodeConfig.getConnectionProtocol()) {
+            case TCP:
                 sender = new TCPSender(message);
                 break;
-            case MPI_CONNECTION:
+            case MPI:
                 sender = new MPISender(message);
                 break;
         }

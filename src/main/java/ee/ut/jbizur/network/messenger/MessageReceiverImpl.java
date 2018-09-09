@@ -1,14 +1,13 @@
 package ee.ut.jbizur.network.messenger;
 
-import ee.ut.jbizur.config.GlobalConfig;
-import mpi.MPI;
+import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.network.address.MPIAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
-import org.pmw.tinylog.Logger;
 import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
 import ee.ut.jbizur.role.Role;
+import mpi.MPI;
+import org.pmw.tinylog.Logger;
 
 import java.io.DataInputStream;
 import java.net.ServerSocket;
@@ -21,6 +20,8 @@ import java.util.concurrent.Executors;
  * The message receiver wrapper for the communication protocols defined in {@link ee.ut.jbizur.network.ConnectionProtocol}.
  */
 public class MessageReceiverImpl implements IMessageReceiver {
+
+    private volatile boolean isRunning = true;
 
     private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
@@ -42,16 +43,22 @@ public class MessageReceiverImpl implements IMessageReceiver {
         this.roleInstance = roleInstance;
     }
 
+    @Override
+    public void shutdown() {
+        this.isRunning = false;
+        executor.shutdown();
+    }
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void startRecv(){
-        switch (GlobalConfig.getInstance().getConnectionProtocol()) {
-            case TCP_CONNECTION:
+        switch (NodeConfig.getConnectionProtocol()) {
+            case TCP:
                 new TCPReceiver().start();
                 break;
-            case MPI_CONNECTION:
+            case MPI:
                 new MPIReceiver().start();
                 break;
         }
@@ -74,14 +81,14 @@ public class MessageReceiverImpl implements IMessageReceiver {
             ServerSocket serverSocket;
             Socket socket = null;
             try {
-                TCPAddress prevAddr = (TCPAddress) roleInstance.getAddress();
+                TCPAddress prevAddr = (TCPAddress) roleInstance.getConfig().getAddress();
                 serverSocket = new ServerSocket(prevAddr.getPortNumber());
 
                 TCPAddress modifiedAddr = new TCPAddress(prevAddr.getIp(), serverSocket.getLocalPort());
                 roleInstance.setAddress(modifiedAddr);
                 roleInstance.setReady();
 
-                while (true) {
+                while (isRunning) {
                     socket = serverSocket.accept();
                     DataInputStream dIn = new DataInputStream(socket.getInputStream());
                     /* following commented code reads length first
@@ -97,12 +104,6 @@ public class MessageReceiverImpl implements IMessageReceiver {
                     if(msg != null){
                         NetworkCommand message = commandMarshaller.unmarshall(new String(msg, StandardCharsets.UTF_8));
                         if(message != null){
-                            if(message instanceof SignalEnd_NC){
-                                Logger.debug("End signal recv: " + message);
-                                executor.shutdown();
-                                GlobalConfig.getInstance().readyEnd();
-                                break;
-                            }
                             executor.execute(() -> {
                                 roleInstance.handleNetworkCommand(message);
                             });
@@ -138,8 +139,8 @@ public class MessageReceiverImpl implements IMessageReceiver {
         private void runOnMPI(){
             try {
                 roleInstance.setReady();
-                MPIAddress roleAddress = (MPIAddress) roleInstance.getAddress();
-                while (true){
+                MPIAddress roleAddress = (MPIAddress) roleInstance.getConfig().getAddress();
+                while (isRunning){
                     int[] msgInfo = new int[1];
 //                  MPI.COMM_WORLD.recv(msgInfo, msgInfo.length, MPI.INT, MPI.ANY_SOURCE, MPI.ANY_TAG);   // receive msg length first.
                     msgInfo[0] = 512;
@@ -147,12 +148,6 @@ public class MessageReceiverImpl implements IMessageReceiver {
                     MPI.COMM_WORLD.recv(msg, msg.length, MPI.BYTE, MPI.ANY_SOURCE, roleAddress.getGroupId());
 
                     NetworkCommand message = commandMarshaller.unmarshall(new String(msg, StandardCharsets.UTF_8));
-                    if(message instanceof SignalEnd_NC){
-                        Logger.debug("End signal recv: " + message);
-                        executor.shutdown();
-                        GlobalConfig.getInstance().readyEnd();
-                        break;
-                    }
                     executor.execute(() -> {
                         roleInstance.handleNetworkCommand(message);
                     });

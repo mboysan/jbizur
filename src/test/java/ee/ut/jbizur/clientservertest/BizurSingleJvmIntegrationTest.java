@@ -1,26 +1,24 @@
 package ee.ut.jbizur.clientservertest;
 
-import ee.ut.jbizur.config.GlobalConfig;
+import ee.ut.jbizur.config.NodeTestConfig;
 import ee.ut.jbizur.config.UserSettings;
-import ee.ut.jbizur.network.ConnectionProtocol;
+import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
-import ee.ut.jbizur.role.BizurClient;
-import ee.ut.jbizur.role.BizurNode;
+import ee.ut.jbizur.role.bizur.BizurBuilder;
+import ee.ut.jbizur.role.bizur.BizurClient;
+import ee.ut.jbizur.role.bizur.BizurNode;
 import org.junit.*;
 import utils.RunnerWithExceptionCatcher;
 
-import java.net.InetAddress;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
+import java.net.UnknownHostException;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 @Ignore
 public class BizurSingleJvmIntegrationTest {
 
-    protected static final int TOTAL_NODE_COUNT = 3;
+    protected static final int MEMBER_COUNT = NodeTestConfig.getMemberCount();
 
-    protected UserSettings userSettings;
     protected BizurNode[] nodes;
     protected BizurClient client;
 
@@ -28,23 +26,48 @@ public class BizurSingleJvmIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        userSettings = new UserSettings(null, ConnectionProtocol.TCP_CONNECTION);
+        initNodes();
+        initClient();
+        startNodes();
+        startClient();
+    }
 
-        GlobalConfig.getInstance().initTCP();
-
-        InetAddress ip = TCPAddress.resolveIpAddress();
-
-        nodes = new BizurNode[TOTAL_NODE_COUNT];
-        for (int i = 0; i < TOTAL_NODE_COUNT; i++) {  // first index will be reserved to pinger
-            nodes[i] = new BizurNode(new TCPAddress(ip, 0));
+    protected void initNodes() throws UnknownHostException, InterruptedException {
+        nodes = new BizurNode[MEMBER_COUNT];
+        for (int i = 0; i < nodes.length; i++) {
+            nodes[i] = BizurBuilder.builder()
+                    .withMemberId(NodeTestConfig.getMemberId(i))
+                    .withAddress(TCPAddress.resolveTCPAddress(NodeTestConfig.compileTCPAddress()))
+                    .withMulticastAddress(MulticastAddress.resolveMulticastAddress(NodeTestConfig.compileMulticastAddress()))
+                    .build();
         }
-        client = new BizurClient(new TCPAddress(ip, 0));
+    }
+
+    protected void initClient() throws UnknownHostException, InterruptedException {
+        client = BizurBuilder.builder()
+                .withMemberId(NodeTestConfig.getClientId())
+                .withAddress(TCPAddress.resolveTCPAddress(NodeTestConfig.compileTCPAddress()))
+                .withMulticastAddress(MulticastAddress.resolveMulticastAddress(NodeTestConfig.compileMulticastAddress()))
+                .buildClient();
+    }
+
+    protected void startNodes() {
+        List<CompletableFuture> futures = new ArrayList<>();
+        for (BizurNode node : nodes) {
+            futures.add(node.start());
+        }
+        for (CompletableFuture future : futures) {
+            future.join();
+        }
+    }
+
+    protected void startClient() {
+        client.start().join();
     }
 
     @After
     public void tearDown() throws Exception {
         client.signalEndToAll();
-        GlobalConfig.getInstance().end();
     }
 
     @Test
@@ -100,7 +123,7 @@ public class BizurSingleJvmIntegrationTest {
     }
 
     public BizurNode getRandomNode() {
-        return nodes[random.nextInt(TOTAL_NODE_COUNT)];
+        return nodes[random.nextInt(MEMBER_COUNT)];
     }
 
     public static Random initRandom() {
