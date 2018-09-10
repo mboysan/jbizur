@@ -2,9 +2,8 @@ package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.config.NodeTestConfig;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.address.MockMulticastAddress;
 import ee.ut.jbizur.network.address.MockAddress;
-import ee.ut.jbizur.network.address.TCPAddress;
+import ee.ut.jbizur.network.address.MockMulticastAddress;
 import org.junit.After;
 import org.junit.Before;
 import org.pmw.tinylog.Logger;
@@ -14,7 +13,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 
 public class BizurNodeTestBase {
 

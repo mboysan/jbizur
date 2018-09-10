@@ -1,21 +1,28 @@
 package ee.ut.jbizur.protocol;
 
-import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
+import ee.ut.jbizur.config.GeneralConfig;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
-
-import java.nio.charset.StandardCharsets;
+import org.pmw.tinylog.Logger;
 
 /**
  * A simple marshaller used to marshall/unmarshall commands.
  */
 public class CommandMarshaller {
 
-    private XStream xstream;
+    private ISerializer serializer;
 
     public CommandMarshaller() {
-        xstream = new XStream(new JettisonMappedXmlDriver());
-//        xstream.setMode(XStream.NO_REFERENCES);
+        try {
+            serializer = GeneralConfig.getProtocolSerializerClass().newInstance();
+        } catch (InstantiationException | IllegalAccessException e) {
+            Logger.warn(e, "could not create serializer from properties file, defaulting to " + ObjectSerializer.class.getSimpleName());
+            serializer = new ObjectSerializer();
+        }
+    }
+
+    public CommandMarshaller setSerializer(ISerializer serializer) {
+        this.serializer = serializer;
+        return this;
     }
 
     /**
@@ -24,7 +31,7 @@ public class CommandMarshaller {
      * @return obj marshalled into String.
      */
     public String marshall(NetworkCommand obj) {
-        return xstream.toXML(obj);
+        return marshall(obj, String.class);
     }
 
     /**
@@ -34,22 +41,23 @@ public class CommandMarshaller {
      * @return obj marshalled into requested type.
      */
     public <T> T marshall(NetworkCommand obj, Class<T> type) {
-        String jsonStr = marshall(obj);
         if(type.isAssignableFrom(String.class)){
-            return (T) jsonStr;
+            return (T) serializer.serializeToString(obj);
         } else if(type.isAssignableFrom(byte[].class)){
-            return (T) jsonStr.getBytes(StandardCharsets.UTF_8);
-        } else if(type.isAssignableFrom(char[].class)){
-            return (T) jsonStr.toCharArray();
+            return (T) serializer.serializeToBytes(obj);
         }
         return null;
     }
 
     /**
-     * @param commandAsJson command as json string.
+     * @param commandAsStr command as json string.
      * @return command unmarshalled into its associated {@link NetworkCommand}.
      */
-    public NetworkCommand unmarshall(String commandAsJson) {
-        return (NetworkCommand) xstream.fromXML(commandAsJson);
+    public NetworkCommand unmarshall(String commandAsStr) {
+        return (NetworkCommand) serializer.deSerializeFromString(commandAsStr);
+    }
+
+    public NetworkCommand unmarshall(byte[] commandAsBytes) {
+        return (NetworkCommand) serializer.deSerializeFromBytes(commandAsBytes);
     }
 }

@@ -1,7 +1,6 @@
 package ee.ut.jbizur.clientservertest;
 
 import ee.ut.jbizur.config.NodeTestConfig;
-import ee.ut.jbizur.config.UserSettings;
 import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.role.bizur.BizurBuilder;

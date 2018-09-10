@@ -3,8 +3,8 @@ package ee.ut.jbizur.network.messenger;
 import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.internal.SendFail_IC;
-import ee.ut.jbizur.role.bizur.BizurNodeMock;
 import ee.ut.jbizur.role.Role;
+import ee.ut.jbizur.role.bizur.BizurNodeMock;
 
 import java.util.HashMap;
 import java.util.Map;

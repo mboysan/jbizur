@@ -94,10 +94,11 @@ public class MessageSenderImpl implements IMessageSender {
             try {
                 TCPAddress receiverAddress = (TCPAddress) messageToSend.getReceiverAddress();
                 byte[] msg = commandMarshaller.marshall(messageToSend, byte[].class);
+
                 socket = new Socket(receiverAddress.getIp(), receiverAddress.getPortNumber());
                 dOut = new DataOutputStream(socket.getOutputStream());
 
-//                dOut.writeInt(msg.length); // write length of the message
+                dOut.writeInt(msg.length); // write length of the message
                 dOut.write(msg);    // write the message
                 dOut.flush();
             } catch (IOException e) {

@@ -5,6 +5,7 @@ import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
 import ee.ut.jbizur.role.Role;
+import ee.ut.jbizur.util.ByteUtils;
 import org.pmw.tinylog.Logger;
 
 import java.io.IOException;
@@ -12,7 +13,6 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -69,9 +69,10 @@ public class Multicaster {
                 DatagramSocket socket = new DatagramSocket();
                 InetAddress group = multicastAddress.getMulticastGroupAddr();
                 byte[] msg = commandMarshaller.marshall(messageToSend, byte[].class);
+                byte[] msgWithLength = ByteUtils.prependMessageLengthTo(msg);
 
                 DatagramPacket packet
-                        = new DatagramPacket(msg, msg.length, group, multicastAddress.getMulticastPort());
+                        = new DatagramPacket(msgWithLength, msgWithLength.length, group, multicastAddress.getMulticastPort());
                 socket.send(packet);
                 socket.close();
             } catch (IOException e) {
@@ -97,12 +98,13 @@ public class Multicaster {
                 MulticastSocket socket = new MulticastSocket(multicastAddress.getMulticastPort());
                 InetAddress group = multicastAddress.getMulticastGroupAddr();
                 socket.joinGroup(group);
-                byte[] msg = new byte[512];    //fixed size byte[]
+                byte[] msg = new byte[1024];    //fixed size byte[]
                 while (isRunning) {
                     DatagramPacket packet = new DatagramPacket(msg, msg.length);
                     socket.receive(packet);
-                    NetworkCommand received = commandMarshaller.unmarshall(
-                            new String(packet.getData(), StandardCharsets.UTF_8));
+                    byte[] msgRecv = ByteUtils.extractActualMessage(packet.getData());
+
+                    NetworkCommand received = commandMarshaller.unmarshall(msgRecv);
                     executor.execute(() -> roleInstance.handleNetworkCommand(received));
                 }
                 socket.leaveGroup(group);

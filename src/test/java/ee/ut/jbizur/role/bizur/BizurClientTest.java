@@ -2,8 +2,8 @@ package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.config.ClientTestConfig;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.address.MockMulticastAddress;
 import ee.ut.jbizur.network.address.MockAddress;
+import ee.ut.jbizur.network.address.MockMulticastAddress;
 import org.junit.Assert;
 import org.junit.Test;
 import utils.RunnerWithExceptionCatcher;

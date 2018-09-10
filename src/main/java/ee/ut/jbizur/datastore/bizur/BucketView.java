@@ -1,8 +1,9 @@
 package ee.ut.jbizur.datastore.bizur;
 
+import java.io.Serializable;
 import java.util.Map;
 
-public class BucketView {
+public class BucketView implements Serializable {
 
     private Map<String, String> bucketMap;
     private int index;

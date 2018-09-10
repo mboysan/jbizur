@@ -12,7 +12,6 @@ import org.pmw.tinylog.Logger;
 import java.io.DataInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -99,15 +98,14 @@ public class MessageReceiverImpl implements IMessageReceiver {
                         dIn.readFully(msg, 0, msg.length); // read the message
                     }
                     */
-                    byte[] msg = new byte[2048];    //fixed size byte[]
+                    int size = dIn.readInt();
+                    byte[] msg = new byte[size];    //fixed size byte[]
                     dIn.read(msg);
-                    if(msg != null){
-                        NetworkCommand message = commandMarshaller.unmarshall(new String(msg, StandardCharsets.UTF_8));
-                        if(message != null){
-                            executor.execute(() -> {
-                                roleInstance.handleNetworkCommand(message);
-                            });
-                        }
+                    NetworkCommand message = commandMarshaller.unmarshall(msg);
+                    if(message != null){
+                        executor.execute(() -> {
+                            roleInstance.handleNetworkCommand(message);
+                        });
                     }
                 }
             } catch (Exception e) {
@@ -147,7 +145,7 @@ public class MessageReceiverImpl implements IMessageReceiver {
                     byte[] msg = new byte[msgInfo[0]];
                     MPI.COMM_WORLD.recv(msg, msg.length, MPI.BYTE, MPI.ANY_SOURCE, roleAddress.getGroupId());
 
-                    NetworkCommand message = commandMarshaller.unmarshall(new String(msg, StandardCharsets.UTF_8));
+                    NetworkCommand message = commandMarshaller.unmarshall(msg);
                     executor.execute(() -> {
                         roleInstance.handleNetworkCommand(message);
                     });
