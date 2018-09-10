@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-class ConfigProperties {
+class TestPropertiesLoader {
 
     private static Properties PROPERTIES = loadProperties();
 
@@ -12,7 +12,7 @@ class ConfigProperties {
         if (PROPERTIES == null) {
             PROPERTIES = new Properties();
             try {
-                InputStream input = ConfigProperties.class.getClassLoader().getResourceAsStream("config.properties");
+                InputStream input = TestPropertiesLoader.class.getClassLoader().getResourceAsStream("config.properties");
                 PROPERTIES.load(input);
             } catch (IOException e) {
                 e.printStackTrace();

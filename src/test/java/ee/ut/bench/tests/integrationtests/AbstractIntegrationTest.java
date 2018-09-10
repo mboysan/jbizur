@@ -6,6 +6,8 @@ import ee.ut.bench.tests.LatencyTest;
 import ee.ut.bench.tests.ThroughputTest;
 import org.junit.Before;
 
+import java.net.UnknownHostException;
+
 public abstract class AbstractIntegrationTest {
 
     public static final int NODE_COUNT = MemberConfig.getMemberCount();
@@ -18,7 +20,7 @@ public abstract class AbstractIntegrationTest {
         client = initClient();
     }
 
-    abstract void initNodes();
+    abstract void initNodes() throws Exception;
 
     abstract AbstractDBClientWrapper initClient() throws Exception;
 

@@ -31,11 +31,11 @@ public final class AtomixConfig extends MemberConfig {
     }
 
     public static String getSystemDataDir() {
-        return ConfigProperties.getString("atomix.systemdata.dir");
+        return TestPropertiesLoader.getString("atomix.systemdata.dir");
     }
 
     public static String getPrimitiveDataDir() {
-        return ConfigProperties.getString("atomix.primitivedata.dir");
+        return TestPropertiesLoader.getString("atomix.primitivedata.dir");
     }
 
     public static File getSystemDataDirFor(int memberIndex) {

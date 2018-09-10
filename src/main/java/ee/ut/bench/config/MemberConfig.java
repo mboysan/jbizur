@@ -5,15 +5,15 @@ import ee.ut.jbizur.network.address.TCPAddress;
 public class MemberConfig extends NodeConfig {
 
     public static String getMemberId(int idx) {
-        return String.format(ConfigProperties.getString("member.idformat"), idx);
+        return String.format(TestPropertiesLoader.getString("member.idformat"), idx);
     }
 
     public static int getMemberCount() {
-        return ConfigProperties.getInt("member.count");
+        return TestPropertiesLoader.getInt("member.count");
     }
 
     public static String getIpAddress() {
-        return ConfigProperties.getString("member.ip", TCPAddress.resolveIpAddress().getHostAddress());
+        return TestPropertiesLoader.getString("member.ip", TCPAddress.resolveIpAddress().getHostAddress());
     }
 
     public static String compileTCPAddress(int idx) {

@@ -16,20 +16,20 @@ public final class ClientConfig extends NodeConfig {
     }
 
     public static String getIpAddress() {
-        return ConfigProperties.getString("client.ip", TCPAddress.resolveIpAddress().getHostAddress());
+        return TestPropertiesLoader.getString("client.ip", TCPAddress.resolveIpAddress().getHostAddress());
     }
 
     public static int getPort() {
-        return ConfigProperties.getInt("client.port", getPort(MemberConfig.getMemberCount()));
+        return TestPropertiesLoader.getInt("client.port", getPort(MemberConfig.getMemberCount()));
     }
 
     public static String getClientId() {
-        return ConfigProperties.getString("client.id", "client");
+        return TestPropertiesLoader.getString("client.id", "client");
     }
 
     public static Class<? extends AbstractDBClientWrapper> getDBWrapperClass() {
         try {
-            String cName = ConfigProperties.getString("client.dbwrapper.class");
+            String cName = TestPropertiesLoader.getString("client.dbwrapper.class");
             return (Class<? extends AbstractDBClientWrapper>) Class.forName(cName);
         } catch (ClassNotFoundException e) {
             e.printStackTrace();

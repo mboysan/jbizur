@@ -12,15 +12,15 @@ public class NodeConfig {
     }
 
     public static String getMulticastGroup() {
-        return ConfigProperties.getString("node.multicastgroup");
+        return TestPropertiesLoader.getString("node.multicastgroup");
     }
 
     public static int getMulticastPort() {
-        return ConfigProperties.getInt("node.multicastport");
+        return TestPropertiesLoader.getInt("node.multicastport");
     }
 
     public static int getInitPort() {
-        return ConfigProperties.getInt("node.portinit");
+        return TestPropertiesLoader.getInt("node.portinit");
     }
 
     public static int getPort(int idx) {
