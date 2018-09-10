@@ -37,8 +37,8 @@ public class BizurSingleJvmIntegrationTest {
         for (int i = 0; i < nodes.length; i++) {
             nodes[i] = BizurBuilder.builder()
                     .withMemberId(NodeTestConfig.getMemberId(i))
-                    .withAddress(TCPAddress.resolveTCPAddress(NodeTestConfig.compileTCPAddress()))
-                    .withMulticastAddress(MulticastAddress.resolveMulticastAddress(NodeTestConfig.compileMulticastAddress()))
+                    .withAddress(new TCPAddress(NodeTestConfig.compileTCPAddress()))
+                    .withMulticastAddress(new MulticastAddress(NodeTestConfig.compileMulticastAddress()))
                     .build();
         }
     }
@@ -46,8 +46,8 @@ public class BizurSingleJvmIntegrationTest {
     protected void initClient() throws UnknownHostException, InterruptedException {
         client = BizurBuilder.builder()
                 .withMemberId(NodeTestConfig.getClientId())
-                .withAddress(TCPAddress.resolveTCPAddress(NodeTestConfig.compileTCPAddress()))
-                .withMulticastAddress(MulticastAddress.resolveMulticastAddress(NodeTestConfig.compileMulticastAddress()))
+                .withAddress(new TCPAddress(NodeTestConfig.compileTCPAddress()))
+                .withMulticastAddress(new MulticastAddress(NodeTestConfig.compileMulticastAddress()))
                 .buildClient();
     }
 

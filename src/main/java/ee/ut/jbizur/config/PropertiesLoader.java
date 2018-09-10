@@ -1,15 +1,25 @@
 package ee.ut.jbizur.config;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.Properties;
 
-public class ConfigProperties {
+public class PropertiesLoader {
 
     private static Properties PROPERTIES;
     static {
-        loadProperties(ConfigProperties.class, "config.properties");
+        loadProperties(PropertiesLoader.class, "jbizur.properties");
         LoggerConfig.configureLogger();
+    }
+
+    public synchronized static void loadProperties(File file) {
+        PROPERTIES = new Properties();
+        try {
+            String uri = (new File("user.dir")).toURI().relativize(file.toURI()).getPath();
+            InputStream is = new FileInputStream(new File(uri));
+            PROPERTIES.load(is);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public synchronized static void loadProperties(Class clazz, String resourceName) {
@@ -31,24 +41,18 @@ public class ConfigProperties {
     }
 
     static int getInt(String key) {
-        return getInt(key, null);
+        return getInt(key, 0);
     }
 
-    static int getInt(String key, Integer defVal) {
-        if (defVal == null) {
-            return Integer.parseInt(PROPERTIES.getProperty(key));
-        }
+    static int getInt(String key, int defVal) {
         return Integer.parseInt(PROPERTIES.getProperty(key, defVal + ""));
     }
 
     static long getLong(String key) {
-        return getInt(key, null);
+        return getLong(key, 0L);
     }
 
-    static long getLong(String key, Long defVal) {
-        if (defVal == null) {
-            return Long.parseLong(PROPERTIES.getProperty(key));
-        }
+    static long getLong(String key, long defVal) {
         return Long.parseLong(PROPERTIES.getProperty(key, defVal + ""));
     }
 }

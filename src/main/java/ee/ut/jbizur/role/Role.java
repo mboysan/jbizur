@@ -38,17 +38,17 @@ public abstract class Role {
 
     private final CountDownLatch readyLatch;
 
-    private final RoleSettings config;
+    private final RoleSettings settings;
     protected final Multicaster multicaster;
 
-    protected Role(RoleSettings config) throws InterruptedException {
-        this(config, null, null, null, null);
+    protected Role(RoleSettings settings) throws InterruptedException {
+        this(settings, null, null, null, null);
     }
 
     @ForTestingOnly
-    protected Role(RoleSettings config, Multicaster multicaster, IMessageSender messageSender, IMessageReceiver messageReceiver, CountDownLatch readyLatch) throws InterruptedException {
-        this.config = config;
-        this.multicaster = multicaster == null ? new Multicaster(config.getMulticastAddress(), this) : multicaster;
+    protected Role(RoleSettings settings, Multicaster multicaster, IMessageSender messageSender, IMessageReceiver messageReceiver, CountDownLatch readyLatch) throws InterruptedException {
+        this.settings = settings;
+        this.multicaster = multicaster == null ? new Multicaster(settings.getMulticastAddress(), this) : multicaster;
         this.messageSender = messageSender == null ? new MessageSenderImpl(this) : messageSender;
         this.messageReceiver = messageReceiver == null ? new MessageReceiverImpl(this) : messageReceiver;
         this.readyLatch = readyLatch == null ? new CountDownLatch(1) : readyLatch;
@@ -68,7 +68,7 @@ public abstract class Role {
             if (!checkNodesDiscovered()) {
                 multicaster.multicast(
                         new Connect_NC()
-                                .setSenderAddress(config.getAddress())
+                                .setSenderAddress(settings.getAddress())
                                 .setNodeType("member")
                 );
             }
@@ -76,12 +76,12 @@ public abstract class Role {
     }
 
     protected boolean isAddressesAlreadyRegistered() {
-        return getConfig().getMemberAddresses().size() > 0;
+        return getSettings().getMemberAddresses().size() > 0;
     }
 
     protected boolean checkNodesDiscovered() {
         return RoleValidation.checkStateAndWarn(
-                getConfig().getAnticipatedMemberCount() == getConfig().getMemberAddresses().size(),
+                getSettings().getAnticipatedMemberCount() == getSettings().getMemberAddresses().size(),
                 "Nodes did not find each other yet.");
     }
 
@@ -90,7 +90,7 @@ public abstract class Role {
      * @param command the ee.ut.jbizur.network message to handle.
      */
     public void handleNetworkCommand(NetworkCommand command){
-        Logger.debug("[" + getConfig().getAddress() +"] - " + command);
+        Logger.debug("[" + getSettings().getAddress() +"] - " + command);
 
         boolean isHandled = false;
         String assocMsgId = command.getMsgId();
@@ -105,14 +105,14 @@ public abstract class Role {
         if(!isHandled){
             if(command instanceof Connect_NC){
                 NetworkCommand connectOK = new ConnectOK_NC()
-                        .setSenderAddress(getConfig().getAddress())
+                        .setSenderAddress(getSettings().getAddress())
                         .setReceiverAddress(command.getSenderAddress())
                         .setNodeType("member");
                 sendMessage(connectOK);
             }
             if(command instanceof ConnectOK_NC){
                 if (command.getNodeType().equals("member")) {
-                    config.registerAddress(command.getSenderAddress());
+                    settings.registerAddress(command.getSenderAddress());
                 }
             }
             if (command instanceof SignalEnd_NC) {
@@ -124,18 +124,18 @@ public abstract class Role {
     public abstract void handleInternalCommand(InternalCommand command);
 
     protected void handleNodeFailure(Address failedNodeAddress) {
-        config.unregisterAddress(failedNodeAddress);
+        settings.unregisterAddress(failedNodeAddress);
     }
 
     /**
      * Sends {@link SignalEnd_NC} command to all the processes.
      */
     public void signalEndToAll() {
-        for (Address receiverAddress : getConfig().getMemberAddresses()) {
+        for (Address receiverAddress : getSettings().getMemberAddresses()) {
             NetworkCommand signalEnd = new SignalEnd_NC()
-                    .setSenderId(getConfig().getRoleId())
+                    .setSenderId(getSettings().getRoleId())
                     .setReceiverAddress(receiverAddress)
-                    .setSenderAddress(getConfig().getAddress());
+                    .setSenderAddress(getSettings().getAddress());
             sendMessage(signalEnd);
         }
     }
@@ -160,7 +160,7 @@ public abstract class Role {
      * @param modifiedAddr address modified by the {@link MessageReceiverImpl} if applicable.
      */
     public void setAddress(Address modifiedAddr){
-        getConfig().setAddress(modifiedAddr);
+        getSettings().setAddress(modifiedAddr);
     }
 
     /**
@@ -186,15 +186,15 @@ public abstract class Role {
         syncMessageListeners.remove(listener.getMsgId());
     }
 
-    public RoleSettings getConfig() {
-        return config;
+    public RoleSettings getSettings() {
+        return settings;
     }
 
     @Override
     public String toString() {
         return "Role{" +
-                "roleId='" + getConfig().getRoleId() + '\'' +
-                ", myAddress=" + getConfig().getAddress() +
+                "roleId='" + getSettings().getRoleId() + '\'' +
+                ", myAddress=" + getSettings().getAddress() +
                 ", isLeader=" + isLeader +
                 '}';
     }

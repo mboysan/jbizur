@@ -19,7 +19,6 @@ import ee.ut.jbizur.protocol.internal.SendFail_IC;
 import ee.ut.jbizur.role.RoleSettings;
 
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -78,7 +77,7 @@ public class BizurClient extends BizurNode {
         }
 
         if(command instanceof ConnectOK_NC){
-            getConfig().registerAddress(command.getSenderAddress());
+            getSettings().registerAddress(command.getSenderAddress());
         }
         if (command instanceof SignalEnd_NC) {
             shutdown();
@@ -91,9 +90,9 @@ public class BizurClient extends BizurNode {
         return routeRequestAndGet(
                 new ClientApiGet_NC()
                         .setKey(key)
-                        .setSenderId(getConfig().getRoleId())
+                        .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(getRandomAddress())
-                        .setSenderAddress(getConfig().getAddress()));
+                        .setSenderAddress(getSettings().getAddress()));
     }
 
     @Override
@@ -103,9 +102,9 @@ public class BizurClient extends BizurNode {
                 new ClientApiSet_NC()
                         .setKey(key)
                         .setVal(val)
-                        .setSenderId(getConfig().getRoleId())
+                        .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(getRandomAddress())
-                        .setSenderAddress(getConfig().getAddress()));
+                        .setSenderAddress(getSettings().getAddress()));
     }
 
     @Override
@@ -114,9 +113,9 @@ public class BizurClient extends BizurNode {
         return routeRequestAndGet(
                 new ClientApiDelete_NC()
                         .setKey(key)
-                        .setSenderId(getConfig().getRoleId())
+                        .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(getRandomAddress())
-                        .setSenderAddress(getConfig().getAddress()));
+                        .setSenderAddress(getSettings().getAddress()));
     }
 
     @Override
@@ -124,9 +123,9 @@ public class BizurClient extends BizurNode {
         checkReady();
         return routeRequestAndGet(
                 new ClientApiIterKeys_NC()
-                        .setSenderId(getConfig().getRoleId())
+                        .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(getRandomAddress())
-                        .setSenderAddress(getConfig().getAddress()));
+                        .setSenderAddress(getSettings().getAddress()));
     }
 
     @Override
@@ -181,7 +180,7 @@ public class BizurClient extends BizurNode {
     }
 
     private Address[] convertAddressSetToArray() {
-        Set<Address> addressSet = getConfig().getMemberAddresses();
+        Set<Address> addressSet = getSettings().getMemberAddresses();
         Address[] addresses = new Address[addressSet.size()];
         int i = 0;
         for (Address address : addressSet) {

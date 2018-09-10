@@ -81,7 +81,7 @@ public class MessageReceiverImpl implements IMessageReceiver {
             ServerSocket serverSocket;
             Socket socket = null;
             try {
-                TCPAddress prevAddr = (TCPAddress) roleInstance.getConfig().getAddress();
+                TCPAddress prevAddr = (TCPAddress) roleInstance.getSettings().getAddress();
                 serverSocket = new ServerSocket(prevAddr.getPortNumber());
 
                 TCPAddress modifiedAddr = new TCPAddress(prevAddr.getIp(), serverSocket.getLocalPort());
@@ -139,7 +139,7 @@ public class MessageReceiverImpl implements IMessageReceiver {
         private void runOnMPI(){
             try {
                 roleInstance.setReady();
-                MPIAddress roleAddress = (MPIAddress) roleInstance.getConfig().getAddress();
+                MPIAddress roleAddress = (MPIAddress) roleInstance.getSettings().getAddress();
                 while (isRunning){
                     int[] msgInfo = new int[1];
 //                  MPI.COMM_WORLD.recv(msgInfo, msgInfo.length, MPI.INT, MPI.ANY_SOURCE, MPI.ANY_TAG);   // receive msg length first.

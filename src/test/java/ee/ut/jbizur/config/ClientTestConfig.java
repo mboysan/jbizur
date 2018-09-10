@@ -2,10 +2,10 @@ package ee.ut.jbizur.config;
 
 public class ClientTestConfig {
     static {
-        ConfigProperties.loadProperties(NodeTestConfig.class, "config.properties");
+        PropertiesLoader.loadProperties(NodeTestConfig.class, "jbizur.properties");
     }
 
     public static int getClientCount() {
-        return ConfigProperties.getInt("client.count", 1);
+        return PropertiesLoader.getInt("client.count", 1);
     }
 }

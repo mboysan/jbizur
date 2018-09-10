@@ -25,6 +25,12 @@ public class MulticastAddress {
         this.multicastPort = multicastPort;
     }
 
+    public MulticastAddress(String address) throws UnknownHostException {
+        MulticastAddress maddr = resolveMulticastAddress(address);
+        this.multicastGroupAddr = maddr.getMulticastGroupAddr();
+        this.multicastPort = maddr.getMulticastPort();
+    }
+
     public InetAddress getMulticastGroupAddr() {
         return multicastGroupAddr;
     }

@@ -31,6 +31,6 @@ public class MessageSenderMock implements IMessageSender {
     }
 
     public void registerRole(Role role){
-        roles.put(role.getConfig().getAddress().toString(), role);
+        roles.put(role.getSettings().getAddress().toString(), role);
     }
 }

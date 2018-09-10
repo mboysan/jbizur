@@ -42,6 +42,12 @@ public class TCPAddress extends Address {
         this.portNumber = portNumber;
     }
 
+    public TCPAddress(String address) throws UnknownHostException {
+        TCPAddress tcp = resolveTCPAddress(address);
+        this.ip = tcp.getIp();
+        this.portNumber = tcp.getPortNumber();
+    }
+
     public TCPAddress() {
     }
 

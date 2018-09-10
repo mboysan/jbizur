@@ -32,15 +32,15 @@ public class NodeConfig {
     }
 
     public static String getMulticastGroup() {
-        return ConfigProperties.getString("node.multicastgroup");
+        return PropertiesLoader.getString("node.multicastgroup");
     }
 
     public static int getMulticastPort() {
-        return ConfigProperties.getInt("node.multicastport");
+        return PropertiesLoader.getInt("node.multicastport");
     }
 
     public static int getInitPort() {
-        return ConfigProperties.getInt("node.portinit");
+        return PropertiesLoader.getInt("node.portinit");
     }
 
     public static int getPort(int idx) {
@@ -48,51 +48,59 @@ public class NodeConfig {
     }
 
     public static String getIp() {
-        return ConfigProperties.getString("node.ip", TCPAddress.resolveIpAddress().getHostAddress());
+        return PropertiesLoader.getString("node.ip", TCPAddress.resolveIpAddress().getHostAddress());
     }
 
     public static String getMemberId(int idx) {
-        String idFormat = ConfigProperties.getString("member.idformat");
+        String idFormat = PropertiesLoader.getString("member.idformat");
         if (idFormat == null) {
             return UUID.randomUUID().toString();
         }
         return String.format(idFormat, idx);
     }
 
+    public static String[] getMemberIds() {
+        String[] arr = new String[getAnticipatedMemberCount()];
+        for (int i = 0; i < arr.length; i++) {
+            arr[i] = getMemberId(i);
+        }
+        return arr;
+    }
+
     public static String getClientId() {
-        return ConfigProperties.getString("client.id", UUID.randomUUID().toString());
+        return PropertiesLoader.getString("client.id", UUID.randomUUID().toString());
     }
 
     public static long getMulticastIntervalMs() {
-        return ConfigProperties.getLong("node.multicast.intervalms");
+        return PropertiesLoader.getLong("node.multicast.intervalms");
     }
 
     public static ConnectionProtocol getConnectionProtocol() {
-        return ConnectionProtocol.valueOf(ConfigProperties.getString("node.connectionprotocol"));
+        return ConnectionProtocol.valueOf(PropertiesLoader.getString("node.connectionprotocol"));
     }
 
     public static int getAnticipatedMemberCount() {
-        return ConfigProperties.getInt("node.count");
+        return PropertiesLoader.getInt("node.count");
     }
 
     /**
      * @return timeout (in seconds) for responses between the processes.
      */
     public static long getResponseTimeoutSec() {
-        return ConfigProperties.getLong("node.response_timeout_sec");
+        return PropertiesLoader.getLong("node.response_timeout_sec");
     }
 
     /**
      * @return Number of times to retry the failing message.
      */
     public static int getSendFailRetryCount() {
-        return ConfigProperties.getInt("node.send_fail_retry_count");
+        return PropertiesLoader.getInt("node.send_fail_retry_count");
     }
 
     /**
      * @return Max interval (in sec) to wait between election cycles.
      */
     public static long getMaxElectionWaitSec() {
-        return ConfigProperties.getLong("node.max_election_wait_sec");
+        return PropertiesLoader.getLong("node.max_election_wait_sec");
     }
 }

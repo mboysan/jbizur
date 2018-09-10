@@ -29,12 +29,12 @@ public class RoleSettings {
     protected void defaults() {
         setRoleId(NodeConfig.getMemberId(0));
         try {
-            setAddress(TCPAddress.resolveTCPAddress(NodeConfig.compileTCPAddress()));
+            setAddress(new TCPAddress(NodeConfig.compileTCPAddress()));
         } catch (UnknownHostException e) {
             Logger.error(e);
         }
         try {
-            setMulticastAddress(MulticastAddress.resolveMulticastAddress(NodeConfig.compileMulticastAddress()));
+            setMulticastAddress(new MulticastAddress(NodeConfig.compileMulticastAddress()));
         } catch (UnknownHostException e) {
             Logger.error(e);
         }

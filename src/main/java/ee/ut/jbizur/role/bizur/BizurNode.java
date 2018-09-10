@@ -36,17 +36,17 @@ public class BizurNode extends Role {
 
     private Bucket[] localBuckets;
 
-    BizurNode(BizurSettings config) throws InterruptedException {
-        this(config, null, null, null, null);
+    BizurNode(BizurSettings settings) throws InterruptedException {
+        this(settings, null, null, null, null);
     }
 
     @ForTestingOnly
-    protected BizurNode(BizurSettings config,
+    protected BizurNode(BizurSettings settings,
                         Multicaster multicaster,
                         IMessageSender messageSender,
                         IMessageReceiver messageReceiver,
                         CountDownLatch readyLatch) throws InterruptedException {
-        super(config, multicaster, messageSender, messageReceiver, readyLatch);
+        super(settings, multicaster, messageSender, messageReceiver, readyLatch);
 
         this.isReady = false;
         initNode();
@@ -54,12 +54,12 @@ public class BizurNode extends Role {
     }
 
     @Override
-    public BizurSettings getConfig() {
-        return (BizurSettings) super.getConfig();
+    public BizurSettings getSettings() {
+        return (BizurSettings) super.getSettings();
     }
 
     protected void initNode() {
-//        int eId = Math.abs((int) System.currentTimeMillis() + getConfig().getRoleId().hashCode());
+//        int eId = Math.abs((int) System.currentTimeMillis() + getSettings().getRoleId().hashCode());
         int eId = 0;
         electId = new AtomicInteger(eId);
         votedElectId = new AtomicInteger(0);
@@ -67,7 +67,7 @@ public class BizurNode extends Role {
     }
 
     protected void initBuckets() {
-        int count = getConfig().getNumBuckets();
+        int count = getSettings().getNumBuckets();
         localBuckets = new Bucket[count];
         for (int i = 0; i < count; i++) {
             Bucket b = new Bucket()
@@ -106,7 +106,7 @@ public class BizurNode extends Role {
 
         String msgId = RoleSettings.generateMsgId();
 
-        SyncMessageListener listener = new SyncMessageListener(msgId, getConfig().getProcessCount()) {
+        SyncMessageListener listener = new SyncMessageListener(msgId, getSettings().getProcessCount()) {
             @Override
             public void handleMessage(NetworkCommand command) {
                 if (command instanceof AckVote_NC) {
@@ -123,13 +123,13 @@ public class BizurNode extends Role {
         };
         attachMsgListener(listener);
         try{
-            getConfig().getMemberAddresses().forEach(receiverAddress -> {
+            getSettings().getMemberAddresses().forEach(receiverAddress -> {
                 NetworkCommand pleaseVote = new PleaseVote_NC()
                         .setElectId(electId.get())
                         .setMsgId(msgId)
-                        .setSenderId(getConfig().getRoleId())
+                        .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(receiverAddress)
-                        .setSenderAddress(getConfig().getAddress());
+                        .setSenderAddress(getSettings().getAddress());
                 sendMessage(pleaseVote);
             });
 
@@ -153,21 +153,21 @@ public class BizurNode extends Role {
             updateLeader(source);
             vote = new AckVote_NC()
                     .setMsgId(pleaseVoteNc.getMsgId())
-                    .setSenderId(getConfig().getRoleId())
+                    .setSenderId(getSettings().getRoleId())
                     .setReceiverAddress(source)
-                    .setSenderAddress(getConfig().getAddress());
+                    .setSenderAddress(getSettings().getAddress());
         } else if(electId == votedElectId.get() && source.isSame(leaderAddress.get())) {
             vote = new AckVote_NC()
                     .setMsgId(pleaseVoteNc.getMsgId())
-                    .setSenderId(getConfig().getRoleId())
+                    .setSenderId(getSettings().getRoleId())
                     .setReceiverAddress(source)
-                    .setSenderAddress(getConfig().getAddress());
+                    .setSenderAddress(getSettings().getAddress());
         } else {
             vote = new NackVote_NC()
                     .setMsgId(pleaseVoteNc.getMsgId())
-                    .setSenderId(getConfig().getRoleId())
+                    .setSenderId(getSettings().getRoleId())
                     .setReceiverAddress(source)
-                    .setSenderAddress(getConfig().getAddress());
+                    .setSenderAddress(getSettings().getAddress());
         }
         sendMessage(vote);
     }
@@ -182,7 +182,7 @@ public class BizurNode extends Role {
 
         String msgId = RoleSettings.generateMsgId();
 
-        SyncMessageListener listener = new SyncMessageListener(msgId, getConfig().getProcessCount()) {
+        SyncMessageListener listener = new SyncMessageListener(msgId, getSettings().getProcessCount()) {
             @Override
             public void handleMessage(NetworkCommand command) {
                 if(command instanceof AckWrite_NC){
@@ -199,13 +199,13 @@ public class BizurNode extends Role {
         };
         attachMsgListener(listener);
         try {
-            getConfig().getMemberAddresses().forEach(receiverAddress -> {
+            getSettings().getMemberAddresses().forEach(receiverAddress -> {
                 NetworkCommand replicaWrite = new ReplicaWrite_NC()
                         .setBucketView(bucket.createView())
                         .setMsgId(msgId)
-                        .setSenderId(getConfig().getRoleId())
+                        .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(receiverAddress)
-                        .setSenderAddress(getConfig().getAddress());
+                        .setSenderAddress(getSettings().getAddress());
                 sendMessage(replicaWrite);
             });
 
@@ -231,9 +231,9 @@ public class BizurNode extends Role {
         if(bucket.getVer().getElectId() < votedElectId.get()){
             response = new NackWrite_NC()
                     .setMsgId(replicaWriteNc.getMsgId())
-                    .setSenderId(getConfig().getRoleId())
+                    .setSenderId(getSettings().getRoleId())
                     .setReceiverAddress(source)
-                    .setSenderAddress(getConfig().getAddress());
+                    .setSenderAddress(getSettings().getAddress());
         } else {
             votedElectId.set(bucket.getVer().getElectId());
             updateLeader(source);
@@ -241,9 +241,9 @@ public class BizurNode extends Role {
 
             response = new AckWrite_NC()
                     .setMsgId(replicaWriteNc.getMsgId())
-                    .setSenderId(getConfig().getRoleId())
+                    .setSenderId(getSettings().getRoleId())
                     .setReceiverAddress(source)
-                    .setSenderAddress(getConfig().getAddress());
+                    .setSenderAddress(getSettings().getAddress());
         }
         sendMessage(response);
     }
@@ -261,7 +261,7 @@ public class BizurNode extends Role {
 
         String msgId = RoleSettings.generateMsgId();
 
-        SyncMessageListener listener = new SyncMessageListener(msgId, getConfig().getProcessCount()) {
+        SyncMessageListener listener = new SyncMessageListener(msgId, getSettings().getProcessCount()) {
             @Override
             public void handleMessage(NetworkCommand command) {
                 if(command instanceof AckRead_NC){
@@ -278,11 +278,11 @@ public class BizurNode extends Role {
         };
         attachMsgListener(listener);
         try {
-            getConfig().getMemberAddresses().forEach(receiverAddress -> {
+            getSettings().getMemberAddresses().forEach(receiverAddress -> {
                 NetworkCommand replicaRead = new ReplicaRead_NC()
                         .setIndex(index)
                         .setElectId(electId.get())
-                        .setSenderAddress(getConfig().getAddress())
+                        .setSenderAddress(getSettings().getAddress())
                         .setReceiverAddress(receiverAddress)
                         .setMsgId(msgId);
                 sendMessage(replicaRead);
@@ -310,8 +310,8 @@ public class BizurNode extends Role {
         if(electId < votedElectId.get()){
             NetworkCommand nackRead = new NackRead_NC()
                     .setMsgId(replicaReadNc.getMsgId())
-                    .setSenderId(getConfig().getRoleId())
-                    .setSenderAddress(getConfig().getAddress())
+                    .setSenderId(getSettings().getRoleId())
+                    .setSenderAddress(getSettings().getAddress())
                     .setReceiverAddress(source);
             sendMessage(nackRead);
         } else {
@@ -321,8 +321,8 @@ public class BizurNode extends Role {
             NetworkCommand ackRead = new AckRead_NC()
                     .setBucketView(localBuckets[index].createView())
                     .setMsgId(replicaReadNc.getMsgId())
-                    .setSenderId(getConfig().getRoleId())
-                    .setSenderAddress(getConfig().getAddress())
+                    .setSenderId(getSettings().getRoleId())
+                    .setSenderAddress(getSettings().getAddress())
                     .setReceiverAddress(source);
             sendMessage(ackRead);
         }
@@ -340,7 +340,7 @@ public class BizurNode extends Role {
         String msgId = RoleSettings.generateMsgId();
 
         final Bucket[] maxVerBucket = {null};
-        SyncMessageListener listener = new SyncMessageListener(msgId, getConfig().getProcessCount()) {
+        SyncMessageListener listener = new SyncMessageListener(msgId, getSettings().getProcessCount()) {
             @Override
             public void handleMessage(NetworkCommand command) {
                 if(command instanceof AckRead_NC){
@@ -369,12 +369,12 @@ public class BizurNode extends Role {
         };
         attachMsgListener(listener);
         try {
-            getConfig().getMemberAddresses().forEach(receiverAddress -> {
+            getSettings().getMemberAddresses().forEach(receiverAddress -> {
                 NetworkCommand replicaRead = new ReplicaRead_NC()
                         .setIndex(index)
                         .setElectId(electId)
-                        .setSenderId(getConfig().getRoleId())
-                        .setSenderAddress(getConfig().getAddress())
+                        .setSenderId(getSettings().getRoleId())
+                        .setSenderAddress(getSettings().getAddress())
                         .setReceiverAddress(receiverAddress)
                         .setMsgId(msgId);
                 sendMessage(replicaRead);
@@ -446,7 +446,7 @@ public class BizurNode extends Role {
 
     private Set<String> _iterateKeys() {
         Set<String> res = new HashSet<>();
-        for (int index = 0; index < getConfig().getNumBuckets(); index++) {
+        for (int index = 0; index < getSettings().getNumBuckets(); index++) {
             lockBucket(index);
             try {
                 Bucket bucket = read(index);
@@ -469,7 +469,7 @@ public class BizurNode extends Role {
         int R = 31;
         int hash = 0;
         for (int i = 0; i < s.length(); i++)
-            hash = (R * hash + s.charAt(i)) % getConfig().getNumBuckets();
+            hash = (R * hash + s.charAt(i)) % getSettings().getNumBuckets();
         return hash;
     }
 
@@ -563,14 +563,14 @@ public class BizurNode extends Role {
     }
 
     protected int calculateTurn() {
-        Logger.debug("calculating turn for " + getConfig().getAddress());
+        Logger.debug("calculating turn for " + getSettings().getAddress());
         List<String> addresses = new ArrayList<>();
-        getConfig().getMemberAddresses().forEach(addr -> {
+        getSettings().getMemberAddresses().forEach(addr -> {
             addresses.add(addr.toString());
         });
         Collections.sort(addresses);
         for (int i = 0; i < addresses.size(); i++) {
-            if(addresses.get(i).equals(getConfig().getAddress().toString())){
+            if(addresses.get(i).equals(getSettings().getAddress().toString())){
                 return i;
             }
         }
@@ -578,13 +578,13 @@ public class BizurNode extends Role {
     }
 
     private synchronized void updateLeader(boolean isLeader){
-        setLeader(isLeader && leaderAddress.get() != null && leaderAddress.get().isSame(getConfig().getAddress()));
+        setLeader(isLeader && leaderAddress.get() != null && leaderAddress.get().isSame(getSettings().getAddress()));
         leaderUpdateLatch.countDown();
     }
 
     private synchronized void updateLeader(Address source){
         leaderAddress.set(source);
-        updateLeader(source.isSame(getConfig().getAddress()));
+        updateLeader(source.isSame(getSettings().getAddress()));
     }
 
     public String get(String key) {
@@ -596,9 +596,9 @@ public class BizurNode extends Role {
         return routeRequestAndGet(
                 new ApiGet_NC()
                         .setKey(key)
-                        .setSenderId(getConfig().getRoleId())
+                        .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(lead)
-                        .setSenderAddress(getConfig().getAddress()));
+                        .setSenderAddress(getSettings().getAddress()));
     }
     private void getByLeader(ApiGet_NC getNc) {
         String val = _get(getNc.getKey());
@@ -620,9 +620,9 @@ public class BizurNode extends Role {
                 new ApiSet_NC()
                         .setKey(key)
                         .setVal(val)
-                        .setSenderId(getConfig().getRoleId())
+                        .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(lead)
-                        .setSenderAddress(getConfig().getAddress()));
+                        .setSenderAddress(getSettings().getAddress()));
     }
     private void setByLeader(ApiSet_NC setNc) {
         boolean isSuccess = _set(setNc.getKey(), setNc.getVal());
@@ -630,7 +630,7 @@ public class BizurNode extends Role {
                 new LeaderResponse_NC()
                         .setPayload(isSuccess)
                         .setReceiverAddress(setNc.getSenderAddress())
-                        .setSenderAddress(getConfig().getAddress())
+                        .setSenderAddress(getSettings().getAddress())
                         .setMsgId(setNc.getMsgId())
         );
     }
@@ -644,9 +644,9 @@ public class BizurNode extends Role {
         return routeRequestAndGet(
                 new ApiDelete_NC()
                         .setKey(key)
-                        .setSenderId(getConfig().getRoleId())
+                        .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(lead)
-                        .setSenderAddress(getConfig().getAddress()));
+                        .setSenderAddress(getSettings().getAddress()));
     }
     private void deleteByLeader(ApiDelete_NC deleteNc) {
         boolean isDeleted = _delete(deleteNc.getKey());
@@ -654,7 +654,7 @@ public class BizurNode extends Role {
                 new LeaderResponse_NC()
                         .setPayload(isDeleted)
                         .setReceiverAddress(deleteNc.getSenderAddress())
-                        .setSenderAddress(getConfig().getAddress())
+                        .setSenderAddress(getSettings().getAddress())
                         .setMsgId(deleteNc.getMsgId())
         );
     }
@@ -666,9 +666,9 @@ public class BizurNode extends Role {
         }
         return routeRequestAndGet(
                 new ApiIterKeys_NC()
-                        .setSenderId(getConfig().getRoleId())
+                        .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(leaderAddress.get())
-                        .setSenderAddress(getConfig().getAddress()));
+                        .setSenderAddress(getSettings().getAddress()));
     }
     private void iterateKeysByLeader(ApiIterKeys_NC iterKeysNc) {
         Set<String> keys = _iterateKeys();
@@ -774,9 +774,9 @@ public class BizurNode extends Role {
         if(!uniqueKey.equals(payload)) {
             sendMessage(new LeaderResponse_NC()
                     .setPayload(payload)
-                    .setSenderId(getConfig().getRoleId())
+                    .setSenderId(getSettings().getRoleId())
                     .setReceiverAddress(command.getSenderAddress())
-                    .setSenderAddress(getConfig().getAddress())
+                    .setSenderAddress(getSettings().getAddress())
                     .setMsgId(command.getMsgId()));
         }
     }

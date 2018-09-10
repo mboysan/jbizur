@@ -2,11 +2,11 @@ package ee.ut.jbizur.config;
 
 public class NodeTestConfig extends NodeConfig {
     static {
-        ConfigProperties.loadProperties(NodeTestConfig.class, "config.properties");
+        PropertiesLoader.loadProperties(NodeTestConfig.class, "jbizur.properties");
     }
 
     public static int getMemberCount() {
-        return ConfigProperties.getInt("node.count");
+        return PropertiesLoader.getInt("node.count");
     }
 
 }

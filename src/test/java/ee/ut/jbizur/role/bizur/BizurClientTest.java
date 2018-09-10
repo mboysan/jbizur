@@ -51,7 +51,7 @@ public class BizurClientTest extends BizurNodeTestBase {
     protected Set<Address> getMemberAddresses() {
         Set<Address> addressSet = new HashSet<>();
         for (BizurNode bizurNode : bizurNodes) {
-            addressSet.add(bizurNode.getConfig().getAddress());
+            addressSet.add(bizurNode.getSettings().getAddress());
         }
         return addressSet;
     }

@@ -19,26 +19,26 @@ public class BizurMockBuilder extends BizurBuilder {
     @Override
     public BizurNodeMock build() throws InterruptedException {
         BizurNodeMock bizurNodeMock = new BizurNodeMock(
-                getConfig(),
-                new MulticasterMock(getConfig().getMulticastAddress(), null),
+                getSettings(),
+                new MulticasterMock(getSettings().getMulticastAddress(), null),
                 new MessageSenderMock(),
                 new MessageReceiverMock(),
                 new CountDownLatch(0)
         );
-        getConfig().registerRoleRef(bizurNodeMock);
+        getSettings().registerRoleRef(bizurNodeMock);
         return bizurNodeMock;
     }
 
     @Override
     public BizurClientMock buildClient() throws InterruptedException {
         BizurClientMock bizurClientMock = new BizurClientMock(
-                getConfig(),
-                new MulticasterMock(getConfig().getMulticastAddress(), null),
+                getSettings(),
+                new MulticasterMock(getSettings().getMulticastAddress(), null),
                 new MessageSenderMock(),
                 new MessageReceiverMock(),
                 new CountDownLatch(0)
             );
-        getConfig().registerRoleRef(bizurClientMock);
+        getSettings().registerRoleRef(bizurClientMock);
         return bizurClientMock;
     }
 }
