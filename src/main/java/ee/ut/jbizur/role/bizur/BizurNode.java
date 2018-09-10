@@ -501,10 +501,10 @@ public class BizurNode extends Role {
             public void handleMessage(NetworkCommand command) {
                 if(command instanceof Nack_NC) {
                     resp[0] = new SendFail_IC(command);
-                    getProcessesLatch().countDown();
+                    end();
                 } else if (command instanceof LeaderResponse_NC){
                     resp[0] = command.getPayload();
-                    getProcessesLatch().countDown();
+                    end();
                 }
             }
         };
@@ -517,7 +517,11 @@ public class BizurNode extends Role {
                 T rsp = (T) resp[0];
                 if(!(rsp instanceof SendFail_IC)) {
                     return rsp;
+                } else {
+                    Logger.warn("Send failed: " + rsp.toString());
                 }
+            } else {
+                Logger.warn("Timeout waiting for response.");
             }
 
             // leader is unreachable, elect new leader and route request again.

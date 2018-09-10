@@ -17,6 +17,7 @@ import ee.ut.jbizur.protocol.internal.NewNodeAddressRegistered_IC;
 import ee.ut.jbizur.protocol.internal.NodeAddressUnregistered_IC;
 import ee.ut.jbizur.protocol.internal.SendFail_IC;
 import ee.ut.jbizur.role.RoleSettings;
+import org.pmw.tinylog.Logger;
 
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -140,10 +141,10 @@ public class BizurClient extends BizurNode {
             public void handleMessage(NetworkCommand command) {
                 if(command instanceof Nack_NC) {
                     resp[0] = new SendFail_IC(command);
-                    getProcessesLatch().countDown();
+                    end();
                 } else if (command instanceof LeaderResponse_NC){
                     resp[0] = command.getPayload();
-                    getProcessesLatch().countDown();
+                    end();
                 }
             }
         };
@@ -157,7 +158,11 @@ public class BizurClient extends BizurNode {
                 T rsp = (T) resp[0];
                 if(!(rsp instanceof SendFail_IC)) {
                     return rsp;
+                } else {
+                    Logger.warn("Send failed: " + rsp.toString());
                 }
+            } else {
+                Logger.warn("Timeout waiting for response.");
             }
 
             return routeRequestAndGet(command, retryCount-1);
