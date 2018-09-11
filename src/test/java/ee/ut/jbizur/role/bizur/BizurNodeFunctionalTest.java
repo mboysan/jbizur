@@ -1,5 +1,8 @@
 package ee.ut.jbizur.role.bizur;
 
+import ee.ut.jbizur.config.BizurConfig;
+import ee.ut.jbizur.datastore.bizur.Bucket;
+import ee.ut.jbizur.network.address.Address;
 import org.junit.Assert;
 import org.junit.Test;
 import utils.RunnerWithExceptionCatcher;
@@ -12,59 +15,26 @@ import java.util.UUID;
 public class BizurNodeFunctionalTest extends BizurNodeTestBase {
 
     /**
-     * Simple test for the leader election flow.
-     */
-    @Test
-    public void leaderElectionTest() {
-        for (BizurNode bizurNode : bizurNodes) {
-            if (bizurNode.calculateTurn() == 0) {
-                bizurNode.resolveLeader();
-                break;
-            }
-        }
-
-        int leaderCnt = 0;
-        for (BizurNode node : bizurNodes) {
-            leaderCnt += node.isLeader() ? 1 : 0;
-        }
-        Assert.assertEquals(1, leaderCnt);
-    }
-
-    /**
-     * Tests if another node can be elected leader when election process is forced.
-     */
-    @Test
-    public void multiLeaderElection() {
-        getNode(0).resolveLeader();
-        Assert.assertTrue(getNode(0).isLeader());
-        getNode(1).tryElectLeader(true);
-        Assert.assertTrue(getNode(1).isLeader());
-        getNode(2).tryElectLeader(true);
-        Assert.assertTrue(getNode(2).isLeader());
-    }
-
-    /**
      * Tests the leader election flow but when multiple nodes initiate the same procedure at the same time.
      * @throws Throwable any exception caught during lambda function calls.
      */
     @Test
-    public void leaderElectionMultiThreadTest() throws Throwable {
-        RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(bizurNodes.length);
-        for (BizurNode bizurNode : bizurNodes) {
-            runner.execute(() -> {
-                bizurNode.resolveLeader();
-            });
+    public void leaderPerBucketElectionCheck() throws Throwable {
+        int bucketCount = BizurConfig.getBucketCount();
+        for (int i = 0; i < bucketCount; i++) {
+            Address otherAddress = getRandomNode().getLocalBucket(i).getLeaderAddress();
+            Assert.assertNotNull(otherAddress);
+            int leaderCount = 0;
+            for (BizurNode bizurNode : bizurNodes) {
+                Bucket localBucket = bizurNode.getLocalBucket(i);
+                Assert.assertTrue(localBucket.getLeaderAddress().isSame(otherAddress));
+                if (localBucket.isLeader()) {
+                    leaderCount++;
+                }
+            }
+            Assert.assertEquals(1, leaderCount);
         }
-        runner.awaitCompletion();
-        runner.throwAnyCaughtException();
-
-        int leaderCnt = 0;
-        for (BizurNode node : bizurNodes) {
-            leaderCnt += node.isLeader() ? 1 : 0;
-        }
-        Assert.assertEquals(1, leaderCnt);
     }
-
     /**
      * Test for sequential set/get operations of a set of keys and values on different nodes.
      */
@@ -95,7 +65,8 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
                 String expVal = UUID.randomUUID().toString();
 
                 Assert.assertTrue(getRandomNode().set(testKey, expVal));
-                Assert.assertEquals(expVal, getRandomNode().get(testKey));
+                String actVal = getRandomNode().get(testKey);
+                Assert.assertEquals(expVal, actVal);
             });
         }
         runner.awaitCompletion();

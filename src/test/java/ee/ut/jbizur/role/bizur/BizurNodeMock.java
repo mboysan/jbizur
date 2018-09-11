@@ -1,9 +1,6 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.network.messenger.IMessageReceiver;
-import ee.ut.jbizur.network.messenger.IMessageSender;
-import ee.ut.jbizur.network.messenger.MessageSenderMock;
-import ee.ut.jbizur.network.messenger.MulticasterMock;
+import ee.ut.jbizur.network.messenger.*;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.common.Nack_NC;
 import ee.ut.jbizur.role.Role;
@@ -42,6 +39,12 @@ public class BizurNodeMock extends BizurNode {
             super.handleNetworkCommand(new Nack_NC());
         } else {
             super.handleNetworkCommand(command);
+        }
+    }
+
+    public void sendCommandToMessageReceiver(NetworkCommand command) {
+        if (messageReceiver instanceof MessageReceiverMock) {
+            ((MessageReceiverMock) messageReceiver).handleNetworkCommand(command);
         }
     }
 }

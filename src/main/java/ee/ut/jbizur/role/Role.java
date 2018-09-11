@@ -5,9 +5,7 @@ import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.messenger.*;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.ping.ConnectOK_NC;
-import ee.ut.jbizur.protocol.commands.ping.Connect_NC;
-import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
+import ee.ut.jbizur.protocol.commands.ping.*;
 import ee.ut.jbizur.protocol.internal.InternalCommand;
 import org.pmw.tinylog.Logger;
 
@@ -90,7 +88,7 @@ public abstract class Role {
      * @param command the ee.ut.jbizur.network message to handle.
      */
     public void handleNetworkCommand(NetworkCommand command){
-        Logger.debug("[" + getSettings().getAddress() +"] - " + command);
+        Logger.debug(logMsg(command.toString()));
 
         boolean isHandled = false;
         String assocMsgId = command.getMsgId();
@@ -115,6 +113,9 @@ public abstract class Role {
                     settings.registerAddress(command.getSenderAddress());
                 }
             }
+            if (command instanceof Ping_NC) {
+                pongForPingCommand((Ping_NC) command);
+            }
             if (command instanceof SignalEnd_NC) {
                 shutdown();
             }
@@ -125,6 +126,42 @@ public abstract class Role {
 
     protected void handleNodeFailure(Address failedNodeAddress) {
         settings.unregisterAddress(failedNodeAddress);
+    }
+
+    protected boolean pingAddress(Address address) {
+        final boolean[] isAlive = {false};
+        String msgId = RoleSettings.generateMsgId();
+        SyncMessageListener listener = new SyncMessageListener(msgId, 1) {
+            @Override
+            public void handleMessage(NetworkCommand command) {
+                if (command instanceof Pong_NC) {
+                    isAlive[0] = true;
+                    end();
+                }
+            }
+        };
+        attachMsgListener(listener);
+        try {
+            NetworkCommand pingNC = new Ping_NC()
+                    .setMsgId(msgId)
+                    .setSenderAddress(getSettings().getAddress())
+                    .setReceiverAddress(address)
+                    .setSenderId(getSettings().getRoleId());
+            sendMessage(pingNC);
+            listener.waitForResponses();
+        } finally {
+            detachMsgListener(listener);
+        }
+        return isAlive[0];
+    }
+
+    protected void pongForPingCommand(Ping_NC pingNc) {
+        NetworkCommand pongNC = new Pong_NC()
+                .setMsgId(pingNc.getMsgId())
+                .setReceiverAddress(pingNc.getSenderAddress())
+                .setSenderAddress(getSettings().getAddress())
+                .setSenderId(getSettings().getRoleId());
+        sendMessage(pongNC);
     }
 
     /**
@@ -188,6 +225,10 @@ public abstract class Role {
 
     public RoleSettings getSettings() {
         return settings;
+    }
+
+    protected String logMsg(String msg) {
+        return String.format("[%s] %s", getSettings().getRoleId(), msg);
     }
 
     @Override

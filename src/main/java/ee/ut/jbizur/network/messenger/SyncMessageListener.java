@@ -48,7 +48,10 @@ public abstract class SyncMessageListener {
 
     public boolean waitForResponses(long timeout, TimeUnit timeUnit) {
         try {
-            return getProcessesLatch().await(timeout, timeUnit);
+            if (getProcessesLatch().await(timeout, timeUnit)) {
+                return true;
+            }
+            Logger.warn("timeout when waiting for responses on listener: " + toString());
         } catch (InterruptedException e) {
             Logger.error(e);
         }
@@ -62,7 +65,9 @@ public abstract class SyncMessageListener {
     @Override
     public String toString() {
         return "SyncMessageListener{" +
-                "msgId='" + msgId + '\'' +
+                "ackCount=" + ackCount +
+                ", msgId='" + msgId + '\'' +
+                ", quorumSize=" + quorumSize +
                 '}';
     }
 }

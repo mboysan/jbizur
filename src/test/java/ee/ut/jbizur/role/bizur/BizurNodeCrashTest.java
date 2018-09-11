@@ -20,7 +20,7 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
     @Test
     public void sendFailTest() {
         // elect leader as n0
-        getNode(0).resolveLeader();
+//        getNode(0).resolveLeader();
         Assert.assertTrue(getNode(0).isLeader());
 
         // set new key-vals
@@ -47,7 +47,7 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
     @Test
     public void sendFailOnLeaderTest() {
         // elect leader as n0
-        getNode(0).resolveLeader();
+//        getNode(0).resolveLeader();
         Assert.assertTrue(getNode(0).isLeader());
 
         // set new key-vals

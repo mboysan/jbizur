@@ -8,8 +8,11 @@ import ee.ut.jbizur.role.bizur.BizurNodeMock;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MessageSenderMock implements IMessageSender {
+    private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     private final Map<String, Role> roles = new HashMap<>();
     private final CommandMarshaller commandMarshaller = new CommandMarshaller();
 
@@ -18,19 +21,37 @@ public class MessageSenderMock implements IMessageSender {
         /* command is marshalled then unmarshalled to prevent receiving process to use the same object
            with the sending process. This can be thought of as a deep-copy of the command object. */
         command = commandMarshaller.unmarshall(commandMarshaller.marshall(command));
-
-        Role receiverRole = roles.get(command.getReceiverAddress().toString());
-        if(receiverRole instanceof BizurNodeMock) {
-            if(((BizurNodeMock) receiverRole).isDead) {
-                Role senderRole = roles.get(command.getSenderAddress().toString());
-                senderRole.handleInternalCommand(new SendFail_IC(command));
-                return;
-            }
-        }
-        receiverRole.handleNetworkCommand(command);
+        executor.execute(new Sender(command));
+//        new Sender(command).run();
     }
 
     public void registerRole(Role role){
         roles.put(role.getSettings().getAddress().toString(), role);
+    }
+
+    private class Sender implements Runnable {
+        private final NetworkCommand command;
+
+        public Sender(NetworkCommand command) {
+            this.command = command;
+        }
+
+        @Override
+        public void run() {
+            Role receiverRole = roles.get(command.getReceiverAddress().toString());
+            if(receiverRole instanceof BizurNodeMock) {
+                if(((BizurNodeMock) receiverRole).isDead) {
+                    Role senderRole = roles.get(command.getSenderAddress().toString());
+                    senderRole.handleInternalCommand(new SendFail_IC(command));
+                    return;
+                }
+            }
+            if (receiverRole instanceof BizurNodeMock) {
+                ((BizurNodeMock) receiverRole).sendCommandToMessageReceiver(command);
+            } else {
+//                receiverRole.handleNetworkCommand(command);
+                throw new UnsupportedOperationException("role cannot handle it now: " + receiverRole.toString());
+            }
+        }
     }
 }

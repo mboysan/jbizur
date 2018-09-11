@@ -1,10 +1,20 @@
 package ee.ut.jbizur.datastore.bizur;
 
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Ver {
-    private AtomicInteger electId = new AtomicInteger(0);
-    private AtomicInteger counter = new AtomicInteger(0);
+    private AtomicInteger electId;
+    private AtomicInteger votedElectId;
+    private AtomicInteger counter;
+
+    public Ver() {
+//        int initId = new Random().nextInt(100);
+        int initId = 0;
+        electId = new AtomicInteger(initId);
+        votedElectId = new AtomicInteger(initId);
+        counter = new AtomicInteger(0);
+    }
 
     public int getElectId() {
         return electId.get();
@@ -13,6 +23,19 @@ public class Ver {
     public Ver setElectId(int electId) {
         this.electId.set(electId);
         return this;
+    }
+
+    public int incrementAndGetElectId() {
+        return electId.incrementAndGet();
+    }
+
+    public Ver setVotedElectedId(int votedElectedId) {
+        this.votedElectId.set(votedElectedId);
+        return this;
+    }
+
+    public int getVotedElectId() {
+        return votedElectId.get();
     }
 
     public int getCounter() {
