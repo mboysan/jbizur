@@ -64,7 +64,7 @@ public class MessageSenderImpl implements IMessageSender {
                 Logger.debug("Executor shutdown: "+ executor);
             }
         } else {
-//            executor.execute(sender);
+//            executor.handle(sender);
             new Thread(sender).start();
         }
     }

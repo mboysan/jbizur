@@ -15,44 +15,55 @@ public class Bucket {
 
     private final BucketLock bucketLock = new BucketLock();
 
-    private final Object mapLock = new Object();
-    private Map<String,String> bucketMap = new ConcurrentHashMap<>();
+    private final AtomicReference<Address> leaderAddress;
+    private final AtomicBoolean isLeader;
+    private final AtomicInteger electId;
+    private final AtomicInteger votedElectId;
 
-    private final AtomicReference<Ver> ver = new AtomicReference<>(new Ver());
-    private final AtomicInteger index = new AtomicInteger(0);
-    private AtomicReference<Address> leaderAddress = new AtomicReference<>(null);
-    private AtomicBoolean isLeader = new AtomicBoolean(false);
+    private final Map<String,String> bucketMap;
+    private final AtomicInteger index;
+    private final AtomicInteger verElectId;
+    private final AtomicInteger verCounter;
+
+    public Bucket() {
+        bucketMap = new ConcurrentHashMap<>();
+        index = new AtomicInteger(0);
+        leaderAddress = new AtomicReference<>(null);
+        isLeader = new AtomicBoolean(false);
+
+//        int initId = new Random().nextInt(100);
+        int initId = 0;
+        electId = new AtomicInteger(initId);
+        votedElectId = new AtomicInteger(initId);
+
+        verElectId = new AtomicInteger(initId);
+        verCounter = new AtomicInteger(0);
+    }
 
     public String putOp(String key, String val){
-        synchronized (mapLock) {
-            return bucketMap.put(key, val);
-        }
+        return bucketMap.put(key, val);
     }
 
     public String getOp(String key){
-        synchronized (mapLock) {
-            return bucketMap.get(key);
-        }
+        return bucketMap.get(key);
     }
 
     public String removeOp(String key){
-        synchronized (mapLock) {
-            return bucketMap.remove(key);
-        }
+        return bucketMap.remove(key);
     }
 
     public Set<String> getKeySet(){
-        synchronized (mapLock) {
-            return bucketMap.keySet();
-        }
-    }
-
-    public Ver getVer() {
-        return ver.get();
+        return bucketMap.keySet();
     }
 
     public int getIndex() {
         return index.get();
+    }
+
+    public Bucket setBucketMap(Map map) {
+        this.bucketMap.clear();
+        this.bucketMap.putAll(map);
+        return this;
     }
 
     public Bucket setIndex(int index) {
@@ -61,11 +72,6 @@ public class Bucket {
     }
 
     public Bucket setLeaderAddress(Address leaderAddress) {
-        /*
-        if (isLeader() && !getLeaderAddress().isSame(leaderAddress)) {
-            updateLeader(false);
-        }
-        */
         this.leaderAddress.set(leaderAddress);
         return this;
     }
@@ -78,62 +84,100 @@ public class Bucket {
         this.isLeader.set(isLeader);
         return this;
     }
-
     public boolean isLeader() {
         return isLeader.get();
     }
 
-    public void replaceWithBucket(Bucket bucket){
-        replaceWithView(bucket.createView());
-//        synchronized (mapLock) {
-//            bucketMap = new ConcurrentHashMap<>(bucket.bucketMap);
-//            index.set(bucket.getIndex());
-//            ver.set(bucket.getVer());
-//        }
-        /*
-            bucketMap.keySet().forEach(s -> {
-                if(!bucket.bucketMap.contains(s)){
-                    bucketMap.remove(s);
-                }
-            });
-            */
-//            bucketMap.putAll(bucket.bucketMap);
-//        bucketMap = bucket.bucketMap;
-//        bucketMap.putAll(bucket.bucketMap);
+    public int getElectId() {
+        return electId.get();
+    }
+    public Bucket setElectId(int electId) {
+        this.electId.set(electId);
+        return this;
+    }
+    public int incrementAndGetElectId() {
+        return this.electId.incrementAndGet();
     }
 
-    public BucketView createView(){
-        synchronized (mapLock) {
-            return new BucketView()
-                    .setBucketMap(new HashMap<>(bucketMap))
-                    .setIndex(index.get())
-                    .setLeaderAddress(leaderAddress.get())
-//                    .setLeader(isLeader.get())
-                    .setVerElectId(ver.get().getElectId())
-                    .setVerVotedElectId(ver.get().getVotedElectId())
-                    .setVerCounter(ver.get().getCounter());
-        }
+    public Bucket setVotedElectId(int votedElectId) {
+        this.votedElectId.set(votedElectId);
+        return this;
+    }
+    public int getVotedElectId() {
+        return votedElectId.get();
     }
 
-    public static Bucket createBucketFromView(BucketView bucketView){
-        return new Bucket().replaceWithView(bucketView);
+    public int getVerElectId() {
+        return verElectId.get();
     }
-
-    public Bucket replaceWithView(BucketView bucketView) {
-        synchronized (mapLock){
-            bucketMap = new ConcurrentHashMap<>(bucketView.getBucketMap());
-            index.set(bucketView.getIndex());
-            leaderAddress.set(bucketView.getLeaderAddress());
-//            isLeader.set(bucketView.isLeader());
-            ver.get()
-                    .setVotedElectedId(bucketView.getVerElectId())
-                    .setElectId(bucketView.getVerElectId())
-                    .setCounter(bucketView.getVerCounter());
-        }
+    public Bucket setVerElectId(int verElectId) {
+        this.verElectId.set(verElectId);
         return this;
     }
 
-    public void lock() {
+    public int incrementAndGetVerCounter() {
+        return this.verCounter.incrementAndGet();
+    }
+    public Bucket setVerCounter(int verCounter) {
+        this.verCounter.set(verCounter);
+        return this;
+    }
+    public int getVerCounter() {
+        return verCounter.get();
+    }
+
+    public BucketView createView(){
+        lock();
+        try {
+            return new BucketView()
+                    .setBucketMap(new HashMap<>(bucketMap))
+                    .setIndex(getIndex())
+                    .setVerElectId(getVerElectId())
+                    .setVerCounter(getVerCounter())
+                    .setLeaderAddress(getLeaderAddress());
+        } finally {
+            unlock();
+        }
+    }
+
+    public Bucket replaceWithBucket(Bucket bucket, int newVotedElectId){
+        return replaceWithView(bucket.createView(), newVotedElectId);
+    }
+
+    public Bucket replaceWithView(BucketView bucketView, int newVotedElectId) {
+        lock();
+        try {
+            return setBucketMap(bucketView.getBucketMap())
+                    .setIndex(bucketView.getIndex())
+                    .setVerElectId(bucketView.getVerElectId())
+                    .setVerCounter(bucketView.getVerCounter())
+                    .setLeaderAddress(bucketView.getLeaderAddress())
+                    .setVotedElectId(newVotedElectId);
+        } finally {
+            unlock();
+        }
+    }
+
+    public int compareVersion(Bucket other) {
+        return compareVersions(this, other);
+    }
+
+    public static int compareVersions(Bucket mainBucket, Bucket otherBucket) {
+        mainBucket.lock();
+        try {
+            if(mainBucket.getVerElectId() > otherBucket.getVerElectId()){
+                return 1;
+            } else if (mainBucket.getVerElectId() == otherBucket.getVerElectId()){
+                return Integer.compare(mainBucket.getVerCounter(), otherBucket.getVerCounter());
+            } else {
+                return -1;
+            }
+        } finally {
+            mainBucket.unlock();
+        }
+    }
+
+    private void lock() {
         try {
             bucketLock.lock();
         } catch (InterruptedException e) {
@@ -141,7 +185,7 @@ public class Bucket {
         }
     }
 
-    public void unlock() {
+    private void unlock() {
         bucketLock.unlock();
     }
 }

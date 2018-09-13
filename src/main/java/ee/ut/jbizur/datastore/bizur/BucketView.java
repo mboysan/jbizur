@@ -11,11 +11,9 @@ public class BucketView implements Serializable {
     private int index;
 
     private int verElectId;
-    private int verVotedElectId;
     private int verCounter;
 
     private Address leaderAddress;
-    private boolean isLeader;
 
     public Map<String, String> getBucketMap() {
         return bucketMap;
@@ -53,15 +51,6 @@ public class BucketView implements Serializable {
         return this;
     }
 
-    public int getVerVotedElectId() {
-        return verVotedElectId;
-    }
-
-    public BucketView setVerVotedElectId(int verVotedElectId) {
-        this.verVotedElectId = verVotedElectId;
-        return this;
-    }
-
     public Address getLeaderAddress() {
         return leaderAddress;
     }
@@ -71,13 +60,14 @@ public class BucketView implements Serializable {
         return this;
     }
 
-    public boolean isLeader() {
-        return isLeader;
-    }
-
-    public BucketView setLeader(boolean leader) {
-        isLeader = leader;
-        return this;
+    public Bucket createBucket() {
+        return new Bucket()
+                .setIndex(getIndex())
+                .setBucketMap(getBucketMap())
+                .setIndex(getIndex())
+                .setVerElectId(getVerElectId())
+                .setVerCounter(getVerCounter())
+                .setLeaderAddress(getLeaderAddress());
     }
 
     @Override
@@ -86,10 +76,8 @@ public class BucketView implements Serializable {
                 "bucketMap=" + bucketMap +
                 ", index=" + index +
                 ", verElectId=" + verElectId +
-                ", verVotedElectId=" + verVotedElectId +
                 ", verCounter=" + verCounter +
                 ", leaderAddress=" + leaderAddress +
-                ", isLeader=" + isLeader +
                 '}';
     }
 }

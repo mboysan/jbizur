@@ -9,6 +9,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import utils.RunnerWithExceptionCatcher;
 
+import java.util.Random;
 import java.util.UUID;
 
 @Ignore
@@ -38,7 +39,7 @@ public class MsgSendRecvTest {
 
     protected NetworkCommand generateCommand() {
         return new MockNetworkCommand()
-                .setMsgId(UUID.randomUUID().toString())
+                .setMsgId(new Random().nextInt())
                 .setPayload(UUID.randomUUID().toString())
                 .setSenderAddress(roleMock.getSettings().getAddress())
                 .setReceiverAddress(roleMock.getSettings().getAddress());

@@ -9,7 +9,11 @@ import java.io.Serializable;
  * The generic ee.ut.jbizur.network command to send/receive for process communication.
  */
 public class NetworkCommand implements Serializable {
-
+    /**
+     * Message id associated with this command.
+     */
+    private Integer msgId;
+    private Integer contextId;
     /**
      * Id of the sender process
      */
@@ -34,10 +38,6 @@ public class NetworkCommand implements Serializable {
      * Any additional payload to send.
      */
     private Object payload;
-    /**
-     * Message id associated with this command.
-     */
-    private String msgId;
     /**
      * To determine if this command is handled or not.
      */
@@ -142,12 +142,21 @@ public class NetworkCommand implements Serializable {
         return this;
     }
 
-    public String getMsgId() {
+    public Integer getMsgId() {
         return msgId;
     }
 
-    public NetworkCommand setMsgId(String msgId) {
+    public NetworkCommand setMsgId(Integer msgId) {
         this.msgId = msgId;
+        return this;
+    }
+
+    public Integer getContextId() {
+        return contextId;
+    }
+
+    public NetworkCommand setContextId(Integer contextId) {
+        this.contextId = contextId;
         return this;
     }
 
@@ -181,17 +190,16 @@ public class NetworkCommand implements Serializable {
     @Override
     public String toString() {
         return "NetworkCommand{" +
-                "senderId='" + senderId + '\'' +
+                "msgId=" + msgId +
+                ", senderId='" + senderId + '\'' +
                 ", senderAddr=" + senderAddr +
                 ", receiverAddr=" + receiverAddr +
                 ", tag=" + tag +
                 ", timeStamp=" + timeStamp +
                 ", payload=" + payload +
-                ", msgId='" + msgId + '\'' +
-                ", msgId='" + msgId + '\'' +
                 ", isHandled=" + isHandled +
                 ", retryCount=" + retryCount +
-                ", nodeType=" + nodeType +
+                ", nodeType='" + nodeType + '\'' +
                 '}';
     }
 }

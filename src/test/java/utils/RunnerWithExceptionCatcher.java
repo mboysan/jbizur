@@ -39,7 +39,7 @@ public class RunnerWithExceptionCatcher {
      * Runs the <tt>runnable</tt> passed with the {@link #executor}. Catches any ee.ut.jbizur.exceptions ({@link Throwable})
      * caught during the execution of the runnable's {@link Runnable#run()} method.
      *
-     * @param runnable the runnable to execute and report any ee.ut.jbizur.exceptions caught when running it.
+     * @param runnable the runnable to handle and report any ee.ut.jbizur.exceptions caught when running it.
      */
     public void execute(Runnable runnable) {
         executor.execute(() -> {

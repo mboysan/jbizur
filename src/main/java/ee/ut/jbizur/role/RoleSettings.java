@@ -12,6 +12,11 @@ import java.net.UnknownHostException;
 import java.util.*;
 
 public class RoleSettings {
+    private static final long seed = System.currentTimeMillis();
+    private static final Random RANDOM = new Random(seed);
+    static {
+        Logger.info("seed: " + seed);
+    }
 
     private Role roleRef;
     private Map<String, Address> memberAddressMap = new HashMap<>();
@@ -124,8 +129,8 @@ public class RoleSettings {
         return memberAddresses;
     }
 
-    public static String generateMsgId() {
-        return UUID.randomUUID().toString();
+    public static int generateMsgId() {
+        return RANDOM.nextInt(Integer.MAX_VALUE);
     }
 
 

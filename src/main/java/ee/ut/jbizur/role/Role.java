@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public abstract class Role {
 
-    protected final Map<String, SyncMessageListener> syncMessageListeners = new ConcurrentHashMap<>();
+    protected final Map<Integer, SyncMessageListener> syncMessageListeners = new ConcurrentHashMap<>();
 
     protected ScheduledExecutorService multicastExecutor = Executors.newScheduledThreadPool(1);
     /**
@@ -88,11 +88,11 @@ public abstract class Role {
      * @param command the ee.ut.jbizur.network message to handle.
      */
     public void handleNetworkCommand(NetworkCommand command){
-        Logger.debug(logMsg(command.toString()));
+        Logger.debug("IN " + logMsg(command.toString()));
 
         boolean isHandled = false;
-        String assocMsgId = command.getMsgId();
-        if(assocMsgId != null){
+        Integer assocMsgId = command.getMsgId();
+        if (assocMsgId != null) {
             SyncMessageListener listener = syncMessageListeners.get(assocMsgId);
             if(listener != null){
                 listener.handleMessage(command);
@@ -129,30 +129,27 @@ public abstract class Role {
     }
 
     protected boolean pingAddress(Address address) {
-        final boolean[] isAlive = {false};
-        String msgId = RoleSettings.generateMsgId();
-        SyncMessageListener listener = new SyncMessageListener(msgId, 1) {
-            @Override
-            public void handleMessage(NetworkCommand command) {
-                if (command instanceof Pong_NC) {
-                    isAlive[0] = true;
-                    end();
-                }
-            }
-        };
+        SyncMessageListener listener = SyncMessageListener.build()
+                .withTotalProcessCount(1)
+                .registerHandler(Pong_NC.class, (cmd, lst) -> {
+                    lst.getPassedObjectRef().set(true);
+                    lst.end();
+                });
         attachMsgListener(listener);
         try {
             NetworkCommand pingNC = new Ping_NC()
-                    .setMsgId(msgId)
+                    .setMsgId(listener.getMsgId())
                     .setSenderAddress(getSettings().getAddress())
                     .setReceiverAddress(address)
                     .setSenderId(getSettings().getRoleId());
             sendMessage(pingNC);
+
+            listener.withDebugInfo(logMsg("pingAddress: " + pingNC));
             listener.waitForResponses();
         } finally {
             detachMsgListener(listener);
         }
-        return isAlive[0];
+        return (boolean) listener.getPassedObjectRef().get();
     }
 
     protected void pongForPingCommand(Ping_NC pingNc) {
@@ -182,6 +179,7 @@ public abstract class Role {
      * @param message the ee.ut.jbizur.network message to send.
      */
     protected void sendMessage(NetworkCommand message) {
+        Logger.debug("OUT " + logMsg(message.toString()));
         messageSender.send(message);
     }
 
