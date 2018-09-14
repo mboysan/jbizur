@@ -22,7 +22,7 @@ public class MessageReceiverImpl implements IMessageReceiver {
 
     private volatile boolean isRunning = true;
 
-    private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
     /**
      * The {@link Role} to send the received message for processing.

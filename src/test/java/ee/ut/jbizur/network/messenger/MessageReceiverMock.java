@@ -7,7 +7,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MessageReceiverMock implements IMessageReceiver {
-    ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    private ExecutorService executor = Executors.newCachedThreadPool();
     private Role role;
 
     @Override

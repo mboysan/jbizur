@@ -1,5 +1,6 @@
 package ee.ut.jbizur.role.bizur;
 
+import ee.ut.jbizur.config.BizurTestConfig;
 import ee.ut.jbizur.config.NodeTestConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MockAddress;
@@ -18,7 +19,7 @@ public class BizurNodeTestBase {
 
     protected Random random = getRandom();
 
-    protected static final int NODE_COUNT = 3;
+    protected static final int NODE_COUNT = NodeTestConfig.getMemberCount();
     protected BizurNode[] bizurNodes;
 
     @Before
@@ -84,6 +85,14 @@ public class BizurNodeTestBase {
 
     protected BizurNodeMock getNode(int inx) {
         return (BizurNodeMock) bizurNodes[inx == -1 ? random.nextInt(bizurNodes.length) : inx];
+    }
+
+    protected int hashKey(String s, BizurNode node) {
+        int R = 31;
+        int hash = 0;
+        for (int i = 0; i < s.length(); i++)
+            hash = (R * hash + s.charAt(i)) % node.getSettings().getNumBuckets();
+        return hash;
     }
 
 }

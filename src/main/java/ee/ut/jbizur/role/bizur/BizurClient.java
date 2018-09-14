@@ -131,7 +131,7 @@ public class BizurClient extends BizurNode {
     @Override
     protected <T> T routeRequestAndGet(NetworkCommand command, int retryCount) throws OperationFailedError {
         if (retryCount < 0) {
-            throw new OperationFailedError("Routing failed for command: " + command);
+            throw new OperationFailedError(logMsg("Routing failed for command: " + command));
         }
         SyncMessageListener listener = SyncMessageListener.build()
                 .withTotalProcessCount(1)
@@ -161,7 +161,7 @@ public class BizurClient extends BizurNode {
                 Logger.warn("Timeout waiting for response.");
             }
 
-            return routeRequestAndGet(command, retryCount-1);
+            return routeRequestAndGet(command, retryCount - 1);
 
         } finally {
             detachMsgListener(listener);

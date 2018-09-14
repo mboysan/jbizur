@@ -1,5 +1,6 @@
 package ee.ut.jbizur.protocol.commands;
 
+import ee.ut.jbizur.config.BizurConfig;
 import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.network.address.Address;
 
@@ -45,7 +46,7 @@ public class NetworkCommand implements Serializable {
     /**
      * Number of times to retry sending this command in case of a failure.
      */
-    private int retryCount = 1;
+    private int retryCount = BizurConfig.getSendFailRetryCount();
     /**
      * a "member" or "client".
      */

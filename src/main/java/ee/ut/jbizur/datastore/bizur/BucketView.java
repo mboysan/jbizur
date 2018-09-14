@@ -70,6 +70,20 @@ public class BucketView implements Serializable {
                 .setLeaderAddress(getLeaderAddress());
     }
 
+    public int compareVersion(BucketView other) {
+        return compareVersions(this, other);
+    }
+
+    public static int compareVersions(BucketView mainBucketView, BucketView otherBucketView) {
+        if(mainBucketView.getVerElectId() > otherBucketView.getVerElectId()){
+            return 1;
+        } else if (mainBucketView.getVerElectId() == otherBucketView.getVerElectId()){
+            return Integer.compare(mainBucketView.getVerCounter(), otherBucketView.getVerCounter());
+        } else {
+            return -1;
+        }
+    }
+
     @Override
     public String toString() {
         return "BucketView{" +

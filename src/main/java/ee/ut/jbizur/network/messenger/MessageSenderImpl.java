@@ -25,7 +25,7 @@ import java.util.concurrent.Executors;
  */
 public class MessageSenderImpl implements IMessageSender {
 
-    private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
     /**
      * The {@link Role} to handle internal commands.

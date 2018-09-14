@@ -56,7 +56,8 @@ public class SyncMessageListener {
 
     public SyncMessageListener withTotalProcessCount(int totalProcessCount) {
         this.processesLatch = new CountDownLatch(totalProcessCount);
-        this.quorumSize = RoleSettings.calcQuorumSize(totalProcessCount);
+//        this.quorumSize = RoleSettings.calcQuorumSize(totalProcessCount);
+        this.quorumSize = totalProcessCount;
         return this;
     }
 

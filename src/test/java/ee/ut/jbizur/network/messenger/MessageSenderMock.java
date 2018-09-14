@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MessageSenderMock implements IMessageSender {
-    private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    private final ExecutorService executor = Executors.newCachedThreadPool();
     private final Map<String, Role> roles = new HashMap<>();
     private final CommandMarshaller commandMarshaller = new CommandMarshaller();
 
