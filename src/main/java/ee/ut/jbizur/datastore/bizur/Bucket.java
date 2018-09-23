@@ -25,20 +25,22 @@ public class Bucket {
     private final AtomicInteger verElectId;
     private final AtomicInteger verCounter;
 
-    public Bucket() {
+    private final BucketContainer bucketContainer;
+
+    Bucket(BucketContainer bucketContainer) {
         bucketMap = new HashMap<>();
-//        bucketMap = new ConcurrentHashMap<>();
         index = new AtomicInteger(0);
         leaderAddress = new AtomicReference<>(null);
         isLeader = new AtomicBoolean(false);
 
-//        int initId = new Random().nextInt(100);
         int initId = 0;
         electId = new AtomicInteger(initId);
         votedElectId = new AtomicInteger(initId);
 
         verElectId = new AtomicInteger(initId);
         verCounter = new AtomicInteger(0);
+
+        this.bucketContainer = bucketContainer;
     }
 
     public String putOp(String key, String val){
@@ -73,6 +75,7 @@ public class Bucket {
     }
 
     public Bucket setLeaderAddress(Address leaderAddress) {
+        bucketContainer.updateLeaderAddress(getIndex(), leaderAddress, getLeaderAddress());
         this.leaderAddress.set(leaderAddress);
         return this;
     }

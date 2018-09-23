@@ -1,9 +1,7 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.network.messenger.IMessageReceiver;
-import ee.ut.jbizur.network.messenger.IMessageSender;
-import ee.ut.jbizur.network.messenger.MessageSenderMock;
-import ee.ut.jbizur.network.messenger.Multicaster;
+import ee.ut.jbizur.network.messenger.*;
+import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.role.Role;
 
 import java.util.concurrent.CountDownLatch;
@@ -22,5 +20,11 @@ public class BizurClientMock extends BizurClient {
 
     public void registerRole(Role role) {
         ((MessageSenderMock) messageSender).registerRole(role);
+    }
+
+    public void sendCommandToMessageReceiver(NetworkCommand command) {
+        if (messageReceiver instanceof MessageReceiverMock) {
+            ((MessageReceiverMock) messageReceiver).handleNetworkCommand(command);
+        }
     }
 }

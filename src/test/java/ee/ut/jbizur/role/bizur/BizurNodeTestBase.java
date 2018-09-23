@@ -1,6 +1,5 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.BizurTestConfig;
 import ee.ut.jbizur.config.NodeTestConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MockAddress;

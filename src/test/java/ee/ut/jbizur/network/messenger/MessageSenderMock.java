@@ -4,6 +4,7 @@ import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.internal.SendFail_IC;
 import ee.ut.jbizur.role.Role;
+import ee.ut.jbizur.role.bizur.BizurClientMock;
 import ee.ut.jbizur.role.bizur.BizurNodeMock;
 
 import java.util.HashMap;
@@ -48,6 +49,8 @@ public class MessageSenderMock implements IMessageSender {
             }
             if (receiverRole instanceof BizurNodeMock) {
                 ((BizurNodeMock) receiverRole).sendCommandToMessageReceiver(command);
+            } else if (receiverRole instanceof BizurClientMock) {
+                ((BizurClientMock) receiverRole).sendCommandToMessageReceiver(command);
             } else {
 //                receiverRole.handleNetworkCommand(command);
                 throw new UnsupportedOperationException("role cannot handle it now: " + receiverRole.toString());

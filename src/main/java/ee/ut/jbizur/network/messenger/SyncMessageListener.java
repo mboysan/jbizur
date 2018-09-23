@@ -86,13 +86,13 @@ public class SyncMessageListener {
         if (isHandled) {
             if (command instanceof Ack_NC) {
                 incrementAckCount();
-                getProcessesLatch().countDown();
+                processesLatch.countDown();
                 if(isMajorityAcked()){
                     end();
                 }
             }
             if (command instanceof Nack_NC) {
-                getProcessesLatch().countDown();
+                processesLatch.countDown();
             }
         }
     }
@@ -105,8 +105,8 @@ public class SyncMessageListener {
         return msgId;
     }
 
-    protected CountDownLatch getProcessesLatch() {
-        return processesLatch;
+    public void countMsgReceived() {
+        processesLatch.countDown();
     }
 
     public void incrementAckCount(){
@@ -118,14 +118,14 @@ public class SyncMessageListener {
     }
 
     public void end(){
-        for (long i = 0; i < getProcessesLatch().getCount(); i++) {
-            getProcessesLatch().countDown();
+        for (long i = 0; i < processesLatch.getCount(); i++) {
+            processesLatch.countDown();
         }
     }
 
     public boolean waitForResponses(long timeout, TimeUnit timeUnit) {
         try {
-            if (getProcessesLatch().await(timeout, timeUnit)) {
+            if (processesLatch.await(timeout, timeUnit)) {
                 return true;
             }
             Logger.warn("timeout when waiting for responses on listener: " + toString());

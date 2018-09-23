@@ -5,6 +5,7 @@ import ee.ut.jbizur.config.BizurTestConfig;
 import ee.ut.jbizur.datastore.bizur.Bucket;
 import ee.ut.jbizur.network.address.Address;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import utils.RunnerWithExceptionCatcher;
@@ -27,17 +28,17 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
 
     /**
      * Tests the leader election flow but when multiple nodes initiate the same procedure at the same time.
-     * @throws Throwable any exception caught during lambda function calls.
      */
     @Test
-    public void leaderPerBucketElectionCheck() throws Throwable {
+    @Before
+    public void leaderPerBucketElectionCheck() {
         int bucketCount = BizurConfig.getBucketCount();
         for (int i = 0; i < bucketCount; i++) {
-            Address otherAddress = getRandomNode().getLocalBucket(i).getLeaderAddress();
+            Address otherAddress = getRandomNode().bucketContainer.getBucket(i).getLeaderAddress();
             Assert.assertNotNull(otherAddress);
             int leaderCount = 0;
             for (BizurNode bizurNode : bizurNodes) {
-                Bucket localBucket = bizurNode.getLocalBucket(i);
+                Bucket localBucket = bizurNode.bucketContainer.getBucket(i);
                 Assert.assertTrue(localBucket.getLeaderAddress().isSame(otherAddress));
                 if (localBucket.isLeader()) {
                     leaderCount++;
@@ -55,7 +56,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
     }
 
     private void localBucketKeyValCheck(BizurNode node, String expKey, String expVal) throws Exception {
-        Assert.assertEquals(expVal, node.getLocalBucket(hashKey(expKey, node)).getOp(expKey));
+        Assert.assertEquals(expVal, node.bucketContainer.getBucket(hashKey(expKey, node)).getOp(expKey));
     }
 
     /**
@@ -63,8 +64,6 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueSetGetTest() throws Throwable {
-        leaderPerBucketElectionCheck();
-
         for (int i = 0; i < 10; i++) {
             String expKey = "tkey" + i;
             String expVal = "tval" + i;
@@ -87,7 +86,6 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueSetGetMultiThreadTest() throws Throwable {
-        leaderPerBucketElectionCheck();
         int testCount = 50;
         RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
         for (int i = 0; i < testCount; i++) {
@@ -117,9 +115,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      * Test for sequential set/get/delete operations of a set of keys and values on different nodes.
      */
     @Test
-    public void keyValueDeleteTest() throws Throwable {
-        leaderPerBucketElectionCheck();
-
+    public void keyValueDeleteTest() {
         for (int i = 0; i < 10; i++) {
             String expKey = "tkey" + i;
             String expVal = "tval" + i;
@@ -139,7 +135,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
 
         for (BizurNode bizurNode : bizurNodes) {
             for (int i = 0; i < BizurTestConfig.getBucketCount(); i++) {
-                Assert.assertEquals(0, bizurNode.getLocalBucket(i).getKeySet().size());
+                Assert.assertEquals(0, bizurNode.bucketContainer.getBucket(i).getKeySet().size());
             }
         }
     }
@@ -149,8 +145,6 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueDeleteMultiThreadTest() throws Throwable {
-        leaderPerBucketElectionCheck();
-
         int testCount = 50;
         RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
         for (int i = 0; i < testCount; i++) {
@@ -169,7 +163,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
 
         for (BizurNode bizurNode : bizurNodes) {
             for (int i = 0; i < BizurTestConfig.getBucketCount(); i++) {
-                Assert.assertEquals(0, bizurNode.getLocalBucket(i).getKeySet().size());
+                Assert.assertEquals(0, bizurNode.bucketContainer.getBucket(i).getKeySet().size());
             }
         }
     }
@@ -178,25 +172,19 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      * Tests the iterate keys procedure. Inserts key/val pairs to the bucket. And while inserting,
      * iterates over the inserted keys and compares with the expected values.
      */
-    @Ignore
     @Test
     public void iterateKeysTest() {
         int keyCount = 10;
-
-        Map<String, String> expKeyVals = new HashMap<>();
-
         for (int i = 0; i < keyCount; i++) {
-            String key = UUID.randomUUID().toString();
-            String val = UUID.randomUUID().toString();
+            String key = "tkey" + i;
+            String val = "tval" + i;
 
             expKeyVals.put(key, val);
-
-            getRandomNode().set(key, val);
+            Assert.assertTrue(getRandomNode().set(key, val));
 
             Set<String> actKeys = getRandomNode().iterateKeys();
 
             Assert.assertEquals(expKeyVals.size(), actKeys.size());
-
             for (String actKey : actKeys) {
                 Assert.assertEquals(expKeyVals.get(actKey), getRandomNode().get(actKey));
             }

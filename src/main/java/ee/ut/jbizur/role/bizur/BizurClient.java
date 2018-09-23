@@ -41,7 +41,11 @@ public class BizurClient extends BizurNode {
     }
 
     @Override
-    protected void initNode() {
+    protected void initMulticast() {
+        if (isAddressesAlreadyRegistered()) {
+            return;
+        }
+        super.initMulticast();
     }
 
     @Override
@@ -49,12 +53,10 @@ public class BizurClient extends BizurNode {
     }
 
     @Override
-    protected void initMulticast() {
-        if (isAddressesAlreadyRegistered()) {
-            return;
-        }
-        super.initMulticast();
+    protected boolean initLeaderPerBucketElectionFlow() {
+        return true;
     }
+
     @Override
     public void handleInternalCommand(InternalCommand command) {
         super.handleInternalCommand(command);
