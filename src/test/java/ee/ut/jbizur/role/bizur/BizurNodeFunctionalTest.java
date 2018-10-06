@@ -6,25 +6,12 @@ import ee.ut.jbizur.datastore.bizur.Bucket;
 import ee.ut.jbizur.network.address.Address;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import utils.RunnerWithExceptionCatcher;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class BizurNodeFunctionalTest extends BizurNodeTestBase {
-
-    private Map<String, String> expKeyVals;
-
-    @Override
-    public void setUp() throws Exception {
-        super.setUp();
-        expKeyVals = new ConcurrentHashMap<>();
-    }
 
     /**
      * Tests the leader election flow but when multiple nodes initiate the same procedure at the same time.
@@ -48,17 +35,6 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
         }
     }
 
-    private void localBucketKeyValCheck(BizurNode node, Map<String,String> expKeyVals) throws Exception {
-        for (String expKey : expKeyVals.keySet()) {
-            String expVal = expKeyVals.get(expKey);
-            localBucketKeyValCheck(node, expKey, expVal);
-        }
-    }
-
-    private void localBucketKeyValCheck(BizurNode node, String expKey, String expVal) throws Exception {
-        Assert.assertEquals(expVal, node.bucketContainer.getBucket(hashKey(expKey, node)).getOp(expKey));
-    }
-
     /**
      * Test for sequential set/get operations of a set of keys and values on different nodes.
      */
@@ -76,9 +52,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
             Assert.assertEquals(expVal, getterNode.get(expKey));
         }
 
-        for (BizurNode bizurNode : bizurNodes) {
-            localBucketKeyValCheck(bizurNode, expKeyVals);
-        }
+        validateLocalBucketKeyVals();
     }
 
     /**
@@ -106,9 +80,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
         runner.awaitCompletion();
         runner.throwAnyCaughtException();
 
-        for (BizurNode bizurNode : bizurNodes) {
-            localBucketKeyValCheck(bizurNode, expKeyVals);
-        }
+        validateLocalBucketKeyVals();
     }
 
     /**
@@ -173,21 +145,23 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      * iterates over the inserted keys and compares with the expected values.
      */
     @Test
-    public void iterateKeysTest() {
+    public void iterateKeysTest() throws Exception {
         int keyCount = 10;
         for (int i = 0; i < keyCount; i++) {
             String key = "tkey" + i;
             String val = "tval" + i;
 
             expKeyVals.put(key, val);
-            Assert.assertTrue(getRandomNode().set(key, val));
+            Assert.assertTrue(getNode(0).set(key, val));
 
-            Set<String> actKeys = getRandomNode().iterateKeys();
+            Set<String> actKeys = getNode(0).iterateKeys();
 
             Assert.assertEquals(expKeyVals.size(), actKeys.size());
             for (String actKey : actKeys) {
-                Assert.assertEquals(expKeyVals.get(actKey), getRandomNode().get(actKey));
+                Assert.assertEquals(expKeyVals.get(actKey), getNode(0).get(actKey));
             }
         }
+
+        validateLocalBucketKeyVals();
     }
 }

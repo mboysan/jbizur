@@ -28,7 +28,7 @@ public class Bucket {
     private final BucketContainer bucketContainer;
 
     Bucket(BucketContainer bucketContainer) {
-        bucketMap = new HashMap<>();
+        bucketMap = new ConcurrentHashMap<>();
         index = new AtomicInteger(0);
         leaderAddress = new AtomicReference<>(null);
         isLeader = new AtomicBoolean(false);
@@ -44,6 +44,7 @@ public class Bucket {
     }
 
     public String putOp(String key, String val){
+        Logger.debug(String.format("put key=[%s],val=[%s] in bucket=[%s]", key, val, this));
         return bucketMap.put(key, val);
     }
 
@@ -64,6 +65,9 @@ public class Bucket {
     }
 
     public Bucket setBucketMap(Map map) {
+        if (bucketMap.size() > 0 && map.size() == 0) {
+            Logger.debug(String.format("removing from bucket=[%s] and inserting elements from map=[%s]", bucketMap, map));
+        }
         this.bucketMap.clear();
         this.bucketMap.putAll(map);
         return this;
@@ -75,7 +79,13 @@ public class Bucket {
     }
 
     public Bucket setLeaderAddress(Address leaderAddress) {
-        bucketContainer.updateLeaderAddress(getIndex(), leaderAddress, getLeaderAddress());
+        return setLeaderAddress(leaderAddress, true);
+    }
+
+    public Bucket setLeaderAddress(Address leaderAddress, boolean update) {
+        if (update) {
+            bucketContainer.updateLeaderAddress(getIndex(), leaderAddress);
+        }
         this.leaderAddress.set(leaderAddress);
         return this;
     }
@@ -148,7 +158,7 @@ public class Bucket {
 //                    .setIndex(bucketView.getIndex())
 //                    .setVerElectId(bucketView.getVerElectId())
 //                    .setVerCounter(bucketView.getVerCounter())
-                .setLeaderAddress(bucketView.getLeaderAddress())
+                .setLeaderAddress(bucketView.getLeaderAddress(), false)
                 .setVotedElectId(bucketView.getVerElectId());
     }
 
@@ -176,5 +186,18 @@ public class Bucket {
 
     public void unlock() {
         bucketLock.unlock();
+    }
+
+    @Override
+    public String toString() {
+        return "Bucket{" +
+                "leaderAddress=" + leaderAddress +
+                ", isLeader=" + isLeader +
+                ", electId=" + electId +
+                ", votedElectId=" + votedElectId +
+                ", index=" + index +
+                ", verElectId=" + verElectId +
+                ", verCounter=" + verCounter +
+                '}';
     }
 }

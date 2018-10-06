@@ -3,6 +3,7 @@ package ee.ut.jbizur.datastore.bizur;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.protocol.ISerializer;
 import ee.ut.jbizur.protocol.ObjectSerializer;
+import ee.ut.jbizur.util.IdUtils;
 import org.pmw.tinylog.Logger;
 
 import java.util.HashMap;
@@ -49,21 +50,21 @@ public class BucketContainer {
         getBucket(index).unlock();
     }
 
-    public void updateLeaderAddress(int bucketIndex, Address newAddr, Address prevAddr) {
+    public void updateLeaderAddress(int bucketIndex, Address newAddr) {
         if (newAddr == null) {
             throw new IllegalStateException("new address must not be null!");
         }
         synchronized (addressBucketIndexMap) {
             String newAddrStr = serializer.serializeToString(newAddr);
-            if (prevAddr == null) {
-                addressBucketIndexMap.put(newAddrStr, new HashSet<>());
-            } else {
+            addressBucketIndexMap.putIfAbsent(newAddrStr, new HashSet<>());
+
+            Address prevAddr = getBucket(bucketIndex).getLeaderAddress();
+            if (prevAddr != null) {
                 if (prevAddr.isSame(newAddr)) {
                     return;
-                } else {
-                    String prevAddrStr = serializer.serializeToString(prevAddr);
-                    addressBucketIndexMap.get(prevAddrStr).remove(bucketIndex);
                 }
+                String prevAddrStr = serializer.serializeToString(prevAddr);
+                addressBucketIndexMap.get(prevAddrStr).remove(bucketIndex);
             }
             addressBucketIndexMap.get(newAddrStr).add(bucketIndex);
         }
@@ -89,10 +90,6 @@ public class BucketContainer {
      * @return index of the bucket.
      */
     public int hashKey(String s) {
-        int R = 31;
-        int hash = 0;
-        for (int i = 0; i < s.length(); i++)
-            hash = (R * hash + s.charAt(i)) % numBuckets;
-        return hash;
+        return IdUtils.hashKey(s, numBuckets);
     }
 }

@@ -5,14 +5,17 @@ import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MockAddress;
 import ee.ut.jbizur.network.address.MockMulticastAddress;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.pmw.tinylog.Logger;
 
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BizurNodeTestBase {
 
@@ -21,11 +24,14 @@ public class BizurNodeTestBase {
     protected static final int NODE_COUNT = NodeTestConfig.getMemberCount();
     protected BizurNode[] bizurNodes;
 
+    protected Map<String, String> expKeyVals;
+
     @Before
     public void setUp() throws Exception {
         createNodes();
         registerRoles();
         startRoles();
+        this.expKeyVals = new ConcurrentHashMap<>();
     }
 
     private void createNodes() throws UnknownHostException, InterruptedException {
@@ -92,6 +98,23 @@ public class BizurNodeTestBase {
         for (int i = 0; i < s.length(); i++)
             hash = (R * hash + s.charAt(i)) % node.getSettings().getNumBuckets();
         return hash;
+    }
+
+    protected void validateLocalBucketKeyVals() throws Exception {
+        for (BizurNode bizurNode : bizurNodes) {
+            localBucketKeyValCheck(bizurNode, expKeyVals);
+        }
+    }
+
+    private void localBucketKeyValCheck(BizurNode node, Map<String,String> expKeyVals) throws Exception {
+        for (String expKey : expKeyVals.keySet()) {
+            String expVal = expKeyVals.get(expKey);
+            localBucketKeyValCheck(node, expKey, expVal);
+        }
+    }
+
+    private void localBucketKeyValCheck(BizurNode node, String expKey, String expVal) {
+        Assert.assertEquals(expVal, node.bucketContainer.getBucket(hashKey(expKey, node)).getOp(expKey));
     }
 
 }

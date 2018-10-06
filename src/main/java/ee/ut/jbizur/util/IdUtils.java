@@ -6,6 +6,19 @@ import java.util.*;
 
 public final class IdUtils {
 
+    public static int hashKey(String s, int size) {
+        int R = 31;
+        int hash = 0;
+        for (int i = 0; i < s.length(); i++)
+            hash = (R * hash + s.charAt(i)) % size;
+        return hash;
+    }
+
+    public static Address nextAddressInUnorderedSet(Set<Address> addressSet, int bucketIndex) {
+        List<Address> orderedAddressList = orderAddresses(addressSet);
+        return orderedAddressList.get(bucketIndex % addressSet.size());
+    }
+
     public static Queue<Address> getAddressQueue(Set<Address> addressSet) {
         List<Address> addressList = orderAddresses(addressSet);
         return new ArrayDeque<>(addressList);

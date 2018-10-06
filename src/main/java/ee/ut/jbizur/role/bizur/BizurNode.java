@@ -23,10 +23,7 @@ import ee.ut.jbizur.role.RoleValidation;
 import ee.ut.jbizur.util.IdUtils;
 import org.pmw.tinylog.Logger;
 
-import java.util.HashSet;
-import java.util.Queue;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
@@ -55,8 +52,12 @@ public class BizurNode extends Role {
     }
 
     protected void initBuckets() {
-        this.bucketContainer = new BucketContainer(BizurConfig.getBucketCount()).initBuckets();
+        this.bucketContainer = createBucketContainer();
         this.bucketInitLatch = new CountDownLatch(BizurConfig.getBucketCount());
+    }
+
+    protected BucketContainer createBucketContainer() {
+        return new BucketContainer(BizurConfig.getBucketCount()).initBuckets();
     }
 
     @Override
@@ -156,37 +157,34 @@ public class BizurNode extends Role {
     }
 
     protected boolean initLeaderPerBucketElectionFlow() throws InterruptedException {
-        return initLeaderPerBucketElectionFlow(IdUtils.getAddressQueue(getSettings().getMemberAddresses()));
+        for (int i = 0; i < bucketContainer.getNumBuckets(); i++) {
+            Bucket localBucket = bucketContainer.getBucket(i);
+            electLeaderForBucket(localBucket, localBucket.getIndex(), false);
+        }
+        return bucketInitLatch.await(BizurConfig.getBucketSetupTimeoutSec(), TimeUnit.SECONDS);
     }
 
-    private boolean initLeaderPerBucketElectionFlow(Queue<Address> addressQueue) throws InterruptedException {
-        Address nextAddr = addressQueue.poll();
-        if (nextAddr == null) {
-            throw new IllegalStateException(logMsg("leader per bucket election flow could not be initialized"));
-        }
+    protected void electLeaderForBucket(Bucket localBucket, int startIdx, boolean forceElection) {
+        Address nextAddr = IdUtils.nextAddressInUnorderedSet(getSettings().getMemberAddresses(), startIdx);
         if (nextAddr.isSame(getSettings().getAddress())) {
-            for (int i = 0; i < bucketContainer.getNumBuckets(); i++) {
-                Bucket localBucket = bucketContainer.getBucket(i);
-                Logger.info(logMsg("initializing election process on bucket idx=" + localBucket.getIndex()));
-                resolveLeader(localBucket);
-            }
+            Logger.info(logMsg("initializing election process on bucket idx=" + localBucket.getIndex()));
+            resolveLeader(localBucket, forceElection);
         } else {
             if (pingAddress(nextAddr)) {
-                Logger.info(logMsg("election process will be handled by: " + nextAddr));
+                Logger.info(logMsg("election process will be handled by: " + nextAddr + " for bucket idx=" + localBucket.getIndex()));
             } else {
-                Logger.warn(logMsg("address '" + nextAddr + "' unreachable, reinit election process..."));
-                initLeaderPerBucketElectionFlow(addressQueue);
+                Logger.warn(logMsg("address '" + nextAddr + "' unreachable, reinit election process for bucket idx=" + localBucket.getIndex() + " ..."));
+                electLeaderForBucket(localBucket, startIdx + 1, forceElection);
             }
         }
-        if (bucketInitLatch.await(BizurConfig.getBucketSetupTimeoutSec(), TimeUnit.SECONDS)) {
-            return true;
-        }
-        Logger.error("timeout bucket setup.");
-        return false;
     }
 
     protected Address resolveLeader(Bucket localBucket) {
-        if (localBucket.getLeaderAddress() == null) {
+        return resolveLeader(localBucket, false);
+    }
+
+    protected Address resolveLeader(Bucket localBucket, boolean forceElection) {
+        if (localBucket.getLeaderAddress() == null || forceElection) {
             startElection(localBucket.getIndex());
         }
         return localBucket.getLeaderAddress();
@@ -430,9 +428,16 @@ public class BizurNode extends Role {
     private Set<String> _iterateKeys() {
         Set<String> res = new HashSet<>();
         bucketContainer.bucketIndices(getSettings().getAddress()).forEach(bucketIdx -> {
-            Bucket bucket = read(bucketIdx);
-            if(bucket != null){
-                res.addAll(bucket.getKeySet());
+            bucketContainer.lockBucket(bucketIdx);
+            try {
+                Bucket bucket = read(bucketIdx);
+                if(bucket != null){
+                    res.addAll(bucket.getKeySet());
+                } else {
+                    Logger.warn(logMsg(String.format("bucket keys could not be iterated by leader. bucket=[%s]", bucket)));
+                }
+            } finally {
+                bucketContainer.unlockBucket(bucketIdx);
             }
         });
         return res;
@@ -465,7 +470,7 @@ public class BizurNode extends Role {
         attachMsgListener(listener);
         try {
             command.setMsgId(listener.getMsgId());
-            Logger.debug("routing request to leader (" + retryCount + "): " + command);
+            Logger.debug(logMsg("routing request to leader retryLeft=[ " + retryCount + "]: " + command));
             sendMessage(command);
 
             if (listener.waitForResponses()) {
@@ -473,7 +478,7 @@ public class BizurNode extends Role {
                 if(!(rsp instanceof SendFail_IC)) {
                     return rsp;
                 } else {
-                    Logger.warn("Send failed: " + rsp.toString());
+                    Logger.warn(logMsg("Send failed: " + rsp.toString()));
                 }
             }
 
@@ -502,6 +507,7 @@ public class BizurNode extends Role {
         String val = _get(getNc.getKey());
         sendMessage(
                 new LeaderResponse_NC()
+                        .setRequest("ApiGet_NC-[key=" + getNc.getKey() + "]")
                         .setPayload(val)
                         .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(getNc.getSenderAddress())
@@ -529,6 +535,7 @@ public class BizurNode extends Role {
         boolean isSuccess = _set(setNc.getKey(), setNc.getVal());
         sendMessage(
                 new LeaderResponse_NC()
+                        .setRequest("ApiSet_NC-[key=" + setNc.getKey() + ", val=" + setNc.getVal() + "]")
                         .setPayload(isSuccess)
                         .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(setNc.getSenderAddress())
@@ -555,6 +562,7 @@ public class BizurNode extends Role {
         boolean isDeleted = _delete(deleteNc.getKey());
         sendMessage(
                 new LeaderResponse_NC()
+                        .setRequest("ApiDelete_NC-[key=" + deleteNc.getKey() + "]")
                         .setPayload(isDeleted)
                         .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(deleteNc.getSenderAddress())
@@ -574,7 +582,7 @@ public class BizurNode extends Role {
                     .setSenderAddress(getSettings().getAddress());
             Set<String> keys = routeRequestAndGet(apiIterKeys);
             if (keys == null) {
-                Logger.warn("Null keys received from leader: " + leaderAddress.toString());
+                Logger.warn(logMsg("Null keys received from leader: " + leaderAddress.toString()));
             } else {
                 keySet.addAll(keys);
             }
@@ -585,7 +593,10 @@ public class BizurNode extends Role {
         Set<String> keys = _iterateKeys();
         sendMessage(
                 new LeaderResponse_NC()
+                        .setRequest("ApiIterKeys_NC")
                         .setPayload(keys)
+                        .setSenderId(getSettings().getRoleId())
+                        .setSenderAddress(getSettings().getAddress())
                         .setReceiverAddress(iterKeysNc.getSenderAddress())
                         .setMsgId(iterKeysNc.getMsgId())
         );

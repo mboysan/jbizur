@@ -67,7 +67,7 @@ public class BucketView implements Serializable {
                 .setIndex(getIndex())
                 .setVerElectId(getVerElectId())
                 .setVerCounter(getVerCounter())
-                .setLeaderAddress(getLeaderAddress());
+                .setLeaderAddress(getLeaderAddress(), false);
     }
 
     public int compareVersion(BucketView other) {
