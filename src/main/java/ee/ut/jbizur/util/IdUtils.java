@@ -1,10 +1,20 @@
 package ee.ut.jbizur.util;
 
 import ee.ut.jbizur.network.address.Address;
+import org.pmw.tinylog.Logger;
 
 import java.util.*;
 
 public final class IdUtils {
+    private static final long seed = System.currentTimeMillis();
+    private static final Random RANDOM = new Random(seed);
+    static {
+        Logger.info("seed: " + seed);
+    }
+
+    public static int generateId() {
+        return RANDOM.nextInt(Integer.MAX_VALUE);
+    }
 
     public static int hashKey(String s, int size) {
         int R = 31;

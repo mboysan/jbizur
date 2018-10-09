@@ -66,7 +66,7 @@ public class Bucket {
 
     public Bucket setBucketMap(Map map) {
         if (bucketMap.size() > 0 && map.size() == 0) {
-            Logger.debug(String.format("removing from bucket=[%s] and inserting elements from map=[%s]", bucketMap, map));
+            Logger.debug(String.format("removing from bucket=[%s] and inserting elements from map=[%s] in bucket=[%s]", bucketMap, map, this));
         }
         this.bucketMap.clear();
         this.bucketMap.putAll(map);

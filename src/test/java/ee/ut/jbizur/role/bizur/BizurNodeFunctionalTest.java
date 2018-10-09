@@ -152,13 +152,13 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
             String val = "tval" + i;
 
             expKeyVals.put(key, val);
-            Assert.assertTrue(getNode(0).set(key, val));
+            Assert.assertTrue(getRandomNode().set(key, val));
 
-            Set<String> actKeys = getNode(0).iterateKeys();
+            Set<String> actKeys = getRandomNode().iterateKeys();
 
             Assert.assertEquals(expKeyVals.size(), actKeys.size());
             for (String actKey : actKeys) {
-                Assert.assertEquals(expKeyVals.get(actKey), getNode(0).get(actKey));
+                Assert.assertEquals(expKeyVals.get(actKey), getRandomNode().get(actKey));
             }
         }
 

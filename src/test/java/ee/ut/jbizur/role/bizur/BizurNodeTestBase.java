@@ -4,6 +4,7 @@ import ee.ut.jbizur.config.NodeTestConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MockAddress;
 import ee.ut.jbizur.network.address.MockMulticastAddress;
+import ee.ut.jbizur.util.IdUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -93,14 +94,11 @@ public class BizurNodeTestBase {
     }
 
     protected int hashKey(String s, BizurNode node) {
-        int R = 31;
-        int hash = 0;
-        for (int i = 0; i < s.length(); i++)
-            hash = (R * hash + s.charAt(i)) % node.getSettings().getNumBuckets();
-        return hash;
+        return IdUtils.hashKey(s, node.getSettings().getNumBuckets());
     }
 
     protected void validateLocalBucketKeyVals() throws Exception {
+        Thread.sleep(100);
         for (BizurNode bizurNode : bizurNodes) {
             localBucketKeyValCheck(bizurNode, expKeyVals);
         }

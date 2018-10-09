@@ -217,7 +217,7 @@ public abstract class Role {
         syncMessageListeners.putIfAbsent(listener.getMsgId(), listener);
     }
 
-    public void detachMsgListener(SyncMessageListener listener){
+    protected void detachMsgListener(SyncMessageListener listener){
         syncMessageListeners.remove(listener.getMsgId());
     }
 

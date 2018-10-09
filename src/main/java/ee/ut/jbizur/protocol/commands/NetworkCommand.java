@@ -191,7 +191,8 @@ public class NetworkCommand implements Serializable {
     @Override
     public String toString() {
         return "NetworkCommand{" +
-                "msgId=" + msgId +
+                "contextId=" + contextId +
+                ", msgId=" + msgId +
                 ", senderId='" + senderId + '\'' +
                 ", senderAddr=" + senderAddr +
                 ", receiverAddr=" + receiverAddr +

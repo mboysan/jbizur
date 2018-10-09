@@ -6,9 +6,13 @@ import ee.ut.jbizur.protocol.commands.bizur.*;
 import ee.ut.jbizur.protocol.commands.common.Ack_NC;
 import ee.ut.jbizur.protocol.commands.common.Nack_NC;
 import ee.ut.jbizur.role.RoleSettings;
+import ee.ut.jbizur.util.IdUtils;
 import org.pmw.tinylog.Logger;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -16,8 +20,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class SyncMessageListener {
-    private final static Random RANDOM = new Random();
-
     private CountDownLatch processesLatch;
     private Map<Class<? extends NetworkCommand>, List<IHandler>> commandHandlers = new HashMap<>();;
     private AtomicInteger ackCount = new AtomicInteger(0);
@@ -44,7 +46,7 @@ public class SyncMessageListener {
 
     public static SyncMessageListener build() {
         return new SyncMessageListener()
-                .withMsgId(RoleSettings.generateMsgId())
+                .withMsgId(IdUtils.generateId())
                 .withTotalProcessCount(1)
                 .withDebugInfo("noinfo");
     }

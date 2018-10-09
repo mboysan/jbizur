@@ -9,14 +9,12 @@ import ee.ut.jbizur.protocol.internal.NodeAddressUnregistered_IC;
 import org.pmw.tinylog.Logger;
 
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class RoleSettings {
-    private static final long seed = System.currentTimeMillis();
-    private static final Random RANDOM = new Random(seed);
-    static {
-        Logger.info("seed: " + seed);
-    }
 
     private Role roleRef;
     private Map<String, Address> memberAddressMap = new HashMap<>();
@@ -127,10 +125,6 @@ public class RoleSettings {
 
     public Set<Address> getMemberAddresses() {
         return memberAddresses;
-    }
-
-    public static int generateMsgId() {
-        return RANDOM.nextInt(Integer.MAX_VALUE);
     }
 
 
