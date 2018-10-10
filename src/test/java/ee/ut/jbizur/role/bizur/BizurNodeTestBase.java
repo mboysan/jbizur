@@ -1,5 +1,6 @@
 package ee.ut.jbizur.role.bizur;
 
+import ee.ut.jbizur.config.BizurTestConfig;
 import ee.ut.jbizur.config.NodeTestConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MockAddress;
@@ -97,14 +98,20 @@ public class BizurNodeTestBase {
         return IdUtils.hashKey(s, node.getSettings().getNumBuckets());
     }
 
-    protected void validateLocalBucketKeyVals() throws Exception {
-        Thread.sleep(100);
+    protected void validateLocalBucketKeyVals() throws InterruptedException {
+        Thread.sleep(500);
         for (BizurNode bizurNode : bizurNodes) {
-            localBucketKeyValCheck(bizurNode, expKeyVals);
+            if (expKeyVals.size() == 0) {
+                for (int i = 0; i < BizurTestConfig.getBucketCount(); i++) {
+                    Assert.assertEquals(0, bizurNode.bucketContainer.getBucket(i).getKeySet().size());
+                }
+            } else {
+                localBucketKeyValCheck(bizurNode, expKeyVals);
+            }
         }
     }
 
-    private void localBucketKeyValCheck(BizurNode node, Map<String,String> expKeyVals) throws Exception {
+    private void localBucketKeyValCheck(BizurNode node, Map<String,String> expKeyVals) {
         for (String expKey : expKeyVals.keySet()) {
             String expVal = expKeyVals.get(expKey);
             localBucketKeyValCheck(node, expKey, expVal);

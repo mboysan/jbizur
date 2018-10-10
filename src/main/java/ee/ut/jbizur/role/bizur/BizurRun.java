@@ -24,7 +24,6 @@ public class BizurRun {
     protected BizurNode node;
 
     private final BucketContainer bucketContainer;
-    private final CountDownLatch bucketInitLatch;
     private final int contextId;
 
     BizurRun(BizurNode node) {
@@ -34,7 +33,6 @@ public class BizurRun {
     BizurRun(BizurNode node, int contextId) {
         this.node = node;
         this.bucketContainer = node.bucketContainer;
-        this.bucketInitLatch = node.bucketInitLatch;
         this.contextId = contextId;
     }
 
@@ -55,7 +53,12 @@ public class BizurRun {
         return node.getSettings();
     }
     private void sendMessage(NetworkCommand command) {
-        node.sendMessage(command);
+        if (command.getReceiverAddress().isSame(getSettings().getAddress())) {
+            Logger.debug("OUT " + logMsg(command.toString()));
+            node.handleNetworkCommand(command);
+        } else {
+            node.sendMessage(command);
+        }
     }
     private boolean pingAddress(Address address) {
         return node.pingAddress(address);
@@ -92,8 +95,8 @@ public class BizurRun {
                 if(listener.isMajorityAcked()){
                     /* following is done to guarantee that in case the leader discards the PleaseVote request,
                        the bucket leader is set properly for the first time. */
-                    /*localBucket.setVotedElectId(electId);
-                    localBucket.setLeaderAddress(getSettings().getAddress());*/
+                    localBucket.setVotedElectId(electId);
+                    localBucket.setLeaderAddress(getSettings().getAddress());
 
                     localBucket.updateLeader(true);
                 }
@@ -119,9 +122,6 @@ public class BizurRun {
                     .setReceiverAddress(source)
                     .setSenderAddress(getSettings().getAddress())
                     .setContextId(pleaseVoteNc.getContextId());
-
-            bucketInitLatch.countDown();
-
         } else if(electId == localBucket.getVotedElectId() && source.isSame(localBucket.getLeaderAddress())) {
             vote = new AckVote_NC()
                     .setMsgId(pleaseVoteNc.getMsgId())
@@ -143,9 +143,21 @@ public class BizurRun {
     protected boolean initLeaderPerBucketElectionFlow() throws InterruptedException {
         for (int i = 0; i < bucketContainer.getNumBuckets(); i++) {
             Bucket localBucket = bucketContainer.getBucket(i);
-            electLeaderForBucket(localBucket, localBucket.getIndex(), false);
+            int retry = 0;
+            int maxRetry = BizurConfig.getBucketLeaderElectionRetryCount();
+            while (retry < maxRetry) {
+                electLeaderForBucket(localBucket, localBucket.getIndex(), true);
+                if (localBucket.getLeaderAddress() != null) {
+                    break;
+                }
+                Thread.sleep(100);
+                retry++;
+            }
+            if (retry >= maxRetry) {
+                return false;
+            }
         }
-        return bucketInitLatch.await(BizurConfig.getBucketSetupTimeoutSec(), TimeUnit.SECONDS);
+        return true;
     }
 
     protected void electLeaderForBucket(Bucket localBucket, int startIdx, boolean forceElection) {
@@ -168,8 +180,17 @@ public class BizurRun {
     }
 
     protected Address resolveLeader(Bucket localBucket, boolean forceElection) {
-        if (localBucket.getLeaderAddress() == null || forceElection) {
-            startElection(localBucket.getIndex());
+        int bucketIndex = localBucket.getIndex();
+        if (forceElection) {
+            bucketContainer.lockBucket(bucketIndex);
+            try {
+                startElection(bucketIndex);
+            } finally {
+                bucketContainer.unlockBucket(bucketIndex);
+            }
+        }
+        if (localBucket.getLeaderAddress() == null) {
+            throw new IllegalStateException(logMsg("bucket has no leader: " + localBucket));
         }
         return localBucket.getLeaderAddress();
     }

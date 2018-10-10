@@ -29,7 +29,6 @@ import java.util.concurrent.CountDownLatch;
 public class BizurNode extends Role {
     private boolean isReady;
     BucketContainer bucketContainer;
-    CountDownLatch bucketInitLatch;
 
     BizurNode(BizurSettings settings) throws InterruptedException {
         this(settings, null, null, null, null);
@@ -49,7 +48,6 @@ public class BizurNode extends Role {
 
     protected void initBuckets() {
         this.bucketContainer = createBucketContainer();
-        this.bucketInitLatch = new CountDownLatch(BizurConfig.getBucketCount());
     }
 
     protected BucketContainer createBucketContainer() {
@@ -182,12 +180,8 @@ public class BizurNode extends Role {
      * ***************************************************************************/
 
     protected boolean validateCommand(NetworkCommand command) {
-        if (!(command instanceof PleaseVote_NC)) {
-            if (command.getSenderAddress().isSame(command.getReceiverAddress())) {
-                if (syncMessageListeners.get(command.getMsgId()) == null) {
-                    return false;
-                }
-            }
+        if (command.getSenderAddress().isSame(command.getReceiverAddress())) {
+            return syncMessageListeners.get(command.getMsgId()) != null;
         }
         return true;
     }

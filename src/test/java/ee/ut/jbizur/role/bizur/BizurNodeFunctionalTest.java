@@ -87,7 +87,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      * Test for sequential set/get/delete operations of a set of keys and values on different nodes.
      */
     @Test
-    public void keyValueDeleteTest() {
+    public void keyValueDeleteTest() throws Exception {
         for (int i = 0; i < 10; i++) {
             String expKey = "tkey" + i;
             String expVal = "tval" + i;
@@ -105,11 +105,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
             Assert.assertNull(getterNode2.get(expKey));
         }
 
-        for (BizurNode bizurNode : bizurNodes) {
-            for (int i = 0; i < BizurTestConfig.getBucketCount(); i++) {
-                Assert.assertEquals(0, bizurNode.bucketContainer.getBucket(i).getKeySet().size());
-            }
-        }
+        validateLocalBucketKeyVals();
     }
 
     /**
@@ -133,11 +129,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
         runner.awaitCompletion();
         runner.throwAnyCaughtException();
 
-        for (BizurNode bizurNode : bizurNodes) {
-            for (int i = 0; i < BizurTestConfig.getBucketCount(); i++) {
-                Assert.assertEquals(0, bizurNode.bucketContainer.getBucket(i).getKeySet().size());
-            }
-        }
+        validateLocalBucketKeyVals();
     }
 
     /**

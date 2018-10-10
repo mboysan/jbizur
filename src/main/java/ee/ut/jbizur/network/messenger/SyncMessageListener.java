@@ -78,23 +78,19 @@ public class SyncMessageListener {
     }
 
     public void handleMessage(NetworkCommand command) {
-        boolean isHandled = false;
         List<IHandler> handlers = commandHandlers.get(command.getClass());
         if (handlers != null) {
-            handlers.forEach(handler -> handler.handle(command, this));
-            isHandled = true;
-        }
-        if (isHandled) {
             if (command instanceof Ack_NC) {
                 incrementAckCount();
-                processesLatch.countDown();
-                if(isMajorityAcked()){
-                    end();
-                }
             }
-            if (command instanceof Nack_NC) {
-                processesLatch.countDown();
+
+            if (!isMajorityAcked()){
+                handlers.forEach(handler -> handler.handle(command, this));
+            } else {
+                end();
+                return;
             }
+            processesLatch.countDown();
         }
     }
 
