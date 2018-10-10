@@ -145,11 +145,13 @@ public abstract class Role {
             sendMessage(pingNC);
 
             listener.withDebugInfo(logMsg("pingAddress: " + pingNC));
-            listener.waitForResponses();
+            if (listener.waitForResponses()) {
+                return (boolean) listener.getPassedObjectRef().get();
+            }
         } finally {
             detachMsgListener(listener);
         }
-        return (boolean) listener.getPassedObjectRef().get();
+        return false;
     }
 
     protected void pongForPingCommand(Ping_NC pingNc) {

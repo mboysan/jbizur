@@ -175,6 +175,10 @@ public class BizurNode extends Role {
         new BizurRun(this, iterKeysNc.getContextId()).iterateKeysByLeader(iterKeysNc);
     }
 
+    private void handleLeaderElection(LeaderElectionRequest_NC ler) {
+        new BizurRun(this, ler.getContextId()).handleLeaderElection(ler);
+    }
+
     /* ***************************************************************************
      * Message Handling
      * ***************************************************************************/
@@ -193,6 +197,10 @@ public class BizurNode extends Role {
         if (!validateCommand(command)) {
             Logger.debug(logMsg("command discarded [" + command + "]"));
             return;
+        }
+
+        if (command instanceof LeaderElectionRequest_NC) {
+            handleLeaderElection((LeaderElectionRequest_NC) command);
         }
 
         if (command instanceof ReplicaWrite_NC){

@@ -32,6 +32,8 @@ public class MsgSendRecvTest {
             });
         }
 
+        runner.awaitCompletion();
+        runner.throwAnyCaughtException();
         Thread.sleep(5000);
 
         Assert.assertEquals(testCount, roleMock.receivedCommandsMap.size());

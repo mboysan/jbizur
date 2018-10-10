@@ -115,7 +115,7 @@ public class SyncMessageListener {
     }
 
     public void end(){
-        for (long i = 0; i < processesLatch.getCount(); i++) {
+        while (processesLatch.getCount() > 0) {
             processesLatch.countDown();
         }
     }

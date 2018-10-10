@@ -27,6 +27,8 @@ public class Bucket {
 
     private final BucketContainer bucketContainer;
 
+    private AtomicBoolean electionInProgress;
+
     Bucket(BucketContainer bucketContainer) {
         bucketMap = new ConcurrentHashMap<>();
         index = new AtomicInteger(0);
@@ -41,6 +43,8 @@ public class Bucket {
         verCounter = new AtomicInteger(0);
 
         this.bucketContainer = bucketContainer;
+
+        this.electionInProgress = new AtomicBoolean(false);
     }
 
     public String putOp(String key, String val){
@@ -138,6 +142,14 @@ public class Bucket {
     }
     public int getVerCounter() {
         return verCounter.get();
+    }
+
+    public Bucket setElectionInProgress(boolean electionInProgress) {
+        this.electionInProgress.set(electionInProgress);
+        return this;
+    }
+    public boolean isElectionInProgress() {
+        return electionInProgress.get();
     }
 
     public BucketView createView(){

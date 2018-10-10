@@ -3,13 +3,17 @@ package ee.ut.jbizur.role.bizur;
 import ee.ut.jbizur.config.BizurConfig;
 import ee.ut.jbizur.datastore.bizur.Bucket;
 import ee.ut.jbizur.network.address.Address;
+import ee.ut.jbizur.util.IdUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class BizurNodeCrashTest extends BizurNodeTestBase {
+
+    private AtomicInteger keyValIdx = new AtomicInteger(0);
 
     @Before
     public void resetHashIndexes() {
@@ -75,7 +79,7 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         useHashIndexForAllBucketContainers(0);
 
         BizurNodeMock leaderOfBucket0 = getLeaderOf(0);
-        BizurNodeMock anotherNode = getNextNodeBasedOn(leaderOfBucket0);
+        BizurNodeMock anotherNode = getNextNodeBasedOn(leaderOfBucket0, bizurNodes.length - 1);
 
         setRandomKeyVals();
 
@@ -109,6 +113,19 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         return leader;
     }
 
+    private BizurNodeMock getNextNodeBasedOn(BizurNode node, int index) {
+        Address nextAddr = IdUtils.nextAddressInUnorderedSet(node.getSettings().getMemberAddresses(), index);
+        BizurNodeMock nextNode = null;
+        for (BizurNode bizurNode : bizurNodes) {
+            if (bizurNode.getSettings().getAddress().isSame(nextAddr)) {
+                nextNode = (BizurNodeMock) bizurNode;
+                break;
+            }
+        }
+        Assert.assertNotNull(nextNode);
+        return nextNode;
+    }
+
     private BizurNodeMock getNextNodeBasedOn(BizurNode leader) {
         BizurNodeMock nextNode = null;
         for (BizurNode bizurNode : bizurNodes) {
@@ -132,12 +149,13 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
     }
 
     private void setRandomKeyVals(BizurNode byNode) {
-        String testKey = UUID.randomUUID().toString();
-        String expVal = UUID.randomUUID().toString();
+        String testKey = "tkey" + keyValIdx.get();
+        String expVal = "tval" + keyValIdx.get();
         if(byNode instanceof BizurNodeMock && !((BizurNodeMock) byNode).isDead){
             Assert.assertTrue(byNode.set(testKey, expVal));
             expKeyVals.put(testKey, expVal);
         }
+        keyValIdx.incrementAndGet();
     }
 
     private void validateKeyValsForAllNodes() {
