@@ -1,9 +1,9 @@
 package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.config.BizurConfig;
-import ee.ut.jbizur.config.BizurTestConfig;
 import ee.ut.jbizur.datastore.bizur.Bucket;
 import ee.ut.jbizur.network.address.Address;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,6 +18,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     @Before
+    @After
     public void leaderPerBucketElectionCheck() {
         int bucketCount = BizurConfig.getBucketCount();
         for (int i = 0; i < bucketCount; i++) {

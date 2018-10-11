@@ -94,32 +94,41 @@ public class BizurNodeTestBase {
         return (BizurNodeMock) bizurNodes[inx == -1 ? random.nextInt(bizurNodes.length) : inx];
     }
 
-    protected int hashKey(String s, BizurNode node) {
-        return IdUtils.hashKey(s, node.getSettings().getNumBuckets());
+    protected int hashKey(String s) {
+        return IdUtils.hashKey(s, BizurTestConfig.getBucketCount());
     }
 
-    protected void validateLocalBucketKeyVals() throws InterruptedException {
-        Thread.sleep(500);
+    protected void validateLocalBucketKeyVals() {
+        if (expKeyVals.size() == 0) {
+            for (int bIdx = 0; bIdx < BizurTestConfig.getBucketCount(); bIdx++) {
+                BizurNode leader = findLeaderOfBucket(bIdx);
+                Assert.assertEquals(logNode(leader, bIdx), 0, leader.bucketContainer.getBucket(bIdx).getKeySet().size());
+            }
+        } else {
+            expKeyVals.forEach((expKey, expVal) -> {
+                int bIdx = hashKey(expKey);
+                BizurNode leader = findLeaderOfBucket(bIdx);
+                Assert.assertEquals(logNode(leader, bIdx), expVal, leader.bucketContainer.getBucket(bIdx).getOp(expKey));
+            });
+        }
+    }
+
+    private BizurNode findLeaderOfBucket(int bucketIndex) {
         for (BizurNode bizurNode : bizurNodes) {
-            if (expKeyVals.size() == 0) {
-                for (int i = 0; i < BizurTestConfig.getBucketCount(); i++) {
-                    Assert.assertEquals(0, bizurNode.bucketContainer.getBucket(i).getKeySet().size());
-                }
-            } else {
-                localBucketKeyValCheck(bizurNode, expKeyVals);
+            if (bizurNode.bucketContainer.getBucket(bucketIndex).isLeader()) {
+                return bizurNode;
             }
         }
+        Assert.fail();
+        return null;
     }
 
-    private void localBucketKeyValCheck(BizurNode node, Map<String,String> expKeyVals) {
-        for (String expKey : expKeyVals.keySet()) {
-            String expVal = expKeyVals.get(expKey);
-            localBucketKeyValCheck(node, expKey, expVal);
-        }
-    }
-
-    private void localBucketKeyValCheck(BizurNode node, String expKey, String expVal) {
-        Assert.assertEquals(expVal, node.bucketContainer.getBucket(hashKey(expKey, node)).getOp(expKey));
+    protected String logNode(BizurNode bizurNode, int bucketIndex) {
+        String log = "node=[%s], bucket=[%s], keySet=[%s]";
+        return String.format(log,
+                bizurNode.toString(),
+                bizurNode.bucketContainer.getBucket(bucketIndex),
+                bizurNode.bucketContainer.getBucket(bucketIndex).getKeySet());
     }
 
 }

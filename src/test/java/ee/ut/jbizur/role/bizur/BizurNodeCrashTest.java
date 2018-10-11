@@ -4,6 +4,7 @@ import ee.ut.jbizur.config.BizurConfig;
 import ee.ut.jbizur.datastore.bizur.Bucket;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.util.IdUtils;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class BizurNodeCrashTest extends BizurNodeTestBase {
 
+    private static final int FIXED_HASH_INDEX = 0;
     private AtomicInteger keyValIdx = new AtomicInteger(0);
 
     @Before
@@ -25,6 +27,7 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
      */
     @Test
     @Before
+    @After
     public void leaderPerBucketElectionCheck() {
         int bucketCount = BizurConfig.getBucketCount();
         for (int i = 0; i < bucketCount; i++) {
@@ -48,14 +51,19 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         }
     }
 
+    @Override
+    protected int hashKey(String s) {
+        return FIXED_HASH_INDEX;
+    }
+
     /**
      * Tests read/write when a random node failure happens besides the leader.
      */
     @Test
     public void sendFailTest() {
-        useHashIndexForAllBucketContainers(0);
+        useHashIndexForAllBucketContainers(FIXED_HASH_INDEX);
 
-        BizurNodeMock leaderOfBucket0 = getLeaderOf(0);
+        BizurNodeMock leaderOfBucket0 = getLeaderOf(FIXED_HASH_INDEX);
         BizurNodeMock anotherNode = getNextNodeBasedOn(leaderOfBucket0);
 
         setRandomKeyVals();
@@ -69,6 +77,7 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         setRandomKeyVals();
 
         validateKeyValsForAllNodes();
+        validateLocalBucketKeyVals();
     }
 
     /**
@@ -76,9 +85,9 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
      */
     @Test
     public void sendFailOnLeaderTest() {
-        useHashIndexForAllBucketContainers(0);
+        useHashIndexForAllBucketContainers(FIXED_HASH_INDEX);
 
-        BizurNodeMock leaderOfBucket0 = getLeaderOf(0);
+        BizurNodeMock leaderOfBucket0 = getLeaderOf(FIXED_HASH_INDEX);
         BizurNodeMock anotherNode = getNextNodeBasedOn(leaderOfBucket0, bizurNodes.length - 1);
 
         setRandomKeyVals();
@@ -99,6 +108,7 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         setRandomKeyVals();
 
         validateKeyValsForAllNodes();
+        validateLocalBucketKeyVals();
     }
 
     private BizurNodeMock getLeaderOf(int bucketIndex) {
