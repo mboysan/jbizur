@@ -74,7 +74,7 @@ public abstract class Role {
     }
 
     protected boolean isAddressesAlreadyRegistered() {
-        return getSettings().getMemberAddresses().size() > 0;
+        return getSettings().getMemberAddresses().size() == getSettings().getAnticipatedMemberCount();
     }
 
     protected boolean checkNodesDiscovered() {

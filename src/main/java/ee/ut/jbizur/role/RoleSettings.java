@@ -4,7 +4,7 @@ import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
-import ee.ut.jbizur.protocol.internal.NewNodeAddressRegistered_IC;
+import ee.ut.jbizur.protocol.internal.NodeAddressRegistered_IC;
 import ee.ut.jbizur.protocol.internal.NodeAddressUnregistered_IC;
 import org.pmw.tinylog.Logger;
 
@@ -91,7 +91,7 @@ public class RoleSettings {
         if (prv == null) {
             memberAddresses.add(toRegister);
             if (roleRef != null) {
-                roleRef.handleInternalCommand(new NewNodeAddressRegistered_IC());
+                roleRef.handleInternalCommand(new NodeAddressRegistered_IC());
             }
             Logger.info(String.format("Address [%s] registered on role [%s]", toRegister, roleRef));
         }

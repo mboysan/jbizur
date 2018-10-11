@@ -13,8 +13,11 @@ public class NetworkCommand implements Serializable {
     /**
      * Message id associated with this command.
      */
-    private Integer msgId;
-    private Integer contextId;
+    private int msgId;
+    /**
+     * Id that is related to a specific context (i.e. a batch of operations).
+     */
+    private int contextId;
     /**
      * Id of the sender process
      */

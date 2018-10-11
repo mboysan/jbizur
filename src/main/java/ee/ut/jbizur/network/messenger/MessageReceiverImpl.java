@@ -99,7 +99,7 @@ public class MessageReceiverImpl implements IMessageReceiver {
                     }
                     */
                     int size = dIn.readInt();
-                    byte[] msg = new byte[size];    //fixed size byte[]
+                    byte[] msg = new byte[size];
                     dIn.read(msg);
                     NetworkCommand message = commandMarshaller.unmarshall(msg);
                     if(message != null){

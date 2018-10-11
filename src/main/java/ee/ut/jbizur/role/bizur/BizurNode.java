@@ -5,6 +5,7 @@ import ee.ut.jbizur.config.BizurConfig;
 import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.datastore.bizur.BucketContainer;
 import ee.ut.jbizur.exceptions.OperationFailedError;
+import ee.ut.jbizur.exceptions.RoleIsNotReadyError;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.messenger.IMessageReceiver;
 import ee.ut.jbizur.network.messenger.IMessageSender;
@@ -59,8 +60,12 @@ public class BizurNode extends Role {
         return (BizurSettings) super.getSettings();
     }
 
-    protected void checkReady() {
-        RoleValidation.checkStateAndError(isReady, "Bizur node is not ready.");
+    protected void checkReady() throws RoleIsNotReadyError {
+        try {
+            RoleValidation.checkStateAndError(isReady, "Bizur node is not ready.");
+        } catch (IllegalStateException e) {
+            throw new RoleIsNotReadyError(e);
+        }
     }
 
     @Override
@@ -108,7 +113,7 @@ public class BizurNode extends Role {
         attachMsgListener(listener);
         try {
             command.setMsgId(listener.getMsgId());
-            Logger.debug(logMsg("routing request to leader retryLeft=[ " + retryCount + "]: " + command));
+            Logger.debug(logMsg("routing request, retryLeft=[" + retryCount + "]: " + command));
             sendMessage(command);
 
             if (listener.waitForResponses()) {
@@ -143,7 +148,7 @@ public class BizurNode extends Role {
         new BizurRun(this).replicaRead(replicaReadNc);
     }
 
-    public String get(String key) {
+    public String get(String key) throws RoleIsNotReadyError {
         checkReady();
         return new BizurRun(this).get(key);
     }
@@ -151,7 +156,7 @@ public class BizurNode extends Role {
         new BizurRun(this, getNc.getContextId()).getByLeader(getNc);
     }
 
-    public boolean set(String key, String val) {
+    public boolean set(String key, String val) throws RoleIsNotReadyError {
         checkReady();
         return new BizurRun(this).set(key, val);
     }
@@ -159,7 +164,7 @@ public class BizurNode extends Role {
         new BizurRun(this, setNc.getContextId()).setByLeader(setNc);
     }
 
-    public boolean delete(String key) {
+    public boolean delete(String key) throws RoleIsNotReadyError {
         checkReady();
         return new BizurRun(this).delete(key);
     }
@@ -167,7 +172,7 @@ public class BizurNode extends Role {
         new BizurRun(this, deleteNc.getContextId()).deleteByLeader(deleteNc);
     }
 
-    public Set<String> iterateKeys() {
+    public Set<String> iterateKeys() throws RoleIsNotReadyError {
         checkReady();
         return new BizurRun(this).iterateKeys();
     }
@@ -184,8 +189,10 @@ public class BizurNode extends Role {
      * ***************************************************************************/
 
     protected boolean validateCommand(NetworkCommand command) {
-        if (command.getSenderAddress().isSame(command.getReceiverAddress())) {
-            return syncMessageListeners.get(command.getMsgId()) != null;
+        if (command.getSenderAddress() != null && command.getReceiverAddress() != null) {
+            if (command.getSenderAddress().isSame(command.getReceiverAddress())) {
+                return syncMessageListeners.get(command.getMsgId()) != null;
+            }
         }
         return true;
     }

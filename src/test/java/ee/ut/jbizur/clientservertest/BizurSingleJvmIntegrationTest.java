@@ -65,12 +65,15 @@ public class BizurSingleJvmIntegrationTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         client.signalEndToAll();
     }
 
+    /**
+     * Tests for simple get and delete operations.
+     */
     @Test
-    public void simpleSetGetDeleteTest() throws Exception {
+    public void simpleSetGetDeleteTest() {
         String expKey = UUID.randomUUID().toString();
         String expVal = UUID.randomUUID().toString();
 
@@ -80,8 +83,11 @@ public class BizurSingleJvmIntegrationTest {
         Assert.assertEquals(null, client.get(expKey));
     }
 
+    /**
+     * Tests for simple iterate keys operation.
+     */
     @Test
-    public void simpleIterateKeysTest() throws Exception {
+    public void simpleIterateKeysTest() {
         Map<String, String> expKeyValMap = new HashMap<>();
 
         for (int i = 0; i < 10; i++) {
@@ -104,9 +110,6 @@ public class BizurSingleJvmIntegrationTest {
     @Test
     public void keyValueSetGetMultiThreadTest() throws Throwable {
         int testCount = 10;
-
-        client.set("elect", "leader");
-
         RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
         for (int i = 0; i < testCount; i++) {
             runner.execute(() -> {
