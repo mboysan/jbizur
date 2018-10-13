@@ -1,6 +1,7 @@
 package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.config.BizurConfig;
+import ee.ut.jbizur.config.LoggerConfig;
 import ee.ut.jbizur.datastore.bizur.Bucket;
 import ee.ut.jbizur.datastore.bizur.BucketContainer;
 import ee.ut.jbizur.datastore.bizur.BucketView;
@@ -53,7 +54,9 @@ public class BizurRun {
     }
     private void sendMessage(NetworkCommand command) {
         if (command.getReceiverAddress().isSame(getSettings().getAddress())) {
-            Logger.debug("OUT " + logMsg(command.toString()));
+            if (LoggerConfig.isDebugEnabled()) {
+                Logger.debug("OUT " + logMsg(command.toString()));
+            }
             node.handleNetworkCommand(command);
         } else {
             node.sendMessage(command);

@@ -1,6 +1,7 @@
 package ee.ut.jbizur.role;
 
 import ee.ut.jbizur.annotations.ForTestingOnly;
+import ee.ut.jbizur.config.LoggerConfig;
 import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.messenger.*;
@@ -88,7 +89,9 @@ public abstract class Role {
      * @param command the ee.ut.jbizur.network message to handle.
      */
     public void handleNetworkCommand(NetworkCommand command){
-        Logger.debug("IN " + logMsg(command.toString()));
+        if (LoggerConfig.isDebugEnabled()) {
+            Logger.debug("IN " + logMsg(command.toString()));
+        }
 
         boolean isHandled = false;
         Integer assocMsgId = command.getMsgId();
@@ -181,7 +184,9 @@ public abstract class Role {
      * @param message the ee.ut.jbizur.network message to send.
      */
     protected void sendMessage(NetworkCommand message) {
-        Logger.debug("OUT " + logMsg(message.toString()));
+        if (LoggerConfig.isDebugEnabled()) {
+            Logger.debug("OUT " + logMsg(message.toString()));
+        }
         messageSender.send(message);
     }
 

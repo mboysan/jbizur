@@ -1,5 +1,6 @@
 package ee.ut.jbizur.network.messenger;
 
+import ee.ut.jbizur.config.LoggerConfig;
 import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.network.address.MPIAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
@@ -61,7 +62,9 @@ public class MessageSenderImpl implements IMessageSender {
             sender.run();
             executor.shutdown();
             if(executor.isShutdown()){
-                Logger.debug("Executor shutdown: "+ executor);
+                if (LoggerConfig.isDebugEnabled()) {
+                    Logger.debug("Executor shutdown: "+ executor);
+                }
             }
         } else {
 //            executor.handle(sender);

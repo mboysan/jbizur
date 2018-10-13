@@ -1,5 +1,6 @@
 package ee.ut.jbizur.datastore.bizur;
 
+import ee.ut.jbizur.config.LoggerConfig;
 import ee.ut.jbizur.network.address.Address;
 import org.pmw.tinylog.Logger;
 
@@ -48,7 +49,9 @@ public class Bucket {
     }
 
     public String putOp(String key, String val){
-        Logger.debug(String.format("put key=[%s],val=[%s] in bucket=[%s]", key, val, this));
+        if (LoggerConfig.isDebugEnabled()) {
+            Logger.debug(String.format("put key=[%s],val=[%s] in bucket=[%s]", key, val, this));
+        }
         return bucketMap.put(key, val);
     }
 
@@ -70,7 +73,9 @@ public class Bucket {
 
     public Bucket setBucketMap(Map map) {
         if (bucketMap.size() > 0 && map.size() == 0) {
-            Logger.debug(String.format("removing from bucket=[%s] and inserting elements from map=[%s] in bucket=[%s]", bucketMap, map, this));
+            if (LoggerConfig.isDebugEnabled()) {
+                Logger.debug(String.format("removing from bucket=[%s] and inserting elements from map=[%s] in bucket=[%s]", bucketMap, map, this));
+            }
         }
         this.bucketMap.clear();
         this.bucketMap.putAll(map);

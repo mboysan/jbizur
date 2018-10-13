@@ -2,6 +2,7 @@ package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.annotations.ForTestingOnly;
 import ee.ut.jbizur.config.BizurConfig;
+import ee.ut.jbizur.config.LoggerConfig;
 import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.datastore.bizur.BucketContainer;
 import ee.ut.jbizur.exceptions.OperationFailedError;
@@ -113,7 +114,9 @@ public class BizurNode extends Role {
         attachMsgListener(listener);
         try {
             command.setMsgId(listener.getMsgId());
-            Logger.debug(logMsg("routing request, retryLeft=[" + retryCount + "]: " + command));
+            if (LoggerConfig.isDebugEnabled()) {
+                Logger.debug(logMsg("routing request, retryLeft=[" + retryCount + "]: " + command));
+            }
             sendMessage(command);
 
             if (listener.waitForResponses()) {
@@ -202,7 +205,9 @@ public class BizurNode extends Role {
         super.handleNetworkCommand(command);
 
         if (!validateCommand(command)) {
-            Logger.debug(logMsg("command discarded [" + command + "]"));
+            if (LoggerConfig.isDebugEnabled()) {
+                Logger.debug(logMsg("command discarded [" + command + "]"));
+            }
             return;
         }
 

@@ -1,5 +1,6 @@
 package ee.ut.jbizur.network.messenger;
 
+import ee.ut.jbizur.config.LoggerConfig;
 import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.network.address.MPIAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
@@ -70,7 +71,9 @@ public class MessageReceiverImpl implements IMessageReceiver {
         @Override
         public void run() {
             runOnTCP();
-            Logger.debug("receiver end");
+            if (LoggerConfig.isDebugEnabled()) {
+                Logger.debug("receiver end");
+            }
         }
 
         /**

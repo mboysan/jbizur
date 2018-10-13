@@ -181,11 +181,11 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
     private void validateKeyVals(BizurNode byNode) {
         Set<String> keys = byNode.iterateKeys();
         for (String key : keys) {
-            Assert.assertEquals(expKeyVals.get(key), byNode.get(key));
+            Assert.assertEquals(logNode(byNode,hashKey(key)), expKeyVals.get(key), byNode.get(key));
         }
         Set<String> expKeys = expKeyVals.keySet();
         for (String expKey : expKeys) {
-            Assert.assertEquals(expKeyVals.get(expKey), byNode.get(expKey));
+            Assert.assertEquals(logNode(byNode,hashKey(expKey)), expKeyVals.get(expKey), byNode.get(expKey));
         }
     }
 

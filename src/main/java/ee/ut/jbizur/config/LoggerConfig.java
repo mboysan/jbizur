@@ -2,6 +2,7 @@ package ee.ut.jbizur.config;
 
 import org.pmw.tinylog.Configurator;
 import org.pmw.tinylog.Level;
+import org.pmw.tinylog.Logger;
 
 /**
  * Configures the logging interface
@@ -16,5 +17,9 @@ public class LoggerConfig {
                 .formatPattern(pattern)
                 .level(Level.valueOf(levelStr))
                 .activate();
+    }
+
+    public static boolean isDebugEnabled() {
+        return Logger.getLevel().equals(Level.DEBUG);
     }
 }
