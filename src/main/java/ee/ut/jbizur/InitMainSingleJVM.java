@@ -4,6 +4,9 @@ import ee.ut.jbizur.role.bizur.BizurBuilder;
 import ee.ut.jbizur.role.bizur.BizurNode;
 
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class InitMainSingleJVM {
 
@@ -17,6 +20,13 @@ public class InitMainSingleJVM {
         BizurNode[] nodes = new BizurNode[totalNodes];
         for (int i = 0; i < nodes.length; i++) {  // first index will be reserved to pinger
             nodes[i] = BizurBuilder.builder().build();
+        }
+        List<CompletableFuture> futures = new ArrayList<>();
+        for (BizurNode node : nodes) {
+            futures.add(node.start());
+        }
+        for (CompletableFuture future : futures) {
+            future.join();
         }
 
     }

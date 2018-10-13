@@ -81,6 +81,7 @@ public class BizurNode extends Role {
                 if (!isReady) {
                     throw new IllegalStateException(logMsg("bucket leader election flow failed!"));
                 }
+                Logger.info(logMsg("Node initialized and ready!"));
             } catch (Exception e) {
                 throw new CompletionException(e);
             }
