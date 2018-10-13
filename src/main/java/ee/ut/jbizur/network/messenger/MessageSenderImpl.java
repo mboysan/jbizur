@@ -1,5 +1,6 @@
 package ee.ut.jbizur.network.messenger;
 
+import ee.ut.jbizur.config.GeneralConfig;
 import ee.ut.jbizur.config.LoggerConfig;
 import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.network.address.MPIAddress;
@@ -13,8 +14,7 @@ import mpi.MPI;
 import mpi.MPIException;
 import org.pmw.tinylog.Logger;
 
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -27,6 +27,7 @@ import java.util.concurrent.Executors;
 public class MessageSenderImpl implements IMessageSender {
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final static GeneralConfig.SerializationType SERIALIZATION_TYPE = GeneralConfig.getTCPSerializationType();
 
     /**
      * The {@link Role} to handle internal commands.
@@ -93,24 +94,32 @@ public class MessageSenderImpl implements IMessageSender {
          */
         private void runOnTCP() {
             Socket socket = null;
-            DataOutputStream dOut = null;
+            OutputStream out = null;
             try {
                 TCPAddress receiverAddress = (TCPAddress) messageToSend.getReceiverAddress();
-                byte[] msg = commandMarshaller.marshall(messageToSend, byte[].class);
-
                 socket = new Socket(receiverAddress.getIp(), receiverAddress.getPortNumber());
-                dOut = new DataOutputStream(socket.getOutputStream());
+                Serializable msg = messageToSend;
 
-                dOut.writeInt(msg.length); // write length of the message
-                dOut.write(msg);    // write the message
-                dOut.flush();
+                switch (SERIALIZATION_TYPE) {
+                    case OBJECT:
+                        out = new ObjectOutputStream(socket.getOutputStream());
+                        ((ObjectOutputStream) out).writeObject(msg);
+                        break;
+                    case BYTE:
+                        out = new DataOutputStream(socket.getOutputStream());
+                        msg = commandMarshaller.marshall(messageToSend, byte[].class);
+                        ((DataOutputStream) out).writeInt(((byte[])msg).length); // write length of the message
+                        out.write((byte[])msg);    // write the message
+                        break;
+                }
+                out.flush();
             } catch (IOException e) {
                 Logger.error("Send err, msg: " + messageToSend + ", " + e, e);
                 roleInstance.handleInternalCommand(new SendFail_IC(messageToSend));
             } finally {
-                if(dOut != null){
+                if(out != null){
                     try {
-                        dOut.close();
+                        out.close();
                     } catch (IOException e) {
                         Logger.error("dOut close err, msg: " + messageToSend + ", " + e, e);
                     }

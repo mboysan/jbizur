@@ -2,7 +2,7 @@ package ee.ut.jbizur.datastore.bizur;
 
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.protocol.ISerializer;
-import ee.ut.jbizur.protocol.ObjectSerializer;
+import ee.ut.jbizur.protocol.ByteSerializer;
 import ee.ut.jbizur.util.IdUtils;
 import org.pmw.tinylog.Logger;
 
@@ -18,7 +18,7 @@ public class BucketContainer {
     private final int numBuckets;
 
     private final Map<String, Set<Integer>> addressBucketIndexMap = new HashMap<>();
-    private final ISerializer serializer = new ObjectSerializer();
+    private final ISerializer serializer = new ByteSerializer();
 
     public BucketContainer(int numBuckets) {
         this.numBuckets = numBuckets;

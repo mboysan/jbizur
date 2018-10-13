@@ -1,5 +1,6 @@
 package ee.ut.jbizur.network.messenger;
 
+import ee.ut.jbizur.config.GeneralConfig;
 import ee.ut.jbizur.config.LoggerConfig;
 import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.network.address.MPIAddress;
@@ -11,6 +12,7 @@ import mpi.MPI;
 import org.pmw.tinylog.Logger;
 
 import java.io.DataInputStream;
+import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
@@ -24,6 +26,7 @@ public class MessageReceiverImpl implements IMessageReceiver {
     private volatile boolean isRunning = true;
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final static GeneralConfig.SerializationType SERIALIZATION_TYPE = GeneralConfig.getTCPSerializationType();
 
     /**
      * The {@link Role} to send the received message for processing.
@@ -92,22 +95,26 @@ public class MessageReceiverImpl implements IMessageReceiver {
 
                 while (isRunning) {
                     socket = serverSocket.accept();
-                    DataInputStream dIn = new DataInputStream(socket.getInputStream());
-                    /* following commented code reads length first
-                    int length = dIn.readInt(); // read length of incoming message
-                    byte[] msg = null;
-                    if(length>0) {
-                        msg = new byte[length];
-                        dIn.readFully(msg, 0, msg.length); // read the message
+                    Object message = null;
+
+                    switch (SERIALIZATION_TYPE) {
+                        case OBJECT:
+                            ObjectInputStream oIs = new ObjectInputStream(socket.getInputStream());
+                            message = oIs.readObject();
+                            break;
+                        case BYTE:
+                            DataInputStream dIn = new DataInputStream(socket.getInputStream());
+                            int size = dIn.readInt();
+                            byte[] msg = new byte[size];
+                            dIn.read(msg);
+                            message = commandMarshaller.unmarshall(msg);
+                            break;
                     }
-                    */
-                    int size = dIn.readInt();
-                    byte[] msg = new byte[size];
-                    dIn.read(msg);
-                    NetworkCommand message = commandMarshaller.unmarshall(msg);
+
                     if(message != null){
+                        NetworkCommand command = (NetworkCommand) message;
                         executor.execute(() -> {
-                            roleInstance.handleNetworkCommand(message);
+                            roleInstance.handleNetworkCommand(command);
                         });
                     }
                 }

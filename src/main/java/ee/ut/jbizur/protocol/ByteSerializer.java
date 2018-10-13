@@ -8,7 +8,7 @@ import java.util.Base64;
 /**
  * Taken from <a href="https://stackoverflow.com/a/134918">source</a>.
  */
-public class ObjectSerializer implements ISerializer {
+public class ByteSerializer implements ISerializer {
 
     @Override
     public String serializeToString(Serializable serializable) {

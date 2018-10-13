@@ -52,7 +52,7 @@ public class CommandMarshallerTest {
 
     @Test
     public void testStringSerializer() {
-        CommandMarshaller marshaller = new CommandMarshaller().setSerializer(new ObjectSerializer());
+        CommandMarshaller marshaller = new CommandMarshaller().setSerializer(new ByteSerializer());
         marshallUnmarshall(expectedNC, marshaller);
     }
 

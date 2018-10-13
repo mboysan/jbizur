@@ -15,8 +15,8 @@ public class CommandMarshaller {
         try {
             serializer = GeneralConfig.getProtocolSerializerClass().newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
-            Logger.warn(e, "could not create serializer from properties file, defaulting to " + ObjectSerializer.class.getSimpleName());
-            serializer = new ObjectSerializer();
+            Logger.warn(e, "could not create serializer from properties file, defaulting to " + ByteSerializer.class.getSimpleName());
+            serializer = new ByteSerializer();
         }
     }
 
