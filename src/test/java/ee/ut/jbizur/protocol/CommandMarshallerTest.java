@@ -35,7 +35,7 @@ public class CommandMarshallerTest {
                 .setBucketView(bucketView)
                 .setSenderAddress(new MockAddress("sender-address"))
                 .setReceiverAddress(new MockAddress("receiver-address"))
-                .setMsgId("msgId")
+                .setMsgId(12345)
                 .setSenderId("senderId")
                 .setRetryCount(5)
                 .setHandled(false)
@@ -52,7 +52,7 @@ public class CommandMarshallerTest {
 
     @Test
     public void testStringSerializer() {
-        CommandMarshaller marshaller = new CommandMarshaller().setSerializer(new ObjectSerializer());
+        CommandMarshaller marshaller = new CommandMarshaller().setSerializer(new ByteSerializer());
         marshallUnmarshall(expectedNC, marshaller);
     }
 

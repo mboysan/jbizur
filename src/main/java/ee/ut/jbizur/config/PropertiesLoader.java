@@ -58,4 +58,12 @@ public class PropertiesLoader {
     static long getLong(String key, long defVal) {
         return Long.parseLong(PROPERTIES.getProperty(key, defVal + ""));
     }
+
+    static boolean getBoolean(String key) {
+        return getBoolean(key, false);
+    }
+
+    static boolean getBoolean(String key, boolean defVal) {
+        return Boolean.parseBoolean(PROPERTIES.getProperty(key, defVal + ""));
+    }
 }

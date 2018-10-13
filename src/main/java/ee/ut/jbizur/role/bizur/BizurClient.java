@@ -1,28 +1,24 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.NodeConfig;
-import ee.ut.jbizur.exceptions.OperationFailedError;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.messenger.IMessageReceiver;
 import ee.ut.jbizur.network.messenger.IMessageSender;
 import ee.ut.jbizur.network.messenger.Multicaster;
 import ee.ut.jbizur.network.messenger.SyncMessageListener;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.bizur.*;
-import ee.ut.jbizur.protocol.commands.common.Nack_NC;
+import ee.ut.jbizur.protocol.commands.bizur.ClientApiDelete_NC;
+import ee.ut.jbizur.protocol.commands.bizur.ClientApiGet_NC;
+import ee.ut.jbizur.protocol.commands.bizur.ClientApiIterKeys_NC;
+import ee.ut.jbizur.protocol.commands.bizur.ClientApiSet_NC;
 import ee.ut.jbizur.protocol.commands.ping.ConnectOK_NC;
 import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
 import ee.ut.jbizur.protocol.internal.InternalCommand;
-import ee.ut.jbizur.protocol.internal.NewNodeAddressRegistered_IC;
+import ee.ut.jbizur.protocol.internal.NodeAddressRegistered_IC;
 import ee.ut.jbizur.protocol.internal.NodeAddressUnregistered_IC;
-import ee.ut.jbizur.protocol.internal.SendFail_IC;
-import ee.ut.jbizur.role.RoleSettings;
-import org.pmw.tinylog.Logger;
 
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
 
 public class BizurClient extends BizurNode {
 
@@ -42,24 +38,18 @@ public class BizurClient extends BizurNode {
     }
 
     @Override
-    protected void initNode() {
-    }
-
-    @Override
     protected void initBuckets() {
     }
 
     @Override
-    protected void initMulticast() {
-        if (isAddressesAlreadyRegistered()) {
-            return;
-        }
-        super.initMulticast();
+    protected boolean initLeaderPerBucketElectionFlow() {
+        return true;
     }
+
     @Override
     public void handleInternalCommand(InternalCommand command) {
         super.handleInternalCommand(command);
-        if (command instanceof NewNodeAddressRegistered_IC) {
+        if (command instanceof NodeAddressRegistered_IC) {
             arrangeAddresses();
         }
         if (command instanceof NodeAddressUnregistered_IC) {
@@ -69,7 +59,7 @@ public class BizurClient extends BizurNode {
 
     @Override
     public void handleNetworkCommand(NetworkCommand command) {
-        String assocMsgId = command.getMsgId();
+        Integer assocMsgId = command.getMsgId();
         if(assocMsgId != null){
             SyncMessageListener listener = syncMessageListeners.get(assocMsgId);
             if(listener != null){
@@ -127,49 +117,6 @@ public class BizurClient extends BizurNode {
                         .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(getRandomAddress())
                         .setSenderAddress(getSettings().getAddress()));
-    }
-
-    @Override
-    protected <T> T routeRequestAndGet(NetworkCommand command, int retryCount) throws OperationFailedError {
-        if (retryCount < 0) {
-            throw new OperationFailedError("Routing failed for command: " + command);
-        }
-        final Object[] resp = new Object[1];
-        String msgId = RoleSettings.generateMsgId();
-        SyncMessageListener listener = new SyncMessageListener(msgId, 1) {
-            @Override
-            public void handleMessage(NetworkCommand command) {
-                if(command instanceof Nack_NC) {
-                    resp[0] = new SendFail_IC(command);
-                    end();
-                } else if (command instanceof LeaderResponse_NC){
-                    resp[0] = command.getPayload();
-                    end();
-                }
-            }
-        };
-        attachMsgListener(listener);
-        try {
-            command.setMsgId(msgId);
-            sendMessage(command);
-
-            long waitSec = addresses.length * NodeConfig.getMaxElectionWaitSec() + NodeConfig.getResponseTimeoutSec();
-            if (listener.waitForResponses(waitSec, TimeUnit.SECONDS)) {
-                T rsp = (T) resp[0];
-                if(!(rsp instanceof SendFail_IC)) {
-                    return rsp;
-                } else {
-                    Logger.warn("Send failed: " + rsp.toString());
-                }
-            } else {
-                Logger.warn("Timeout waiting for response.");
-            }
-
-            return routeRequestAndGet(command, retryCount-1);
-
-        } finally {
-            detachMsgListener(listener);
-        }
     }
 
     @Override

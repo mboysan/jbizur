@@ -12,7 +12,7 @@ public class RoleValidation {
         return false;
     }
 
-    public static void checkStateAndError(boolean isOk, String message) {
+    public static void checkStateAndError(boolean isOk, String message) throws IllegalStateException {
         if (isOk) {
             return;
         }

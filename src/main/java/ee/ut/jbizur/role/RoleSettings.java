@@ -4,12 +4,15 @@ import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
-import ee.ut.jbizur.protocol.internal.NewNodeAddressRegistered_IC;
+import ee.ut.jbizur.protocol.internal.NodeAddressRegistered_IC;
 import ee.ut.jbizur.protocol.internal.NodeAddressUnregistered_IC;
 import org.pmw.tinylog.Logger;
 
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class RoleSettings {
 
@@ -88,7 +91,7 @@ public class RoleSettings {
         if (prv == null) {
             memberAddresses.add(toRegister);
             if (roleRef != null) {
-                roleRef.handleInternalCommand(new NewNodeAddressRegistered_IC());
+                roleRef.handleInternalCommand(new NodeAddressRegistered_IC());
             }
             Logger.info(String.format("Address [%s] registered on role [%s]", toRegister, roleRef));
         }
@@ -122,10 +125,6 @@ public class RoleSettings {
 
     public Set<Address> getMemberAddresses() {
         return memberAddresses;
-    }
-
-    public static String generateMsgId() {
-        return UUID.randomUUID().toString();
     }
 
 

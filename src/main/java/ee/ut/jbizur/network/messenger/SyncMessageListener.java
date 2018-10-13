@@ -2,34 +2,108 @@ package ee.ut.jbizur.network.messenger;
 
 import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.bizur.*;
+import ee.ut.jbizur.protocol.commands.common.Ack_NC;
+import ee.ut.jbizur.protocol.commands.common.Nack_NC;
 import ee.ut.jbizur.role.RoleSettings;
+import ee.ut.jbizur.util.IdUtils;
 import org.pmw.tinylog.Logger;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
-public abstract class SyncMessageListener {
-    private final CountDownLatch processesLatch;
-    private final AtomicInteger ackCount;
-    private final String msgId;
-    private final int quorumSize;
+public class SyncMessageListener {
+    private CountDownLatch processesLatch;
+    private Map<Class<? extends NetworkCommand>, List<IHandler>> commandHandlers = new HashMap<>();;
+    private AtomicInteger ackCount = new AtomicInteger(0);
+    private int msgId;
+    private int quorumSize;
+    private Object info;
+    private AtomicReference<Object> passedObjectRef = new AtomicReference<>();
 
-    protected SyncMessageListener(String msgId, int totalProcessCount){
-        this.msgId = msgId;
-        this.processesLatch = new CountDownLatch(totalProcessCount);
-        this.ackCount = new AtomicInteger(0);
-        this.quorumSize = RoleSettings.calcQuorumSize(totalProcessCount);
+    private SyncMessageListener() {
+
     }
 
-    public abstract void handleMessage(NetworkCommand command);
+    public static SyncMessageListener buildWithDefaultHandlers() {
+        return build()
+                .registerHandler(Ack_NC.class, (c,l) -> {})
+                .registerHandler(AckRead_NC.class, (c, l) -> {})
+                .registerHandler(AckVote_NC.class, (c, l) -> {})
+                .registerHandler(AckWrite_NC.class, (c, l) -> {})
+                .registerHandler(Nack_NC.class, (c,l) -> {})
+                .registerHandler(NackRead_NC.class, (c, l) -> {})
+                .registerHandler(NackVote_NC.class, (c, l) -> {})
+                .registerHandler(NackWrite_NC.class, (c, l) -> {});
+    }
 
-    public String getMsgId() {
+    public static SyncMessageListener build() {
+        return new SyncMessageListener()
+                .withMsgId(IdUtils.generateId())
+                .withTotalProcessCount(1)
+                .withDebugInfo("noinfo");
+    }
+
+    public SyncMessageListener withMsgId(int msgId) {
+        this.msgId = msgId;
+        return this;
+    }
+
+    public SyncMessageListener withTotalProcessCount(int totalProcessCount) {
+        this.processesLatch = new CountDownLatch(totalProcessCount);
+        this.quorumSize = RoleSettings.calcQuorumSize(totalProcessCount);
+        return this;
+    }
+
+    public SyncMessageListener withDebugInfo(Object info) {
+        this.info = info;
+        return this;
+    }
+
+    public SyncMessageListener registerHandler(Class<? extends NetworkCommand> commandClass, IHandler handler) {
+        List<IHandler> handlers = commandHandlers.get(commandClass);
+        if (handlers == null) {
+            handlers = new ArrayList<>();
+        }
+        handlers.add(handler);
+        commandHandlers.put(commandClass, handlers);
+        return this;
+    }
+
+    public void handleMessage(NetworkCommand command) {
+        List<IHandler> handlers = commandHandlers.get(command.getClass());
+        if (handlers != null) {
+            if (command instanceof Ack_NC) {
+                incrementAckCount();
+            }
+
+            if (!isMajorityAcked()){
+                handlers.forEach(handler -> handler.handle(command, this));
+            } else {
+                end();
+                return;
+            }
+            processesLatch.countDown();
+        }
+    }
+
+    public AtomicReference<Object> getPassedObjectRef() {
+        return passedObjectRef;
+    }
+
+    public int getMsgId() {
         return msgId;
     }
 
-    protected CountDownLatch getProcessesLatch() {
-        return processesLatch;
+    public void countMsgReceived() {
+        processesLatch.countDown();
     }
 
     public void incrementAckCount(){
@@ -41,14 +115,17 @@ public abstract class SyncMessageListener {
     }
 
     public void end(){
-        for (long i = 0; i < getProcessesLatch().getCount(); i++) {
-            getProcessesLatch().countDown();
+        while (processesLatch.getCount() > 0) {
+            processesLatch.countDown();
         }
     }
 
     public boolean waitForResponses(long timeout, TimeUnit timeUnit) {
         try {
-            return getProcessesLatch().await(timeout, timeUnit);
+            if (processesLatch.await(timeout, timeUnit)) {
+                return true;
+            }
+            Logger.warn("timeout when waiting for responses on listener: " + toString());
         } catch (InterruptedException e) {
             Logger.error(e);
         }
@@ -62,7 +139,17 @@ public abstract class SyncMessageListener {
     @Override
     public String toString() {
         return "SyncMessageListener{" +
-                "msgId='" + msgId + '\'' +
+                "processesLatch=" + processesLatch.getCount() +
+                ", commandHandlers=" + commandHandlers.keySet().stream().map(Class::getSimpleName).collect(Collectors.joining(",")) +
+                ", ackCount=" + ackCount +
+                ", msgId=" + msgId +
+                ", quorumSize=" + quorumSize +
+                ", passedObjectRef=" + passedObjectRef +
+                ", debugInfo=[" + info + "]" +
                 '}';
+    }
+
+    public interface IHandler {
+        void handle(NetworkCommand command, SyncMessageListener listener);
     }
 }

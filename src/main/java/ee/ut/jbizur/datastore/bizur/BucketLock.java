@@ -14,4 +14,8 @@ public class BucketLock {
         isLocked = false;
         notify();
     }
+
+    public boolean isLocked() {
+        return isLocked;
+    }
 }

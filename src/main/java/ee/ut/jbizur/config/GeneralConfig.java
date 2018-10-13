@@ -1,7 +1,7 @@
 package ee.ut.jbizur.config;
 
 import ee.ut.jbizur.protocol.ISerializer;
-import ee.ut.jbizur.protocol.ObjectSerializer;
+import ee.ut.jbizur.protocol.ByteSerializer;
 import org.pmw.tinylog.Logger;
 
 public class GeneralConfig {
@@ -11,6 +11,18 @@ public class GeneralConfig {
         } catch (Exception e) {
             Logger.warn(e);
         }
-        return ObjectSerializer.class;
+        return ByteSerializer.class;
+    }
+
+    public static SerializationType getTCPSerializationType() {
+        switch (PropertiesLoader.getString("protocol.tcp.sendrecv.type").toUpperCase()) {
+            case "OBJECT" : return SerializationType.OBJECT;
+            case "BYTE": return SerializationType.BYTE;
+        }
+        throw new IllegalArgumentException("serialization type could not be determined.");
+    }
+
+    public enum SerializationType {
+        BYTE, OBJECT
     }
 }

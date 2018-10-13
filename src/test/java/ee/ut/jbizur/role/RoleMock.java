@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class RoleMock extends Role {
 
-    public Map<String, NetworkCommand> receivedCommandsMap = new ConcurrentHashMap<>();
+    public Map<Integer, NetworkCommand> receivedCommandsMap = new ConcurrentHashMap<>();
 
     public RoleMock(RoleSettings settings) throws InterruptedException, UnknownHostException {
         super(

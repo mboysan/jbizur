@@ -1,31 +1,39 @@
 package ee.ut.jbizur.role.bizur;
 
+import ee.ut.jbizur.config.BizurTestConfig;
 import ee.ut.jbizur.config.NodeTestConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MockAddress;
 import ee.ut.jbizur.network.address.MockMulticastAddress;
+import ee.ut.jbizur.util.IdUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.pmw.tinylog.Logger;
 
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BizurNodeTestBase {
 
     protected Random random = getRandom();
 
-    protected static final int NODE_COUNT = 3;
+    protected static final int NODE_COUNT = NodeTestConfig.getMemberCount();
     protected BizurNode[] bizurNodes;
+
+    protected Map<String, String> expKeyVals;
 
     @Before
     public void setUp() throws Exception {
         createNodes();
         registerRoles();
         startRoles();
+        this.expKeyVals = new ConcurrentHashMap<>();
     }
 
     private void createNodes() throws UnknownHostException, InterruptedException {
@@ -84,6 +92,43 @@ public class BizurNodeTestBase {
 
     protected BizurNodeMock getNode(int inx) {
         return (BizurNodeMock) bizurNodes[inx == -1 ? random.nextInt(bizurNodes.length) : inx];
+    }
+
+    protected int hashKey(String s) {
+        return IdUtils.hashKey(s, BizurTestConfig.getBucketCount());
+    }
+
+    protected void validateLocalBucketKeyVals() {
+        if (expKeyVals.size() == 0) {
+            for (int bIdx = 0; bIdx < BizurTestConfig.getBucketCount(); bIdx++) {
+                BizurNode leader = findLeaderOfBucket(bIdx);
+                Assert.assertEquals(logNode(leader, bIdx), 0, leader.bucketContainer.getBucket(bIdx).getKeySet().size());
+            }
+        } else {
+            expKeyVals.forEach((expKey, expVal) -> {
+                int bIdx = hashKey(expKey);
+                BizurNode leader = findLeaderOfBucket(bIdx);
+                Assert.assertEquals(logNode(leader, bIdx), expVal, leader.bucketContainer.getBucket(bIdx).getOp(expKey));
+            });
+        }
+    }
+
+    private BizurNode findLeaderOfBucket(int bucketIndex) {
+        for (BizurNode bizurNode : bizurNodes) {
+            if (bizurNode.bucketContainer.getBucket(bucketIndex).isLeader()) {
+                return bizurNode;
+            }
+        }
+        Assert.fail();
+        return null;
+    }
+
+    protected String logNode(BizurNode bizurNode, int bucketIndex) {
+        String log = "node=[%s], bucket=[%s], keySet=[%s]";
+        return String.format(log,
+                bizurNode.toString(),
+                bizurNode.bucketContainer.getBucket(bucketIndex),
+                bizurNode.bucketContainer.getBucket(bucketIndex).getKeySet());
     }
 
 }

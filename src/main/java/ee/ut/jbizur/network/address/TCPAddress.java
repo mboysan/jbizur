@@ -14,6 +14,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class TCPAddress extends Address {
 
+    public static final String SEP = ":";
+
     /**
      * Ip address
      */
@@ -85,8 +87,10 @@ public class TCPAddress extends Address {
 
     @Override
     public String resolveAddressId() {
-        return getIp() + "_" + getPortNumber();
+        return getIp() + SEP + getPortNumber();
     }
+
+
 
     /**
      * Used for dynamic ip address resolution.
@@ -141,7 +145,7 @@ public class TCPAddress extends Address {
     }
 
     public static TCPAddress resolveTCPAddress(String ipStr) throws UnknownHostException {
-        String[] arr = ipStr.split(":");
+        String[] arr = ipStr.split(SEP);
         return new TCPAddress(arr[0], Integer.parseInt(arr[1]));
     }
 
