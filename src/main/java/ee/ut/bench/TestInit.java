@@ -1,21 +1,24 @@
 package ee.ut.bench;
 
-import ee.ut.bench.config.ClientConfig;
-import ee.ut.bench.db.BizurClientWrapper;
+import ee.ut.bench.config.BenchmarkConfig;
+import ee.ut.bench.db.AbstractDBClientWrapper;
+import ee.ut.bench.db.DBOperation;
+import ee.ut.bench.db.DBWrapperFactory;
 import ee.ut.bench.tests.AbstractTest;
 import ee.ut.bench.tests.IResultSet;
 import ee.ut.bench.tests.LatencyTest;
 import ee.ut.bench.tests.ThroughputTest;
-import ee.ut.bench.db.AbstractDBClientWrapper;
-import ee.ut.bench.db.DBOperation;
-import ee.ut.bench.db.DBWrapperFactory;
 
 public class TestInit {
+
+    static {
+        BenchmarkConfig.loadPropertiesFromResources("benchmark.properties");
+    }
 
     private final AbstractDBClientWrapper dbWrapper;
 
     public TestInit() throws Exception {
-        this.dbWrapper = DBWrapperFactory.buildAndInit(ClientConfig.getDBWrapperClass());
+        this.dbWrapper = DBWrapperFactory.buildAndInit(BenchmarkConfig.getDBWrapperClass());
     }
 
     void warmup() {

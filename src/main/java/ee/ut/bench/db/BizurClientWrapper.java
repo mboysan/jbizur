@@ -1,9 +1,9 @@
 package ee.ut.bench.db;
 
+import ee.ut.bench.config.Config;
 import ee.ut.jbizur.role.bizur.BizurBuilder;
 import ee.ut.jbizur.role.bizur.BizurClient;
 
-import java.net.UnknownHostException;
 import java.util.Set;
 
 public class BizurClientWrapper extends AbstractDBClientWrapper {
@@ -11,8 +11,10 @@ public class BizurClientWrapper extends AbstractDBClientWrapper {
     private BizurClient client;
 
     @Override
-    public void init() throws InterruptedException, UnknownHostException {
-        client = BizurBuilder.builder().buildClient();
+    public void init() throws InterruptedException {
+        client = BizurBuilder.builder()
+                .loadPropertiesFrom(Config.class, "jbizur.properties")
+                .buildClient();
         client.start().join();
     }
 

@@ -1,11 +1,10 @@
 package ee.ut.bench.tests.integrationtests;
 
+import ee.ut.bench.config.Config;
 import ee.ut.bench.db.AbstractDBClientWrapper;
 import ee.ut.bench.db.BizurClientWrapper;
 import ee.ut.bench.db.DBWrapperFactory;
 import ee.ut.jbizur.config.BizurConfig;
-import ee.ut.jbizur.network.address.MulticastAddress;
-import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.role.bizur.BizurBuilder;
 import ee.ut.jbizur.role.bizur.BizurNode;
 import org.junit.Ignore;
@@ -16,6 +15,8 @@ import java.util.concurrent.CountDownLatch;
 
 @Ignore
 public class BizurIntegrationTest extends AbstractIntegrationTest {
+
+    private static final int NODE_COUNT = BizurConfig.getAnticipatedMemberCount();
 
     BizurNode[] nodes = new BizurNode[NODE_COUNT];
 
@@ -38,14 +39,8 @@ public class BizurIntegrationTest extends AbstractIntegrationTest {
     }
 
     private BizurNode initNode(int index) throws UnknownHostException, InterruptedException {
-        String address = BizurConfig.compileTCPAddress();
-        String multicastAddr = BizurConfig.compileMulticastAddress();
-        String[] members = BizurConfig.getMemberIds();
-
         return BizurBuilder.builder()
-                .withMemberId(members[index])
-                .withMulticastAddress(MulticastAddress.resolveMulticastAddress(multicastAddr))
-                .withAddress(TCPAddress.resolveTCPAddress(address))
+                .loadPropertiesFrom(Config.class, "jbizur.properties")
                 .build();
     }
 

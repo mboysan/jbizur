@@ -1,27 +1,27 @@
 package ee.ut.bench.tests.integrationtests;
 
 import ee.ut.bench.config.AtomixConfig;
-import ee.ut.bench.config.MemberConfig;
 import ee.ut.bench.db.AbstractDBClientWrapper;
 import ee.ut.bench.db.AtomixDBClientWrapper;
 import ee.ut.bench.db.DBWrapperFactory;
 import io.atomix.core.Atomix;
-import io.atomix.core.profile.Profile;
 import io.atomix.primitive.partition.ManagedPartitionGroup;
 import io.atomix.protocols.raft.partition.RaftPartitionGroup;
-import io.atomix.protocols.raft.partition.RaftPartitionGroupConfig;
-import io.atomix.protocols.raft.partition.RaftStorageConfig;
 import io.atomix.storage.StorageLevel;
 import io.atomix.utils.net.Address;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.File;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
 @Ignore
 public class AtomixIntegrationTest extends AbstractIntegrationTest {
+
+    static {
+        AtomixConfig.loadPropertiesFromResources("atomix_bench.properties");
+    }
+
+    private static final int NODE_COUNT = AtomixConfig.getMemberCount();
 
     private Atomix[] nodes = new Atomix[NODE_COUNT];
 
@@ -45,9 +45,9 @@ public class AtomixIntegrationTest extends AbstractIntegrationTest {
     }
 
     private Atomix initNode(int index) {
-        String address = MemberConfig.compileTCPAddress(index);
-        String multicastAddr = MemberConfig.compileMulticastAddress();
-        String[] members = MemberConfig.getMemberIds();
+        String address = AtomixConfig.compileTCPAddress(index);
+        String multicastAddr = AtomixConfig.compileMulticastAddress();
+        String[] members = AtomixConfig.getMemberIds();
 
         ManagedPartitionGroup managementGroup = RaftPartitionGroup.builder("system")
                 .withMembers(members)

@@ -1,7 +1,5 @@
 package ee.ut.bench.db;
 
-import ee.ut.bench.config.MemberConfig;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -10,7 +8,6 @@ import java.util.stream.Collectors;
 
 public abstract class AbstractDBClientWrapper {
 
-    public static final int NODE_COUNT = MemberConfig.getMemberCount();
     private Random random;
     protected List<DBOperation> availableRandomOperations;
 

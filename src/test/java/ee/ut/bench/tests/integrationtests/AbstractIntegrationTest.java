@@ -1,16 +1,16 @@
 package ee.ut.bench.tests.integrationtests;
 
-import ee.ut.bench.config.MemberConfig;
+import ee.ut.bench.config.BenchmarkConfig;
 import ee.ut.bench.db.AbstractDBClientWrapper;
 import ee.ut.bench.tests.LatencyTest;
 import ee.ut.bench.tests.ThroughputTest;
 import org.junit.Before;
 
-import java.net.UnknownHostException;
-
 public abstract class AbstractIntegrationTest {
 
-    public static final int NODE_COUNT = MemberConfig.getMemberCount();
+    static {
+        BenchmarkConfig.loadPropertiesFromResources("benchmark.properties");
+    }
 
     protected AbstractDBClientWrapper client;
 
