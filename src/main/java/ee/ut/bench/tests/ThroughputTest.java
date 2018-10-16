@@ -1,6 +1,6 @@
 package ee.ut.bench.tests;
 
-import ee.ut.bench.config.BenchmarkConfig;
+import ee.ut.bench.config.Config;
 import ee.ut.bench.db.AbstractDBClientWrapper;
 import ee.ut.bench.db.DBOperation;
 
@@ -23,14 +23,14 @@ public class ThroughputTest extends AbstractTest {
 
     @Override
     protected void configure() {
-        OPERATION_COUNT = BenchmarkConfig.getThroughputOperationCount();
-        QUEUE_DEPTH = BenchmarkConfig.getThroughputQueueDepth();
+        OPERATION_COUNT = Config.getThroughputOperationCount();
+        QUEUE_DEPTH = Config.getThroughputQueueDepth();
     }
 
     @Override
     public ThroughputTest configureWarmup() {
-        OPERATION_COUNT = BenchmarkConfig.getThroughputWarmupOperationCount();
-        QUEUE_DEPTH = BenchmarkConfig.getThroughputWarmupQueueDepth();
+        OPERATION_COUNT = Config.getThroughputWarmupOperationCount();
+        QUEUE_DEPTH = Config.getThroughputWarmupQueueDepth();
         return this;
     }
 

@@ -1,6 +1,6 @@
 package ee.ut.bench.tests;
 
-import ee.ut.bench.config.BenchmarkConfig;
+import ee.ut.bench.config.Config;
 import ee.ut.bench.db.AbstractDBClientWrapper;
 import ee.ut.bench.db.DBOperation;
 
@@ -24,14 +24,14 @@ public class LatencyTest extends AbstractTest {
 
     @Override
     protected void configure() {
-        OPERATION_COUNT = BenchmarkConfig.getLatencyOperationCount();
-        QUEUE_DEPTH = BenchmarkConfig.getLatencyQueueDepth();
+        OPERATION_COUNT = Config.getLatencyOperationCount();
+        QUEUE_DEPTH = Config.getLatencyQueueDepth();
     }
 
     @Override
     public LatencyTest configureWarmup() {
-        OPERATION_COUNT = BenchmarkConfig.getLatencyWarmupOperationCount();
-        QUEUE_DEPTH = BenchmarkConfig.getLatencyWarmupQueueDepth();
+        OPERATION_COUNT = Config.getLatencyWarmupOperationCount();
+        QUEUE_DEPTH = Config.getLatencyWarmupQueueDepth();
         return this;
     }
 

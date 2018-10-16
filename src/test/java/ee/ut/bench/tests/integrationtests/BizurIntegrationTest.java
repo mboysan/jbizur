@@ -4,7 +4,6 @@ import ee.ut.bench.config.Config;
 import ee.ut.bench.db.AbstractDBClientWrapper;
 import ee.ut.bench.db.BizurClientWrapper;
 import ee.ut.bench.db.DBWrapperFactory;
-import ee.ut.jbizur.config.BizurConfig;
 import ee.ut.jbizur.role.bizur.BizurBuilder;
 import ee.ut.jbizur.role.bizur.BizurNode;
 import org.junit.Ignore;
@@ -16,7 +15,7 @@ import java.util.concurrent.CountDownLatch;
 @Ignore
 public class BizurIntegrationTest extends AbstractIntegrationTest {
 
-    private static final int NODE_COUNT = BizurConfig.getAnticipatedMemberCount();
+    private static final int NODE_COUNT = Config.getMemberCount();
 
     BizurNode[] nodes = new BizurNode[NODE_COUNT];
 
@@ -40,7 +39,7 @@ public class BizurIntegrationTest extends AbstractIntegrationTest {
 
     private BizurNode initNode(int index) throws UnknownHostException, InterruptedException {
         return BizurBuilder.builder()
-                .loadPropertiesFrom(Config.class, "jbizur.properties")
+                .loadPropertiesFrom(Config.class, "config.properties")
                 .build();
     }
 

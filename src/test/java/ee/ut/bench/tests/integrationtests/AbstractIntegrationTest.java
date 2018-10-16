@@ -1,6 +1,6 @@
 package ee.ut.bench.tests.integrationtests;
 
-import ee.ut.bench.config.BenchmarkConfig;
+import ee.ut.bench.config.Config;
 import ee.ut.bench.db.AbstractDBClientWrapper;
 import ee.ut.bench.tests.LatencyTest;
 import ee.ut.bench.tests.ThroughputTest;
@@ -9,7 +9,7 @@ import org.junit.Before;
 public abstract class AbstractIntegrationTest {
 
     static {
-        BenchmarkConfig.loadPropertiesFromResources("benchmark.properties");
+        Config.loadPropertiesFromResources("config.properties");
     }
 
     protected AbstractDBClientWrapper client;

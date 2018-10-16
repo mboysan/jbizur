@@ -1,6 +1,6 @@
 package ee.ut.bench.db;
 
-import ee.ut.bench.config.AtomixConfig;
+import ee.ut.bench.config.Config;
 import io.atomix.core.Atomix;
 import io.atomix.core.map.AtomicMap;
 import io.atomix.core.map.DistributedMap;
@@ -18,9 +18,9 @@ public class AtomixDBClientWrapper extends AbstractDBClientWrapper {
 
     @Override
     protected void init() {
-        String id = AtomixConfig.getClientId();
-        String address = AtomixConfig.compileClientTCPAddress();
-        String multicastAddr = AtomixConfig.compileMulticastAddress();
+        String id = Config.getClientId();
+        String address = Config.compileClientTCPAddress();
+        String multicastAddr = Config.compileMulticastAddress();
 
         client = Atomix.builder()
                 .withMemberId(id)

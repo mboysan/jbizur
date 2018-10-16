@@ -1,6 +1,6 @@
 package ee.ut.bench;
 
-import ee.ut.bench.config.BenchmarkConfig;
+import ee.ut.bench.config.Config;
 import ee.ut.bench.db.AbstractDBClientWrapper;
 import ee.ut.bench.db.DBOperation;
 import ee.ut.bench.db.DBWrapperFactory;
@@ -12,13 +12,21 @@ import ee.ut.bench.tests.ThroughputTest;
 public class TestInit {
 
     static {
-        BenchmarkConfig.loadPropertiesFromResources("benchmark.properties");
+        loadProperties(null);
+    }
+
+    private static void loadProperties(String filePath) {
+        if (filePath == null) {
+            Config.loadPropertiesFromResources("config.properties");
+        } else {
+            Config.loadPropertiesFromWorkingDir("config.properties");
+        }
     }
 
     private final AbstractDBClientWrapper dbWrapper;
 
     public TestInit() throws Exception {
-        this.dbWrapper = DBWrapperFactory.buildAndInit(BenchmarkConfig.getDBWrapperClass());
+        this.dbWrapper = DBWrapperFactory.buildAndInit(Config.getDBWrapperClass());
     }
 
     void warmup() {
@@ -52,6 +60,11 @@ public class TestInit {
     }
 
     public static void main(String[] args) throws Exception {
+        if (args.length > 0) {
+            //props file path
+            loadProperties(args[0]);
+        }
+
         TestInit testInit = new TestInit();
 
         testInit.warmup();

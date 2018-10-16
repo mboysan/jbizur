@@ -4,6 +4,7 @@ import ee.ut.bench.config.Config;
 import ee.ut.jbizur.role.bizur.BizurBuilder;
 import ee.ut.jbizur.role.bizur.BizurClient;
 
+import java.io.File;
 import java.util.Set;
 
 public class BizurClientWrapper extends AbstractDBClientWrapper {
@@ -12,9 +13,15 @@ public class BizurClientWrapper extends AbstractDBClientWrapper {
 
     @Override
     public void init() throws InterruptedException {
-        client = BizurBuilder.builder()
-                .loadPropertiesFrom(Config.class, "jbizur.properties")
-                .buildClient();
+        BizurBuilder builder = BizurBuilder.builder();
+        switch (Config.getPropsLocation()) {
+            case RESOURCES:
+                builder.loadPropertiesFrom(Config.class, Config.getPropsLocation().path);
+                break;
+            default:
+                builder.loadPropertiesFrom(new File(Config.getPropsLocation().path));
+        }
+        client = builder.buildClient();
         client.start().join();
     }
 

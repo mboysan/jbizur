@@ -1,6 +1,6 @@
 package ee.ut.bench.tests.integrationtests;
 
-import ee.ut.bench.config.AtomixConfig;
+import ee.ut.bench.config.Config;
 import ee.ut.bench.db.AbstractDBClientWrapper;
 import ee.ut.bench.db.AtomixDBClientWrapper;
 import ee.ut.bench.db.DBWrapperFactory;
@@ -17,17 +17,13 @@ import java.util.concurrent.CountDownLatch;
 @Ignore
 public class AtomixIntegrationTest extends AbstractIntegrationTest {
 
-    static {
-        AtomixConfig.loadPropertiesFromResources("atomix_bench.properties");
-    }
-
-    private static final int NODE_COUNT = AtomixConfig.getMemberCount();
+    private static final int NODE_COUNT = Config.getMemberCount();
 
     private Atomix[] nodes = new Atomix[NODE_COUNT];
 
     @Override
     void initNodes() {
-        AtomixConfig.reset();
+        Config.reset();
         CountDownLatch latch = new CountDownLatch(NODE_COUNT);
         for (int i = 0; i < NODE_COUNT; i++) {
             nodes[i] = initNode(i);
@@ -45,21 +41,21 @@ public class AtomixIntegrationTest extends AbstractIntegrationTest {
     }
 
     private Atomix initNode(int index) {
-        String address = AtomixConfig.compileTCPAddress(index);
-        String multicastAddr = AtomixConfig.compileMulticastAddress();
-        String[] members = AtomixConfig.getMemberIds();
+        String address = Config.compileTCPAddress(index);
+        String multicastAddr = Config.compileMulticastAddress();
+        String[] members = Config.getMemberIds();
 
         ManagedPartitionGroup managementGroup = RaftPartitionGroup.builder("system")
                 .withMembers(members)
                 .withNumPartitions(1)
                 .withStorageLevel(StorageLevel.MEMORY)
-                .withDataDirectory(AtomixConfig.getSystemDataDirFor(index))
+                .withDataDirectory(Config.getSystemDataDirFor(index))
                 .build();
         RaftPartitionGroup primitiveGroup = RaftPartitionGroup.builder("data")
                 .withMembers(members)
                 .withNumPartitions(1)
                 .withStorageLevel(StorageLevel.MEMORY)
-                .withDataDirectory(AtomixConfig.getPrimitiveDataDirFor(index))
+                .withDataDirectory(Config.getPrimitiveDataDirFor(index))
                 .build();
 
         return Atomix.builder()
