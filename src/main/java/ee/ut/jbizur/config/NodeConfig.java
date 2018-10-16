@@ -40,7 +40,7 @@ public class NodeConfig {
     }
 
     public static int getInitPort() {
-        return PropertiesLoader.getInt("node.portinit");
+        return PropertiesLoader.getInt("node.portinit", 0);
     }
 
     public static int getPort(int idx) {
@@ -72,11 +72,11 @@ public class NodeConfig {
     }
 
     public static long getMulticastIntervalMs() {
-        return PropertiesLoader.getLong("node.multicast.intervalms");
+        return PropertiesLoader.getLong("node.multicast.intervalms", 1000);
     }
 
     public static ConnectionProtocol getConnectionProtocol() {
-        return ConnectionProtocol.valueOf(PropertiesLoader.getString("node.connectionprotocol"));
+        return ConnectionProtocol.valueOf(PropertiesLoader.getString("node.connectionprotocol", "TCP"));
     }
 
     public static int getAnticipatedMemberCount() {
@@ -87,20 +87,20 @@ public class NodeConfig {
      * @return timeout (in seconds) for responses between the processes.
      */
     public static long getResponseTimeoutSec() {
-        return PropertiesLoader.getLong("node.response_timeout_sec");
+        return PropertiesLoader.getLong("node.response_timeout_sec", 5);
     }
 
     /**
      * @return Number of times to retry the failing message.
      */
     public static int getSendFailRetryCount() {
-        return PropertiesLoader.getInt("node.send_fail_retry_count");
+        return PropertiesLoader.getInt("node.send_fail_retry_count", 1);
     }
 
     /**
      * @return Max interval (in sec) to wait between election cycles.
      */
     public static long getMaxElectionWaitSec() {
-        return PropertiesLoader.getLong("node.max_election_wait_sec");
+        return PropertiesLoader.getLong("node.max_election_wait_sec", 5);
     }
 }

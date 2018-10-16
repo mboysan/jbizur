@@ -9,13 +9,13 @@ public class GeneralConfig {
         try {
             return (Class<? extends ISerializer>) Class.forName(PropertiesLoader.getString("protocol.serializer.class"));
         } catch (Exception e) {
-            Logger.warn(e);
+            Logger.warn("defaulting to " + ByteSerializer.class + ", reason: " + e);
         }
         return ByteSerializer.class;
     }
 
     public static SerializationType getTCPSerializationType() {
-        switch (PropertiesLoader.getString("protocol.tcp.sendrecv.type").toUpperCase()) {
+        switch (PropertiesLoader.getString("protocol.tcp.sendrecv.type", "OBJECT").toUpperCase()) {
             case "OBJECT" : return SerializationType.OBJECT;
             case "BYTE": return SerializationType.BYTE;
         }

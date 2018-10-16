@@ -12,6 +12,7 @@ import mpi.MPI;
 import org.pmw.tinylog.Logger;
 
 import java.io.DataInputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -87,7 +88,7 @@ public class MessageReceiverImpl implements IMessageReceiver {
             Socket socket = null;
             try {
                 TCPAddress prevAddr = (TCPAddress) roleInstance.getSettings().getAddress();
-                serverSocket = new ServerSocket(prevAddr.getPortNumber());
+                serverSocket = createServerSocket(prevAddr.getPortNumber());
 
                 TCPAddress modifiedAddr = new TCPAddress(prevAddr.getIp(), serverSocket.getLocalPort());
                 roleInstance.setAddress(modifiedAddr);
@@ -129,6 +130,17 @@ public class MessageReceiverImpl implements IMessageReceiver {
                     Logger.error(ex, "Socket close err");
                 }
             }
+        }
+
+        private ServerSocket createServerSocket(int port) {
+            ServerSocket serverSocket;
+            try {
+                serverSocket = new ServerSocket(port);
+            } catch (IOException e) {
+                Logger.warn("Could not create ServerSocket on port=" + port + ", retrying with port=0... [" + e + "]");
+                serverSocket = createServerSocket(0);
+            }
+            return serverSocket;
         }
     }
 

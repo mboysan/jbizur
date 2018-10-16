@@ -10,7 +10,7 @@ import org.pmw.tinylog.Logger;
 public class LoggerConfig {
 
     public static void configureLogger(){
-        String levelStr = PropertiesLoader.getString("logger.level");
+        String levelStr = PropertiesLoader.getString("logger.level", "INFO");
         String pattern = PropertiesLoader.getString("logger.pattern");
 
         Configurator.currentConfig()
