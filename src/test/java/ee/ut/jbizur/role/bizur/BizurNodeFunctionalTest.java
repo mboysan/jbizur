@@ -40,7 +40,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      * Test for sequential set/get operations of a set of keys and values on different nodes.
      */
     @Test
-    public void keyValueSetGetTest() throws Throwable {
+    public void keyValueSetGetTest() {
         for (int i = 0; i < 10; i++) {
             String expKey = "tkey" + i;
             String expVal = "tval" + i;

@@ -544,14 +544,20 @@ public class BizurRun {
             return _delete(key);
         }
         Address lead = bucket.getLeaderAddress();
-        return routeRequestAndGet(
-                new ApiDelete_NC()
-                        .setKey(key)
-                        .setSenderId(getSettings().getRoleId())
-                        .setReceiverAddress(lead)
-                        .setSenderAddress(getSettings().getAddress())
-                        .setContextId(contextId)
-        );
+        try {
+            return routeRequestAndGet(
+                    new ApiDelete_NC()
+                            .setKey(key)
+                            .setSenderId(getSettings().getRoleId())
+                            .setReceiverAddress(lead)
+                            .setSenderAddress(getSettings().getAddress())
+                            .setContextId(contextId)
+            );
+        } catch (OperationFailedError e) {
+            Logger.warn(e);
+            electLeaderForBucket(bucket, bucket.getIndex(), true);
+            return delete(key);
+        }
     }
     void deleteByLeader(ApiDelete_NC deleteNc) {
         boolean isDeleted = _delete(deleteNc.getKey());
@@ -576,10 +582,16 @@ public class BizurRun {
                     .setReceiverAddress(leaderAddress)
                     .setSenderAddress(getSettings().getAddress())
                     .setContextId(contextId);
-            Set<String> keys = routeRequestAndGet(apiIterKeys);
-            if (keys == null) {
-                Logger.warn(logMsg("Null keys received from leader: " + leaderAddress.toString()));
-            } else {
+            Set<String> keys = null;
+            try {
+                keys = routeRequestAndGet(apiIterKeys);
+                if (keys == null) {
+                    Logger.warn(logMsg("Null keys received from leader: " + leaderAddress.toString()));
+                }
+            } catch (OperationFailedError e) {
+                Logger.warn(e, logMsg("Operation failed while retrieving keys from leader: " + leaderAddress.toString()));
+            }
+            if (keys != null) {
                 keySet.addAll(keys);
             }
         });
