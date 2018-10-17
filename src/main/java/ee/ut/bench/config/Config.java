@@ -11,12 +11,20 @@ public abstract class Config {
     private static PropsLocation propsLocation;
     protected static PropsLoader properties;
 
+    static {
+        loadPropertiesFromResources("config.properties");
+    }
+
     public static void loadPropertiesFromResources(String fileName) {
+        loadPropertiesFromResources(Config.class, fileName);
+    }
+    public static void loadPropertiesFromResources(Class context, String fileName) {
         propsLocation = PropsLocation.RESOURCES;
         propsLocation.path = fileName;
 
-        properties = PropsLoader.loadProperties(Config.class, fileName);
+        properties = PropsLoader.loadProperties(context, fileName);
     }
+
     public static void loadPropertiesFromWorkingDir(String fileName) {
         propsLocation = PropsLocation.WORKINGDIR;
         propsLocation.path = fileName;

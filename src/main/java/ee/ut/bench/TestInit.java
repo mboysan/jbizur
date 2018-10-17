@@ -11,14 +11,8 @@ import ee.ut.bench.tests.ThroughputTest;
 
 public class TestInit {
 
-    static {
-        loadProperties(null);
-    }
-
     private static void loadProperties(String filePath) {
-        if (filePath == null) {
-            Config.loadPropertiesFromResources("config.properties");
-        } else {
+        if (filePath != null) {
             Config.loadPropertiesFromWorkingDir("config.properties");
         }
     }

@@ -1,5 +1,6 @@
 package ee.ut.bench.tests;
 
+import ee.ut.bench.config.Config;
 import ee.ut.bench.db.DBClientWrapperMock;
 import org.junit.Assert;
 import org.junit.Before;

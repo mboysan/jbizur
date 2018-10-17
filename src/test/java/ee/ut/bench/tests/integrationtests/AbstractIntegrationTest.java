@@ -8,10 +8,6 @@ import org.junit.Before;
 
 public abstract class AbstractIntegrationTest {
 
-    static {
-        Config.loadPropertiesFromResources("config.properties");
-    }
-
     protected AbstractDBClientWrapper client;
 
     @Before
