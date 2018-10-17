@@ -1,7 +1,7 @@
 #NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
-#Sat Oct 13 16:42:56 EEST 2018
-jbizur-1.0-SNAPSHOT.pom>project-common=
+#Wed Oct 17 21:19:57 EEST 2018
 jbizur-1.0-SNAPSHOT.jar>project-common=
+jbizur-1.0-SNAPSHOT.pom>project-common=
 jbizur-1.0-SNAPSHOT-jar-with-dependencies.jar>=
 jbizur-1.0-SNAPSHOT.jar>=
 jbizur-1.0-SNAPSHOT.pom>=
