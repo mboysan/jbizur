@@ -27,8 +27,7 @@ public class BucketContainer {
 
     public BucketContainer initBuckets() {
         for (int i = 0; i < localBuckets.length; i++) {
-            localBuckets[i] = new Bucket(this)
-                    .setIndex(i);
+            localBuckets[i] = new Bucket(this).setIndex(i);
         }
         Logger.info("buckets are initialized!");
         return this;

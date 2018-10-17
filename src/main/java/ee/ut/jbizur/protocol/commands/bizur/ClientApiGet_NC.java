@@ -1,8 +1,6 @@
 package ee.ut.jbizur.protocol.commands.bizur;
 
-import ee.ut.jbizur.protocol.commands.NetworkCommand;
-
-public class ClientApiGet_NC extends NetworkCommand {
+public class ClientApiGet_NC extends ClientRequest_NC {
     private String key;
 
     public String getKey() {

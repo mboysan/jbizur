@@ -145,9 +145,10 @@ public abstract class Role {
                     .setSenderAddress(getSettings().getAddress())
                     .setReceiverAddress(address)
                     .setSenderId(getSettings().getRoleId());
+            if (LoggerConfig.isDebugEnabled()) {
+                listener.withDebugInfo(logMsg("pingAddress: " + pingNC));
+            }
             sendMessage(pingNC);
-
-            listener.withDebugInfo(logMsg("pingAddress: " + pingNC));
             if (listener.waitForResponses()) {
                 return (boolean) listener.getPassedObjectRef().get();
             }

@@ -48,7 +48,7 @@ public class SyncMessageListener {
         return new SyncMessageListener()
                 .withMsgId(IdUtils.generateId())
                 .withTotalProcessCount(1)
-                .withDebugInfo("noinfo");
+                .withDebugInfo("no_debug_info");
     }
 
     public SyncMessageListener withMsgId(int msgId) {

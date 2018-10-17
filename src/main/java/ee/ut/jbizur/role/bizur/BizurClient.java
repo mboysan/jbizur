@@ -6,10 +6,7 @@ import ee.ut.jbizur.network.messenger.IMessageSender;
 import ee.ut.jbizur.network.messenger.Multicaster;
 import ee.ut.jbizur.network.messenger.SyncMessageListener;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.bizur.ClientApiDelete_NC;
-import ee.ut.jbizur.protocol.commands.bizur.ClientApiGet_NC;
-import ee.ut.jbizur.protocol.commands.bizur.ClientApiIterKeys_NC;
-import ee.ut.jbizur.protocol.commands.bizur.ClientApiSet_NC;
+import ee.ut.jbizur.protocol.commands.bizur.*;
 import ee.ut.jbizur.protocol.commands.ping.ConnectOK_NC;
 import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
 import ee.ut.jbizur.protocol.internal.InternalCommand;
@@ -35,10 +32,6 @@ public class BizurClient extends BizurNode {
         if (isAddressesAlreadyRegistered()) {
             arrangeAddresses();
         }
-    }
-
-    @Override
-    protected void initBuckets() {
     }
 
     @Override
@@ -78,45 +71,56 @@ public class BizurClient extends BizurNode {
     @Override
     public String get(String key) {
         checkReady();
-        return routeRequestAndGet(
+        ClientResponse_NC response = routeRequestAndGet(
                 new ClientApiGet_NC()
-                        .setKey(key)
-                        .setSenderId(getSettings().getRoleId())
-                        .setReceiverAddress(getRandomAddress())
-                        .setSenderAddress(getSettings().getAddress()));
+                    .setKey(key)
+                    .setSenderId(getSettings().getRoleId())
+                    .setReceiverAddress(getLeaderAddress(key))
+                    .setSenderAddress(getSettings().getAddress())
+        );
+        updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
+        return (String) response.getPayload();
     }
 
     @Override
     public boolean set(String key, String val) {
         checkReady();
-        return routeRequestAndGet(
+        ClientResponse_NC response = routeRequestAndGet(
                 new ClientApiSet_NC()
                         .setKey(key)
                         .setVal(val)
                         .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(getRandomAddress())
-                        .setSenderAddress(getSettings().getAddress()));
+                        .setSenderAddress(getSettings().getAddress())
+        );
+        updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
+        return (boolean) response.getPayload();
     }
 
     @Override
     public boolean delete(String key) {
         checkReady();
-        return routeRequestAndGet(
+        ClientResponse_NC response =  routeRequestAndGet(
                 new ClientApiDelete_NC()
                         .setKey(key)
                         .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(getRandomAddress())
-                        .setSenderAddress(getSettings().getAddress()));
+                        .setSenderAddress(getSettings().getAddress())
+        );
+        updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
+        return (boolean) response.getPayload();
     }
 
     @Override
     public Set<String> iterateKeys() {
         checkReady();
-        return routeRequestAndGet(
+        ClientResponse_NC response = routeRequestAndGet(
                 new ClientApiIterKeys_NC()
                         .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(getRandomAddress())
-                        .setSenderAddress(getSettings().getAddress()));
+                        .setSenderAddress(getSettings().getAddress())
+        );
+        return (Set<String>) response.getPayload();
     }
 
     @Override
@@ -146,5 +150,14 @@ public class BizurClient extends BizurNode {
             int index = ThreadLocalRandom.current().nextInt(addresses.length);
             return addresses[index];
         }
+    }
+
+    private Address getLeaderAddress(String bucketKey) {
+        Address leader = bucketContainer.getBucket(bucketKey).getLeaderAddress();
+        return leader != null ? leader : getRandomAddress();
+    }
+
+    private void updateLeaderOfBucket(String bucketKey, Address assumedLeader) {
+        bucketContainer.getBucket(bucketKey).setLeaderAddress(assumedLeader, false);
     }
 }

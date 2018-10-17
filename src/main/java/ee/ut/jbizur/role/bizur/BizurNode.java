@@ -103,15 +103,21 @@ public class BizurNode extends Role {
         }
         SyncMessageListener listener = SyncMessageListener.build()
                 .withTotalProcessCount(1)
-                .withDebugInfo(logMsg("routeRequestAndGet : " + command))
                 .registerHandler(Nack_NC.class, (cmd,lst) -> {
                     lst.getPassedObjectRef().set(new SendFail_IC(cmd));
+                    lst.end();
+                })
+                .registerHandler(ClientResponse_NC.class, (cmd, lst) -> {
+                    lst.getPassedObjectRef().set(cmd);
                     lst.end();
                 })
                 .registerHandler(LeaderResponse_NC.class, (cmd, lst) -> {
                     lst.getPassedObjectRef().set(cmd.getPayload());
                     lst.end();
                 });
+        if (LoggerConfig.isDebugEnabled()) {
+            listener.withDebugInfo(logMsg("routeRequestAndGet : " + command));
+        }
         attachMsgListener(listener);
         try {
             command.setMsgId(listener.getMsgId());
@@ -240,29 +246,25 @@ public class BizurNode extends Role {
             iterateKeysByLeader((ApiIterKeys_NC) command);
         }
 
-        String uniqueKey = UUID.randomUUID().toString();
-        Object payload = uniqueKey;
-        /* Internal API routed requests */
-        if(command instanceof ClientApiGet_NC){
-            payload = get(((ClientApiGet_NC) command).getKey());
-        }
-        if(command instanceof ClientApiSet_NC){
-            payload = set(((ClientApiSet_NC) command).getKey(), ((ClientApiSet_NC) command).getVal());
-        }
-        if(command instanceof ClientApiDelete_NC){
-            payload = delete(((ClientApiDelete_NC) command).getKey());
-        }
-        if(command instanceof ClientApiIterKeys_NC){
-            payload = iterateKeys();
-        }
-
-        if(!uniqueKey.equals(payload)) {
-            sendMessage(new LeaderResponse_NC()
-                    .setPayload(payload)
-                    .setSenderId(getSettings().getRoleId())
-                    .setReceiverAddress(command.getSenderAddress())
-                    .setSenderAddress(getSettings().getAddress())
-                    .setMsgId(command.getMsgId()));
+        /* Client Request-response */
+        if (command instanceof ClientRequest_NC) {
+            BizurRunForClient bcRun = new BizurRunForClient(this);
+            ClientResponse_NC response = null;
+            if(command instanceof ClientApiGet_NC){
+                response = bcRun.get((ClientApiGet_NC) command);
+            }
+            if(command instanceof ClientApiSet_NC){
+                response = bcRun.set((ClientApiSet_NC) command);
+            }
+            if(command instanceof ClientApiDelete_NC){
+                response = bcRun.delete((ClientApiDelete_NC) command);
+            }
+            if(command instanceof ClientApiIterKeys_NC){
+                response = bcRun.iterateKeys((ClientApiIterKeys_NC) command);
+            }
+            if (response != null) {
+                sendMessage(response);
+            }
         }
     }
 

@@ -1,8 +1,6 @@
 package ee.ut.jbizur.protocol.commands.bizur;
 
-import ee.ut.jbizur.protocol.commands.NetworkCommand;
-
-public class ClientApiSet_NC extends NetworkCommand {
+public class ClientApiSet_NC extends ClientRequest_NC {
     private String key;
     private String val;
 

@@ -23,7 +23,7 @@ public class BizurRun {
 
     protected BizurNode node;
 
-    private final BucketContainer bucketContainer;
+    protected final BucketContainer bucketContainer;
     private final int contextId;
 
     BizurRun(BizurNode node) {
@@ -40,19 +40,19 @@ public class BizurRun {
         return contextId;
     }
 
-    private void attachMsgListener(SyncMessageListener listener) {
+    protected void attachMsgListener(SyncMessageListener listener) {
         node.attachMsgListener(listener);
     }
-    private void detachMsgListener(SyncMessageListener listener) {
+    protected void detachMsgListener(SyncMessageListener listener) {
         node.detachMsgListener(listener);
     }
-    private String logMsg(String msg) {
+    protected String logMsg(String msg) {
         return node.logMsg(msg);
     }
-    private BizurSettings getSettings() {
+    protected BizurSettings getSettings() {
         return node.getSettings();
     }
-    private void sendMessage(NetworkCommand command) {
+    protected void sendMessage(NetworkCommand command) {
         if (command.getReceiverAddress().isSame(getSettings().getAddress())) {
             if (LoggerConfig.isDebugEnabled()) {
                 Logger.debug("OUT " + logMsg(command.toString()));
@@ -62,10 +62,10 @@ public class BizurRun {
             node.sendMessage(command);
         }
     }
-    private boolean pingAddress(Address address) {
+    protected boolean pingAddress(Address address) {
         return node.pingAddress(address);
     }
-    private <T> T routeRequestAndGet(NetworkCommand command) {
+    protected <T> T routeRequestAndGet(NetworkCommand command) {
         return node.routeRequestAndGet(command);
     }
 
@@ -75,8 +75,10 @@ public class BizurRun {
 
     protected void startElection(int bucketIndex) {
         SyncMessageListener listener = SyncMessageListener.buildWithDefaultHandlers()
-                .withTotalProcessCount(getSettings().getProcessCount())
-                .withDebugInfo(logMsg("startElection"));
+                .withTotalProcessCount(getSettings().getProcessCount());
+        if (LoggerConfig.isDebugEnabled()) {
+            listener.withDebugInfo(logMsg("startElection"));
+        }
         attachMsgListener(listener);
         try{
             Bucket localBucket = bucketContainer.getBucket(bucketIndex);
@@ -210,8 +212,10 @@ public class BizurRun {
         bucketToWrite.incrementAndGetVerCounter();
 
         SyncMessageListener listener = SyncMessageListener.buildWithDefaultHandlers()
-                .withTotalProcessCount(getSettings().getProcessCount())
-                .withDebugInfo(logMsg("write"));
+                .withTotalProcessCount(getSettings().getProcessCount());
+        if (LoggerConfig.isDebugEnabled()) {
+            listener.withDebugInfo(logMsg("write"));
+        }
         attachMsgListener(listener);
         try {
             BucketView bucketViewToSend = bucketToWrite.createView();
@@ -280,8 +284,10 @@ public class BizurRun {
         }
 
         SyncMessageListener listener = SyncMessageListener.buildWithDefaultHandlers()
-                .withTotalProcessCount(getSettings().getProcessCount())
-                .withDebugInfo(logMsg("read"));
+                .withTotalProcessCount(getSettings().getProcessCount());
+        if (LoggerConfig.isDebugEnabled()) {
+            listener.withDebugInfo(logMsg("read"));
+        }
         attachMsgListener(listener);
         try {
             getSettings().getMemberAddresses().forEach(receiverAddress -> {
@@ -666,9 +672,10 @@ public class BizurRun {
                     .setSenderAddress(getSettings().getAddress())
                     .setReceiverAddress(address)
                     .setSenderId(getSettings().getRoleId());
+            if (LoggerConfig.isDebugEnabled()) {
+                listener.withDebugInfo(logMsg("leader election request: " + ler));
+            }
             sendMessage(ler);
-
-            listener.withDebugInfo(logMsg("leader election request: " + ler));
             if (listener.waitForResponses()) {
                 return (boolean) listener.getPassedObjectRef().get();
             }

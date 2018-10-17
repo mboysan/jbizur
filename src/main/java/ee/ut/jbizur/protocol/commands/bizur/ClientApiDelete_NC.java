@@ -1,8 +1,6 @@
 package ee.ut.jbizur.protocol.commands.bizur;
 
-import ee.ut.jbizur.protocol.commands.NetworkCommand;
-
-public class ClientApiDelete_NC extends NetworkCommand {
+public class ClientApiDelete_NC extends ClientRequest_NC {
     private String key;
 
     public String getKey() {
