@@ -46,11 +46,13 @@ public class BizurBuilder {
 
     public BizurBuilder loadPropertiesFrom(File workingDirFile) {
         PropertiesLoader.loadProperties(workingDirFile);
+        settings.defaults();
         return this;
     }
 
     public BizurBuilder loadPropertiesFrom(Class resourceClass, String fileName) {
         PropertiesLoader.loadProperties(resourceClass, fileName);
+        settings.defaults();
         return this;
     }
 

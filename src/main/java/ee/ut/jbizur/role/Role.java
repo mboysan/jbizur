@@ -80,8 +80,8 @@ public abstract class Role {
 
     protected boolean checkNodesDiscovered() {
         return RoleValidation.checkStateAndWarn(
-                getSettings().getAnticipatedMemberCount() == getSettings().getMemberAddresses().size(),
-                "Nodes did not find each other yet.");
+                isAddressesAlreadyRegistered(),
+                logMsg("Searching for other nodes in the system..."));
     }
 
     /**
