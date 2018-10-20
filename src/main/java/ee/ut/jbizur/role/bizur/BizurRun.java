@@ -152,12 +152,14 @@ public class BizurRun {
             int retry = 0;
             int maxRetry = BizurConfig.getBucketLeaderElectionRetryCount();
             while (retry < maxRetry) {
-                electLeaderForBucket(localBucket, localBucket.getIndex(), false);
-                if (localBucket.getLeaderAddress() != null) {
+                if (localBucket.getLeaderAddress() == null) {
+                    electLeaderForBucket(localBucket, localBucket.getIndex(), false);
+                } else {
                     break;
                 }
-                Thread.sleep(500);
                 retry++;
+                Logger.warn(logMsg("retrying (count=" + retry + ") leader election on bucket=[" + localBucket + "]"));
+                Thread.sleep(500);
             }
             if (retry >= maxRetry) {
                 return false;
