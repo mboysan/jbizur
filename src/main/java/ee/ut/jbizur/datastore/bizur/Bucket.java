@@ -149,12 +149,31 @@ public class Bucket {
         return verCounter.get();
     }
 
-    public Bucket setElectionInProgress(boolean electionInProgress) {
-        this.electionInProgress.set(electionInProgress);
-        return this;
+    public void initLeaderElection() {
+        synchronized (this) {
+            electionInProgress.set(true);
+        }
     }
-    public boolean isElectionInProgress() {
-        return electionInProgress.get();
+
+    public void endLeaderElection() {
+        synchronized (this) {
+            electionInProgress.set(false);
+            notifyAll();
+        }
+    }
+
+    public boolean checkLeaderElectionInProgress() {
+        synchronized (this) {
+            return electionInProgress.get();
+        }
+    }
+
+    public void waitForLeaderElection() throws InterruptedException {
+        synchronized (this) {
+            while (electionInProgress.get()) {
+                wait();
+            }
+        }
     }
 
     public BucketView createView(){

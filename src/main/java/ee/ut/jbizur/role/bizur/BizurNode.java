@@ -77,10 +77,7 @@ public class BizurNode extends Role {
                 while (!checkNodesDiscovered()) {
                     Thread.sleep(multicastIntervalSec);
                 }
-                isReady = initLeaderPerBucketElectionFlow();
-                if (!isReady) {
-                    throw new IllegalStateException(logMsg("bucket leader election flow failed!"));
-                }
+                isReady = true;
                 Logger.info(logMsg("Node initialized and ready!"));
             } catch (Exception e) {
                 throw new CompletionException(e);

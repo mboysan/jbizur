@@ -9,18 +9,18 @@ import org.junit.Test;
 import utils.RunnerWithExceptionCatcher;
 
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class BizurClientTest extends BizurNodeTestBase {
 
-    protected final Map<String, String> expKeyVals = new HashMap<>();
-    protected BizurClient[] bizurClients;
+    private BizurClient[] bizurClients;
 
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        expKeyVals.clear();
         createClients();
         registerRolesToClients();
         registerClientsToRoles();
@@ -48,7 +48,7 @@ public class BizurClientTest extends BizurNodeTestBase {
         }
     }
 
-    protected Set<Address> getMemberAddresses() {
+    private Set<Address> getMemberAddresses() {
         Set<Address> addressSet = new HashSet<>();
         for (BizurNode bizurNode : bizurNodes) {
             addressSet.add(bizurNode.getSettings().getAddress());
@@ -91,21 +91,25 @@ public class BizurClientTest extends BizurNodeTestBase {
 
         /* Test set/get */
         Assert.assertTrue(getRandomClient().set(expKey, expVal));
-        expKeyVals.put(expKey, expVal);
+
+        putExpectedKeyValue(expKey, expVal);
+
         Assert.assertEquals(expVal, getRandomClient().get(expKey));
 
         /* Test iterate keys */
-        Set<String> actKeys = getRandomClient().iterateKeys();
-        for (String actKey : actKeys) {
-            Assert.assertEquals(expKeyVals.get(actKey), getRandomClient().get(actKey));
+        Set<String> actualKey = getRandomClient().iterateKeys();
+        for (String actKey : actualKey) {
+            Assert.assertEquals(getExpectedValue(actKey), getRandomClient().get(actKey));
         }
-        for (String key : expKeyVals.keySet()) {
-            Assert.assertEquals(expKeyVals.get(key), getRandomClient().get(key));
+        for (String expectedKey : getExpectedKeySet()) {
+            Assert.assertEquals(getExpectedValue(expectedKey), getRandomClient().get(expectedKey));
         }
 
         /* Test delete/get */
         Assert.assertTrue(getRandomClient().delete(expKey));
         Assert.assertNull(getRandomClient().get(expKey));
+
+        removeExpectedKey(expKey);
     }
 
     /**
@@ -119,6 +123,7 @@ public class BizurClientTest extends BizurNodeTestBase {
             runner.execute(() -> {
                 String testKey = UUID.randomUUID().toString();
                 String expVal = UUID.randomUUID().toString();
+                putExpectedKeyValue(testKey, expVal);
 
                 Assert.assertTrue(getRandomClient().set(testKey, expVal));
                 Assert.assertEquals(expVal, getRandomClient().get(testKey));
@@ -139,10 +144,13 @@ public class BizurClientTest extends BizurNodeTestBase {
             runner.execute(() -> {
                 String testKey = UUID.randomUUID().toString();
                 String expVal = UUID.randomUUID().toString();
+                putExpectedKeyValue(testKey, expVal);
 
                 Assert.assertTrue(getRandomClient().set(testKey, expVal));
                 Assert.assertTrue(getRandomClient().delete(testKey));
                 Assert.assertNull(getRandomClient().get(testKey));
+
+                removeExpectedKey(testKey);
             });
         }
         runner.awaitCompletion();
@@ -152,7 +160,7 @@ public class BizurClientTest extends BizurNodeTestBase {
     /**
      * @return random bizur client registered in {@link #bizurClients}.
      */
-    protected BizurClient getRandomClient() {
+    private BizurClient getRandomClient() {
         return getClient(-1);
     }
 
@@ -160,7 +168,7 @@ public class BizurClientTest extends BizurNodeTestBase {
      * @param inx index of the client to return. if -1, returns random client.
      * @return created bizur client located in {@link #bizurClients}.
      */
-    protected BizurClient getClient(int inx) {
+    private BizurClient getClient(int inx) {
         return bizurClients[inx == -1 ? random.nextInt(bizurClients.length) : inx];
     }
 }

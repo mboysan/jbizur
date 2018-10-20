@@ -5,6 +5,7 @@ import ee.ut.jbizur.config.LoggerConfig;
 import ee.ut.jbizur.datastore.bizur.Bucket;
 import ee.ut.jbizur.datastore.bizur.BucketContainer;
 import ee.ut.jbizur.datastore.bizur.BucketView;
+import ee.ut.jbizur.exceptions.LeaderResolutionFailedError;
 import ee.ut.jbizur.exceptions.OperationFailedError;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.messenger.SyncMessageListener;
@@ -25,6 +26,8 @@ public class BizurRun {
 
     protected final BucketContainer bucketContainer;
     private final int contextId;
+
+    private static final int BUCKET_LEADER_ELECTION_RETRY_COUNT = BizurConfig.getBucketLeaderElectionRetryCount();
 
     BizurRun(BizurNode node) {
         this(node, IdUtils.generateId());
@@ -168,11 +171,27 @@ public class BizurRun {
         return true;
     }
 
+    protected Address resolveLeader(Bucket bucket) {
+        return resolveLeader(bucket, BUCKET_LEADER_ELECTION_RETRY_COUNT);
+    }
+
+    protected Address resolveLeader(Bucket bucket, int retry) {
+        if (retry < 0) {
+            throw new LeaderResolutionFailedError(logMsg("leader could not be resolved. Max retry count reached!"));
+        }
+        if (bucket.getLeaderAddress() != null) {
+            return bucket.getLeaderAddress();
+        } else {
+            electLeaderForBucket(bucket, bucket.getIndex(), true);
+            return resolveLeader(bucket, --retry);
+        }
+    }
+
     protected void electLeaderForBucket(Bucket localBucket, int startIdx, boolean forceElection) {
         Address nextAddr = IdUtils.nextAddressInUnorderedSet(getSettings().getMemberAddresses(), startIdx);
         if (nextAddr.isSame(getSettings().getAddress())) {
             Logger.info(logMsg("initializing election process on bucket idx=" + localBucket.getIndex()));
-            resolveLeader(localBucket);
+            electLeaderForBucket(localBucket);
         } else {
             boolean willHandle;
             if (forceElection) {
@@ -189,7 +208,7 @@ public class BizurRun {
         }
     }
 
-    protected Address resolveLeader(Bucket localBucket) {
+    protected Address electLeaderForBucket(Bucket localBucket) {
         int bucketIndex = localBucket.getIndex();
         bucketContainer.lockBucket(bucketIndex);
         try {
@@ -478,10 +497,10 @@ public class BizurRun {
 
     String get(String key) {
         Bucket bucket = bucketContainer.getBucket(key);
+        Address lead = resolveLeader(bucket);
         if (bucket.isLeader()) {
             return _get(key);
         }
-        Address lead = bucket.getLeaderAddress();
         try {
             return routeRequestAndGet(
                     new ApiGet_NC()
@@ -512,10 +531,10 @@ public class BizurRun {
 
     boolean set(String key, String val) {
         Bucket bucket = bucketContainer.getBucket(key);
+        Address lead = resolveLeader(bucket);
         if(bucket.isLeader()){
             return _set(key, val);
         }
-        Address lead = bucket.getLeaderAddress();
         try {
             return routeRequestAndGet(
                     new ApiSet_NC()
@@ -548,10 +567,10 @@ public class BizurRun {
 
     boolean delete(String key) {
         Bucket bucket = bucketContainer.getBucket(key);
+        Address lead = resolveLeader(bucket);
         if(bucket.isLeader()){
             return _delete(key);
         }
-        Address lead = bucket.getLeaderAddress();
         try {
             return routeRequestAndGet(
                     new ApiDelete_NC()
@@ -625,37 +644,36 @@ public class BizurRun {
 
     void handleLeaderElection(LeaderElectionRequest_NC ler) {
         Bucket localBucket = bucketContainer.getBucket(ler.getBucketIndex());
-        synchronized (localBucket) {
-            while (localBucket.isElectionInProgress()) {
-                try {
-                    localBucket.wait();
-                } catch (InterruptedException e) {
-                    Logger.error(e);
-                    return;
-                }
-            }
-        }
-        boolean amILeader = localBucket.getLeaderAddress().isSame(getSettings().getAddress());
-        if (!localBucket.isElectionInProgress() && !amILeader) {
-            localBucket.setElectionInProgress(true);
 
-            Address leaderAddr = resolveLeader(localBucket);
-            amILeader = leaderAddr.isSame(getSettings().getAddress());
-
-            localBucket.setElectionInProgress(false);
-            synchronized (localBucket) {
-                localBucket.notifyAll();
-            }
-        }
-        NetworkCommand resp = new LeaderElectionResponse_NC()
+        NetworkCommand response = new LeaderElectionResponse_NC()
                 .setBucketIndex(ler.getBucketIndex())
-                .setSuccess(amILeader)
                 .setContextId(contextId)
                 .setMsgId(ler.getMsgId())
                 .setSenderId(getSettings().getRoleId())
                 .setSenderAddress(getSettings().getAddress())
                 .setReceiverAddress(ler.getSenderAddress());
-        sendMessage(resp);
+
+        boolean isSuccess;
+        try {
+            if (localBucket.checkLeaderElectionInProgress()) {
+                localBucket.waitForLeaderElection();
+                isSuccess = localBucket.getLeaderAddress().isSame(getSettings().getAddress());
+            } else {
+                localBucket.initLeaderElection();
+                try {
+                    Address leaderAddr = electLeaderForBucket(localBucket);
+                    isSuccess = leaderAddr.isSame(getSettings().getAddress());
+                } finally {
+                    localBucket.endLeaderElection();
+                }
+            }
+        } catch (Exception e) {
+            isSuccess = false;
+            Logger.error(e, logMsg(e + ""));
+        }
+
+        ((LeaderElectionResponse_NC) response).setSuccess(isSuccess);
+        sendMessage(response);
     }
 
     private boolean requestLeaderElectionForBucket(Address address, int bucketIndex) {
@@ -694,6 +712,7 @@ public class BizurRun {
                 .setSenderAddress(failedCommand.getSenderAddress())
                 .setReceiverAddress(failedCommand.getReceiverAddress())
                 .setMsgId(failedCommand.getMsgId())
+                .setContextId(failedCommand.getContextId())
         );
 //        pinger.registerUnreachableAddress(failedCommand.getReceiverAddress());
     }

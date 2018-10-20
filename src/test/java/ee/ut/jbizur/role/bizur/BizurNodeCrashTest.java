@@ -1,15 +1,12 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.BizurConfig;
-import ee.ut.jbizur.datastore.bizur.Bucket;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.util.IdUtils;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class BizurNodeCrashTest extends BizurNodeTestBase {
@@ -20,29 +17,6 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
     @Before
     public void resetHashIndexes() {
         useHashIndexForAllBucketContainers(-1);
-    }
-
-    /**
-     * Tests the leader election flow but when multiple nodes initiate the same procedure at the same time.
-     */
-    @Test
-    @Before
-    @After
-    public void leaderPerBucketElectionCheck() {
-        int bucketCount = BizurConfig.getBucketCount();
-        for (int i = 0; i < bucketCount; i++) {
-            Address otherAddress = getRandomNode().bucketContainer.getBucket(i).getLeaderAddress();
-            Assert.assertNotNull(otherAddress);
-            int leaderCount = 0;
-            for (BizurNode bizurNode : bizurNodes) {
-                Bucket localBucket = bizurNode.bucketContainer.getBucket(i);
-                Assert.assertTrue(localBucket.getLeaderAddress().isSame(otherAddress));
-                if (localBucket.isLeader()) {
-                    leaderCount++;
-                }
-            }
-            Assert.assertEquals(1, leaderCount);
-        }
     }
 
     protected void useHashIndexForAllBucketContainers (int index) {
@@ -63,6 +37,8 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
     public void sendFailTest() {
         useHashIndexForAllBucketContainers(FIXED_HASH_INDEX);
 
+        setRandomKeyVals();
+
         BizurNodeMock leaderOfBucket0 = getLeaderOf(FIXED_HASH_INDEX);
         BizurNodeMock anotherNode = getNextNodeBasedOn(leaderOfBucket0);
 
@@ -75,9 +51,6 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         anotherNode.revive();
 
         setRandomKeyVals();
-
-        validateKeyValsForAllNodes();
-        validateLocalBucketKeyVals();
     }
 
     /**
@@ -86,6 +59,8 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
     @Test
     public void sendFailOnLeaderTest() {
         useHashIndexForAllBucketContainers(FIXED_HASH_INDEX);
+
+        setRandomKeyVals();
 
         BizurNodeMock leaderOfBucket0 = getLeaderOf(FIXED_HASH_INDEX);
         BizurNodeMock anotherNode = getNextNodeBasedOn(leaderOfBucket0, bizurNodes.length - 1);
@@ -106,9 +81,6 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         setRandomKeyVals(anotherNode);
         // set new key-vals on all nodes.
         setRandomKeyVals();
-
-        validateKeyValsForAllNodes();
-        validateLocalBucketKeyVals();
     }
 
     private BizurNodeMock getLeaderOf(int bucketIndex) {
@@ -154,39 +126,14 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         }
     }
 
-    private void setRandomKeyVals(int byNodeId) {
-        setRandomKeyVals(getNode(byNodeId));
-    }
-
     private void setRandomKeyVals(BizurNode byNode) {
         String testKey = "tkey" + keyValIdx.get();
         String expVal = "tval" + keyValIdx.get();
         if(byNode instanceof BizurNodeMock && !((BizurNodeMock) byNode).isDead){
             Assert.assertTrue(byNode.set(testKey, expVal));
-            expKeyVals.put(testKey, expVal);
+            putExpectedKeyValue(testKey, expVal);
         }
         keyValIdx.incrementAndGet();
-    }
-
-    private void validateKeyValsForAllNodes() {
-        for (BizurNode bizurNode : bizurNodes) {
-            validateKeyVals(bizurNode);
-        }
-    }
-
-    private void validateKeyVals(int nodeId) {
-        validateKeyVals(getNode(nodeId));
-    }
-
-    private void validateKeyVals(BizurNode byNode) {
-        Set<String> keys = byNode.iterateKeys();
-        for (String key : keys) {
-            Assert.assertEquals(logNode(byNode,hashKey(key)), expKeyVals.get(key), byNode.get(key));
-        }
-        Set<String> expKeys = expKeyVals.keySet();
-        for (String expKey : expKeys) {
-            Assert.assertEquals(logNode(byNode,hashKey(expKey)), expKeyVals.get(expKey), byNode.get(expKey));
-        }
     }
 
     // Method to sort a string alphabetically

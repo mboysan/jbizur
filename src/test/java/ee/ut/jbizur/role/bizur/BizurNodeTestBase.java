@@ -12,21 +12,20 @@ import org.junit.Before;
 import org.pmw.tinylog.Logger;
 
 import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class BizurNodeTestBase {
 
-    protected Random random = getRandom();
+    Random random = getRandom();
 
-    protected static final int NODE_COUNT = NodeTestConfig.getMemberCount();
-    protected BizurNode[] bizurNodes;
+    private static final int NODE_COUNT = NodeTestConfig.getMemberCount();
+    BizurNode[] bizurNodes;
 
-    protected Map<String, String> expKeyVals;
+    private Map<String, String> expKeyVals;
+    private Set<Integer> leaderDefinedBucketIndexes;
 
     @Before
     public void setUp() throws Exception {
@@ -34,6 +33,7 @@ public class BizurNodeTestBase {
         registerRoles();
         startRoles();
         this.expKeyVals = new ConcurrentHashMap<>();
+        this.leaderDefinedBucketIndexes = ConcurrentHashMap.newKeySet();
     }
 
     private void createNodes() throws UnknownHostException, InterruptedException {
@@ -76,21 +76,21 @@ public class BizurNodeTestBase {
     public void tearDown() {
     }
 
-    protected Random getRandom() {
+    private Random getRandom() {
         long seed = System.currentTimeMillis();
         return getRandom(seed);
     }
 
-    protected Random getRandom(long seed) {
+    private Random getRandom(long seed) {
         Logger.info("Seed: " + seed);
         return new Random(seed);
     }
 
-    protected BizurNodeMock getRandomNode() {
+    BizurNodeMock getRandomNode() {
         return getNode(-1);
     }
 
-    protected BizurNodeMock getNode(int inx) {
+    BizurNodeMock getNode(int inx) {
         return (BizurNodeMock) bizurNodes[inx == -1 ? random.nextInt(bizurNodes.length) : inx];
     }
 
@@ -98,12 +98,45 @@ public class BizurNodeTestBase {
         return IdUtils.hashKey(s, BizurTestConfig.getBucketCount());
     }
 
-    protected void validateLocalBucketKeyVals() {
+    void putExpectedKeyValue(String expKey, String expVal) {
+        expKeyVals.put(expKey, expVal);
+        leaderDefinedBucketIndexes.add(hashKey(expKey));
+    }
+    void removeExpectedKey(String expKey) {
+        expKeyVals.remove(expKey);
+    }
+    String getExpectedValue(String expKey) {
+        return expKeyVals.get(expKey);
+    }
+    Set<String> getExpectedKeySet() {
+        return expKeyVals.keySet();
+    }
+
+    @After
+    public void validateKeyValsForAllNodes() {
+        for (BizurNode bizurNode : bizurNodes) {
+            validateKeyVals(bizurNode);
+        }
+    }
+
+    private void validateKeyVals(BizurNode byNode) {
+        Set<String> actKeys = byNode.iterateKeys();
+        Assert.assertEquals(getExpectedKeySet().size(), actKeys.size());
+        for (String expKey : getExpectedKeySet()) {
+            Assert.assertEquals(logNode(byNode, hashKey(expKey)), getExpectedValue(expKey), byNode.get(expKey));
+        }
+        for (String actKey : actKeys) {
+            Assert.assertEquals(logNode(byNode, hashKey(actKey)), getExpectedValue(actKey), byNode.get(actKey));
+        }
+    }
+
+    @After
+    public void validateLocalBucketKeyVals() {
         if (expKeyVals.size() == 0) {
-            for (int bIdx = 0; bIdx < BizurTestConfig.getBucketCount(); bIdx++) {
+            leaderDefinedBucketIndexes.iterator().forEachRemaining(bIdx -> {
                 BizurNode leader = findLeaderOfBucket(bIdx);
                 Assert.assertEquals(logNode(leader, bIdx), 0, leader.bucketContainer.getBucket(bIdx).getKeySet().size());
-            }
+            });
         } else {
             expKeyVals.forEach((expKey, expVal) -> {
                 int bIdx = hashKey(expKey);
@@ -123,7 +156,7 @@ public class BizurNodeTestBase {
         return null;
     }
 
-    protected String logNode(BizurNode bizurNode, int bucketIndex) {
+    String logNode(BizurNode bizurNode, int bucketIndex) {
         String log = "node=[%s], bucket=[%s], keySet=[%s]";
         return String.format(log,
                 bizurNode.toString(),

@@ -80,7 +80,7 @@ public class BizurSingleJvmIntegrationTest {
         Assert.assertTrue(client.set(expKey, expVal));
         Assert.assertEquals(expVal, client.get(expKey));
         Assert.assertTrue(client.delete(expKey));
-        Assert.assertEquals(null, client.get(expKey));
+        Assert.assertNull(client.get(expKey));
     }
 
     /**
