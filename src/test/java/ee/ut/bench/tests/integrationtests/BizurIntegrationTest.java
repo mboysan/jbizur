@@ -9,7 +9,6 @@ import ee.ut.jbizur.role.bizur.BizurNode;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.net.UnknownHostException;
 import java.util.concurrent.CountDownLatch;
 
 @Ignore
@@ -20,7 +19,7 @@ public class BizurIntegrationTest extends AbstractIntegrationTest {
     BizurNode[] nodes = new BizurNode[NODE_COUNT];
 
     @Override
-    void initNodes() throws InterruptedException, UnknownHostException {
+    void initNodes() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(NODE_COUNT);
         for (int i = 0; i < NODE_COUNT; i++) {
             nodes[i] = initNode(i);
@@ -37,9 +36,10 @@ public class BizurIntegrationTest extends AbstractIntegrationTest {
         }
     }
 
-    private BizurNode initNode(int index) throws UnknownHostException, InterruptedException {
+    private BizurNode initNode(int index) throws InterruptedException {
         return BizurBuilder.builder()
                 .loadPropertiesFrom(Config.class, "config.properties")
+                .withMemberId("member" + index)
                 .build();
     }
 
