@@ -11,11 +11,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
-public class MessageSenderMock implements IMessageSender {
+public class MessageSenderMock extends AbstractClient {
     private final ExecutorService executor = Executors.newCachedThreadPool();
     private final Map<String, Role> roles = new HashMap<>();
     private final CommandMarshaller commandMarshaller = new CommandMarshaller();
+
+    public MessageSenderMock(Role roleInstance) {
+        super(roleInstance);
+    }
 
     @Override
     public void send(NetworkCommand command) {

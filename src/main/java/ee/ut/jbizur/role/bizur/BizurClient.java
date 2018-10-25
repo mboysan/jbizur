@@ -1,9 +1,7 @@
 package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.messenger.IMessageReceiver;
-import ee.ut.jbizur.network.messenger.IMessageSender;
-import ee.ut.jbizur.network.messenger.Multicaster;
+import ee.ut.jbizur.network.messenger.MessageProcessor;
 import ee.ut.jbizur.network.messenger.SyncMessageListener;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.bizur.*;
@@ -14,7 +12,6 @@ import ee.ut.jbizur.protocol.internal.NodeAddressRegistered_IC;
 import ee.ut.jbizur.protocol.internal.NodeAddressUnregistered_IC;
 
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class BizurClient extends BizurNode {
@@ -23,11 +20,11 @@ public class BizurClient extends BizurNode {
     private final Object addressesLock = new Object();
 
     protected BizurClient(BizurSettings bizurSettings) throws InterruptedException {
-        this(bizurSettings, null, null, null, null);
+        this(bizurSettings, null);
     }
 
-    protected BizurClient(BizurSettings bizurSettings, Multicaster multicaster, IMessageSender messageSender, IMessageReceiver messageReceiver, CountDownLatch readyLatch) throws InterruptedException {
-        super(bizurSettings, multicaster, messageSender, messageReceiver, readyLatch);
+    protected BizurClient(BizurSettings bizurSettings, MessageProcessor messageProcessor) throws InterruptedException {
+        super(bizurSettings, messageProcessor);
 
         if (isAddressesAlreadyRegistered()) {
             arrangeAddresses();

@@ -1,4 +1,4 @@
-package ee.ut.jbizur.network.messenger;
+package ee.ut.jbizur.network.messenger.udp;
 
 import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.protocol.CommandMarshaller;
@@ -90,7 +90,7 @@ public class Multicaster {
         }
 
         private void end(){
-            new MulticastPublisher().multicast(new SignalEnd_NC());
+//            new MulticastPublisher().multicast(new SignalEnd_NC());
         }
 
         private void recv() {

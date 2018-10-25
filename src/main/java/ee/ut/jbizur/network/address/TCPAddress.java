@@ -1,6 +1,6 @@
 package ee.ut.jbizur.network.address;
 
-import ee.ut.jbizur.network.messenger.MessageReceiverImpl;
+import ee.ut.jbizur.network.messenger.tcp.custom.BlockingServerImpl;
 import org.pmw.tinylog.Logger;
 
 import java.io.BufferedReader;
@@ -36,7 +36,7 @@ public class TCPAddress extends Address {
 
     /**
      * @param ip         ip address
-     * @param portNumber port number. If set to 0, then {@link MessageReceiverImpl} will find an
+     * @param portNumber port number. If set to 0, then {@link BlockingServerImpl} will find an
      *                   available port automatically. Otherwise, the port specified will be used.
      */
     public TCPAddress(InetAddress ip, int portNumber) {

@@ -1,8 +1,7 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.network.address.MockMulticastAddress;
-import ee.ut.jbizur.network.messenger.IMessageReceiver;
-import ee.ut.jbizur.network.messenger.IMessageSender;
+import ee.ut.jbizur.network.messenger.MessageProcessor;
+import ee.ut.jbizur.network.messenger.udp.Multicaster;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.internal.InternalCommand;
 
@@ -16,15 +15,22 @@ public class RoleMock extends Role {
     public Map<Integer, NetworkCommand> receivedCommandsMap = new ConcurrentHashMap<>();
 
     public RoleMock(RoleSettings settings) throws InterruptedException, UnknownHostException {
-        super(
-                new RoleSettings()
-                        .setMulticastAddress(new MockMulticastAddress((String) null, 0))
-        );
+        super(settings, new MessageProcessor() {
+            @Override
+            protected Multicaster createMulticaster() {
+                return null;
+            }
+            @Override
+            protected void initMulticast() {
+
+            }
+        });
+        messageProcessor.registerRole(this);
+        messageProcessor.start();
     }
 
     @Override
-    protected void initMulticast() {
-
+    protected void initRole() {
     }
 
     @Override
@@ -42,11 +48,7 @@ public class RoleMock extends Role {
         return null;
     }
 
-    public IMessageSender getMessageSender() {
-        return messageSender;
-    }
-
-    public IMessageReceiver getMessageReceiver() {
-        return messageReceiver;
+    public MessageProcessor getMessageProcessor() {
+        return messageProcessor;
     }
 }

@@ -1,6 +1,7 @@
 package ee.ut.jbizur.network.messenger;
 
 import ee.ut.jbizur.network.address.MulticastAddress;
+import ee.ut.jbizur.network.messenger.udp.Multicaster;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.role.Role;
 

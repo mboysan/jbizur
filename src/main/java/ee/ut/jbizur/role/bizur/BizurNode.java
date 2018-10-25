@@ -8,9 +8,7 @@ import ee.ut.jbizur.datastore.bizur.BucketContainer;
 import ee.ut.jbizur.exceptions.OperationFailedError;
 import ee.ut.jbizur.exceptions.RoleIsNotReadyError;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.messenger.IMessageReceiver;
-import ee.ut.jbizur.network.messenger.IMessageSender;
-import ee.ut.jbizur.network.messenger.Multicaster;
+import ee.ut.jbizur.network.messenger.MessageProcessor;
 import ee.ut.jbizur.network.messenger.SyncMessageListener;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.bizur.*;
@@ -23,26 +21,21 @@ import ee.ut.jbizur.role.RoleValidation;
 import org.pmw.tinylog.Logger;
 
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.CountDownLatch;
 
 public class BizurNode extends Role {
     private boolean isReady;
     BucketContainer bucketContainer;
 
     BizurNode(BizurSettings settings) throws InterruptedException {
-        this(settings, null, null, null, null);
+        this(settings, null);
     }
 
     @ForTestingOnly
     protected BizurNode(BizurSettings settings,
-                        Multicaster multicaster,
-                        IMessageSender messageSender,
-                        IMessageReceiver messageReceiver,
-                        CountDownLatch readyLatch) throws InterruptedException {
-        super(settings, multicaster, messageSender, messageReceiver, readyLatch);
+                        MessageProcessor messageProcessor) throws InterruptedException {
+        super(settings, messageProcessor);
 
         this.isReady = false;
         initBuckets();
@@ -284,7 +277,7 @@ public class BizurNode extends Role {
         super.detachMsgListener(listener);
     }
     @Override
-    protected String logMsg(String msg) {
+    public String logMsg(String msg) {
         return super.logMsg(msg);
     }
     @Override
