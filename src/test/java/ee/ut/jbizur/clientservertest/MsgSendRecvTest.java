@@ -28,20 +28,19 @@ public class MsgSendRecvTest {
 
     @Test
     public void testSimpleMessageSendRecv() throws Throwable {
-        int testCount = 100;
+        int testCount = 1000;
         for (int i = 0; i < testCount; i++) {
             roleMock.getMessageProcessor().getClient().send(generateCommand());
         }
 
         Thread.sleep(5000);
 
-        logoutReceivedCommands();
         Assert.assertEquals(testCount, roleMock.receivedCommandsMap.size());
     }
 
     @Test
     public void testMultithreadMessageSendRecv() throws Throwable {
-        int testCount = 100;
+        int testCount = 1000;
         RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
         for (int i = 0; i < testCount; i++) {
             runner.execute(() -> {
@@ -53,13 +52,7 @@ public class MsgSendRecvTest {
         runner.throwAnyCaughtException();
         Thread.sleep(5000);
 
-        logoutReceivedCommands();
         Assert.assertEquals(testCount, roleMock.receivedCommandsMap.size());
-    }
-
-    private void logoutReceivedCommands() {
-        System.out.println("commands received:");
-        roleMock.receivedCommandsMap.forEach((id, cmd) -> System.out.println(cmd));
     }
 
     protected NetworkCommand generateCommand() {

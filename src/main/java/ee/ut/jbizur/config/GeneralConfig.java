@@ -47,6 +47,10 @@ public class GeneralConfig {
         throw new IllegalArgumentException("serialization type could not be determined.");
     }
 
+    public static boolean tcpKeepAlive() {
+        return PropertiesLoader.getBoolean("protocol.tcp.keepalive", false);
+    }
+
     public enum SerializationType {
         BYTE, OBJECT, STRING, JSON
     }

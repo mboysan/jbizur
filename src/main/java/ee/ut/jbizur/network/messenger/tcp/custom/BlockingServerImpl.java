@@ -1,30 +1,29 @@
 package ee.ut.jbizur.network.messenger.tcp.custom;
 
 import ee.ut.jbizur.config.GeneralConfig;
-import ee.ut.jbizur.config.LoggerConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.network.messenger.AbstractServer;
 import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
 import ee.ut.jbizur.role.Role;
 import org.pmw.tinylog.Logger;
 
-import java.io.DataInputStream;
-import java.io.ObjectInputStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * The message receiver wrapper for the communication protocols defined in {@link ee.ut.jbizur.network.ConnectionProtocol}.
  */
 public class BlockingServerImpl extends AbstractServer {
 
-    private volatile boolean isRunning = true;
-
-    private final ExecutorService executor;
+    private final ExecutorService socketExecutor;
+    private final ExecutorService streamExecutor;
     private final static GeneralConfig.SerializationType SERIALIZATION_TYPE = GeneralConfig.getTCPSerializationType();
 
     /**
@@ -34,17 +33,23 @@ public class BlockingServerImpl extends AbstractServer {
 
     public BlockingServerImpl(Role roleInstance) {
         super(roleInstance);
-        executor = Executors.newCachedThreadPool();
+        if (keepAlive) {
+            socketExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+            streamExecutor = Executors.newCachedThreadPool();
+        } else {
+            socketExecutor = Executors.newCachedThreadPool();
+            streamExecutor = null;
+        }
     }
 
     @Override
     public void shutdown() {
         this.isRunning = false;
-        executor.shutdown();
-        if(executor.isShutdown()){
-            if (LoggerConfig.isDebugEnabled()) {
-                Logger.debug("Server executor shutdown: "+ executor);
-            }
+        socketExecutor.shutdown();
+        Logger.info("Server socketExecutor shutdown [" + socketExecutor.isShutdown() + "], info=[" + socketExecutor + "]");
+        if (keepAlive) {
+            streamExecutor.shutdown();
+            Logger.info("Server streamExecutor shutdown [" + streamExecutor.isShutdown() + "], info=[" + streamExecutor + "]");
         }
     }
 
@@ -58,54 +63,94 @@ public class BlockingServerImpl extends AbstractServer {
         }
         TCPAddress tcpAddress = (TCPAddress) address;
         Runnable receiver = createReceiver(tcpAddress.getPortNumber());
-        new Thread(receiver).start();
+        new Thread(receiver, "server-thread").start();
     }
 
     private Runnable createReceiver(final int port) {
         return () -> {
-            ServerSocket serverSocket;
-            Socket socket = null;
             try {
-                serverSocket = new ServerSocket(port);
+                ServerSocket serverSocket = new ServerSocket(port);
                 while (isRunning) {
-                    socket = serverSocket.accept();
-                    Object message = null;
-
-                    switch (SERIALIZATION_TYPE) {
-                        case OBJECT:
-                            ObjectInputStream oIs = new ObjectInputStream(socket.getInputStream());
-                            message = oIs.readObject();
-                            break;
-                        case BYTE:
-                            DataInputStream dIn = new DataInputStream(socket.getInputStream());
-                            int size = dIn.readInt();
-                            byte[] msg = new byte[size];
-                            dIn.read(msg);
-                            message = commandMarshaller.unmarshall(msg);
-                            break;
-                    }
-
-                    if(message != null){
-                        NetworkCommand command = (NetworkCommand) message;
-                        executor.execute(() -> {
-                            roleInstance.handleNetworkCommand(command);
-                        });
+                    Socket socket = serverSocket.accept();
+                    socket.setKeepAlive(keepAlive);
+                    SocketHandler socketHandler = new SocketHandler(socket);
+                    try {
+                        socketExecutor.execute(socketHandler);
+                    } catch (RejectedExecutionException e) {
+                        Logger.warn(e, "");
+                        socketHandler.run();
                     }
                 }
-                if (LoggerConfig.isDebugEnabled()) {
-                    Logger.debug("receiver end");
-                }
-            } catch (Exception e) {
-                Logger.error(e, "Recv err");
-            } finally {
-                try {
-                    if (socket != null) {
-                        socket.close();
-                    }
-                } catch (Exception ex) {
-                    Logger.error(ex, "Socket close err");
-                }
+                Logger.info("ServerSocket end!");
+            } catch (IOException e) {
+                Logger.error(e, "");
             }
         };
+    }
+
+    protected class SocketHandler implements Runnable {
+        private final Socket socket;
+
+        SocketHandler(Socket socket) {
+            this.socket = socket;
+        }
+
+        @Override
+        public void run() {
+            do {
+                handleRead();
+            } while (keepAlive && isRunning);
+            closeSocket();
+        }
+
+        private void handleRead() {
+            try {
+                Object message = null;
+
+                InputStream inputStream = socket.getInputStream();
+                switch (SERIALIZATION_TYPE) {
+                    case OBJECT:
+                        ObjectInputStream oIs = new ObjectInputStream(inputStream);
+                        message = oIs.readObject();
+                        break;
+                    case BYTE:
+                        DataInputStream dIn = new DataInputStream(inputStream);
+                        int size = dIn.readInt();
+                        byte[] msg = new byte[size];
+                        dIn.read(msg);
+                        message = commandMarshaller.unmarshall(msg);
+                        break;
+                }
+                if(message != null){
+                    NetworkCommand command = (NetworkCommand) message;
+                    if (keepAlive) {
+                        if (command instanceof SignalEnd_NC) {
+                            roleInstance.handleNetworkCommand(command);
+                        } else {
+                            streamExecutor.execute(() -> roleInstance.handleNetworkCommand(command));
+                        }
+                    } else {
+                        roleInstance.handleNetworkCommand(command);
+                    }
+                } else {
+                    Logger.warn("message received is null!");
+                }
+            }
+            catch (EOFException e) {
+//                Logger.warn(e, "");
+            } catch (IOException | ClassNotFoundException e) {
+                Logger.error(e,"");
+            }
+        }
+
+        private void closeSocket() {
+            if (socket != null) {
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                    Logger.error(e, "");
+                }
+            }
+        }
     }
 }

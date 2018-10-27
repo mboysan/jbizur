@@ -150,7 +150,7 @@ public abstract class Role {
 
     /**
      * Sends the ee.ut.jbizur.network message to another process. Basically passes the message to the message sender service.
-     * @param message the ee.ut.jbizur.network message to send.
+     * @param message the ee.ut.jbizur.network message to _send.
      */
     protected void sendMessage(NetworkCommand message) {
         if (LoggerConfig.isDebugEnabled()) {

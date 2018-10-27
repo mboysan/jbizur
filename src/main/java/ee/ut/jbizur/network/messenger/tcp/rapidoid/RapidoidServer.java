@@ -26,11 +26,13 @@ public class RapidoidServer extends AbstractServer {
         }
         TCPAddress tcpAddress = (TCPAddress) address;
         rapidoidServer = TCP.server().protocol(ctx -> {
-            String line = ctx.readln().trim();
-            int length = Integer.parseInt(line);
-            byte[] msg = ctx.input().readNbytes(length);
-            NetworkCommand command = commandMarshaller.unmarshall(msg);
-            roleInstance.handleNetworkCommand(command);
+            do {
+                String line = ctx.readln().trim();
+                int length = Integer.parseInt(line);
+                byte[] msg = ctx.input().readNbytes(length);
+                NetworkCommand command = commandMarshaller.unmarshall(msg);
+                roleInstance.handleNetworkCommand(command);
+            } while (isRunning && keepAlive);
         }).port(tcpAddress.getPortNumber()).build();
         rapidoidServer.start();
     }

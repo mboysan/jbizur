@@ -9,7 +9,6 @@ import ee.ut.jbizur.role.Role;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.Socket;
 
 public class RapidoidBlockingClient extends BlockingClientImpl {
 
@@ -19,8 +18,8 @@ public class RapidoidBlockingClient extends BlockingClientImpl {
         commandMarshaller.setSerializer(new ByteSerializer());
     }
 
-    protected OutputStream sendAsBytes(NetworkCommand message, Socket socket) throws IOException {
-        DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+    protected OutputStream sendAsBytes(NetworkCommand message, OutputStream outputStream) throws IOException {
+        DataOutputStream out = new DataOutputStream(outputStream);
         byte[] msg = commandMarshaller.marshall(message, byte[].class);
         out.writeUTF(msg.length + String.format("%n"));
         out.write(msg);
@@ -28,17 +27,17 @@ public class RapidoidBlockingClient extends BlockingClientImpl {
     }
 
     @Override
-    protected OutputStream sendAsObject(NetworkCommand message, Socket socket) throws IOException {
-        throw new UnsupportedOperationException("send as object not supported!");
+    protected OutputStream sendAsObject(NetworkCommand message, OutputStream outputStream) throws IOException {
+        throw new UnsupportedOperationException("_send as object not supported!");
     }
 
     @Override
-    protected OutputStream sendAsJSONString(NetworkCommand message, Socket socket) throws IOException {
-        throw new UnsupportedOperationException("send as json not supported!");
+    protected OutputStream sendAsJSONString(NetworkCommand message, OutputStream outputStream) throws IOException {
+        throw new UnsupportedOperationException("_send as json not supported!");
     }
 
     @Override
-    protected OutputStream sendAsString(NetworkCommand message, Socket socket) throws IOException {
-        throw new UnsupportedOperationException("send as string not supported!");
+    protected OutputStream sendAsString(NetworkCommand message, OutputStream outputStream) throws IOException {
+        throw new UnsupportedOperationException("_send as string not supported!");
     }
 }

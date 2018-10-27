@@ -35,6 +35,7 @@ public class RoleMock extends Role {
 
     @Override
     public void handleNetworkCommand(NetworkCommand command) {
+        System.out.println("command recv: " + command);
         receivedCommandsMap.put(command.getMsgId(), command);
     }
 

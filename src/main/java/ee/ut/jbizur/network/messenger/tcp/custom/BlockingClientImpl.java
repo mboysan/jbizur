@@ -1,7 +1,7 @@
 package ee.ut.jbizur.network.messenger.tcp.custom;
 
 import ee.ut.jbizur.config.GeneralConfig;
-import ee.ut.jbizur.config.LoggerConfig;
+import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.network.messenger.AbstractClient;
 import ee.ut.jbizur.protocol.CommandMarshaller;
@@ -13,9 +13,10 @@ import org.pmw.tinylog.Logger;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 /**
  * The message sender wrapper for the communication protocols defined in {@link ee.ut.jbizur.network.ConnectionProtocol}.
@@ -24,8 +25,10 @@ public class BlockingClientImpl extends AbstractClient {
 
     private final ExecutorService executor;
     protected static GeneralConfig.SerializationType SERIALIZATION_TYPE = GeneralConfig.getTCPSerializationType();
+    private Map<String, Socket> socketMap;
+
     /**
-     * The marshaller to marshall the command to send.
+     * The marshaller to marshall the command to _send.
      */
     protected final CommandMarshaller commandMarshaller;
 
@@ -33,99 +36,141 @@ public class BlockingClientImpl extends AbstractClient {
         super(roleInstance);
         this.executor = Executors.newCachedThreadPool();
         this.commandMarshaller = new CommandMarshaller();
+        if (keepAlive) {
+            socketMap = new ConcurrentHashMap<>();
+        }
     }
 
     /**
      * {@inheritDoc}
-     * Initializes the message sender. It then creates the appropriate handler to send the message.
+     * Initializes the message sender. It then creates the appropriate handler to _send the message.
      */
     @Override
     public void send(NetworkCommand message) {
         Runnable sender = createSender(message);
         if(message instanceof SignalEnd_NC){
             sender.run();
+            if (keepAlive) {
+                disconnectAll();
+            }
             executor.shutdown();
-            if(executor.isShutdown()){
-                if (LoggerConfig.isDebugEnabled()) {
-                    Logger.debug("Client executor shutdown: "+ executor);
-                }
+            Logger.info("Client executor shutdown [" + executor.isShutdown() + "], info=[" + executor + "]");
+        } else {
+            new Thread(sender).start();
+//            executor.execute(sender);
+        }
+    }
+
+    @Override
+    protected <T> T connect(Address address) throws IOException {
+        if (!(address instanceof TCPAddress)) {
+            throw new IllegalArgumentException("address must be a TCP address");
+        }
+        TCPAddress tcpAddress = (TCPAddress) address;
+        Socket socket;
+        if (keepAlive) {
+            socket = socketMap.get(tcpAddress.toString());
+            if (socket == null) {
+                socket = new Socket(tcpAddress.getIp(), tcpAddress.getPortNumber());
+                socketMap.put(tcpAddress.toString(), socket);
             }
         } else {
-            executor.execute(sender);
+            socket = new Socket(tcpAddress.getIp(), tcpAddress.getPortNumber());
         }
+        socket.setKeepAlive(keepAlive);
+        return (T) socket;
+    }
+
+    protected void disconnect(String tcpAddressStr, Socket socket) throws IOException {
+        if (socket != null) {
+            OutputStream out = socket.getOutputStream();
+            if (out != null) {
+                out.close();
+            }
+            socket.close();
+            if (keepAlive) {
+                socketMap.remove(tcpAddressStr);
+            }
+        }
+    }
+
+    protected void disconnectAll() {
+        for (String tcpAddressStr : socketMap.keySet()) {
+            try {
+                disconnect(tcpAddressStr, socketMap.get(tcpAddressStr));
+            } catch (IOException e) {
+                Logger.error(e);
+            }
+        }
+        socketMap.clear();
     }
 
     private Runnable createSender(final NetworkCommand message) {
         return () -> {
             Socket socket = null;
-            OutputStream out = null;
+            TCPAddress receiverAddress = null;
             try {
-                TCPAddress receiverAddress = (TCPAddress) message.getReceiverAddress();
-                socket = new Socket(receiverAddress.getIp(), receiverAddress.getPortNumber());
-                out = createOutputStreamAndSend(message, socket);
+                receiverAddress = (TCPAddress) message.getReceiverAddress();
+                socket = connect(receiverAddress);
+                OutputStream out = socket.getOutputStream();
+                synchronized (out) {
+                    _send(message, out);
+                }
             } catch (IOException e) {
                 Logger.error("Send err, msg: " + message + ", " + e, e);
                 roleInstance.handleInternalCommand(new SendFail_IC(message));
             } finally {
-                if(out != null){
+                if (!keepAlive) {
                     try {
-                        out.close();
+                        disconnect(receiverAddress.toString(), socket);
                     } catch (IOException e) {
-                        Logger.error("dOut close err, msg: " + message + ", " + e, e);
-                    }
-                }
-                if(socket != null){
-                    try {
-                        socket.close();
-                    } catch (IOException e) {
-                        Logger.error("Socket close err, msg: " + message + ", " + e, e);
+                        Logger.error(e);
                     }
                 }
             }
         };
     }
 
-    protected OutputStream createOutputStreamAndSend(NetworkCommand message, Socket socket) throws IOException {
+    protected void _send(NetworkCommand message, OutputStream outputStream) throws IOException {
         OutputStream out;
         switch (SERIALIZATION_TYPE) {
             case OBJECT:
-                out = sendAsObject(message, socket);
+                out = sendAsObject(message, outputStream);
                 break;
             case BYTE:
-                out = sendAsBytes(message, socket);
+                out = sendAsBytes(message, outputStream);
                 break;
             case JSON:
-                out = sendAsJSONString(message, socket);
+                out = sendAsJSONString(message, outputStream);
                 break;
             case STRING:
-                out = sendAsString(message, socket);
+                out = sendAsString(message, outputStream);
                 break;
             default:
                 throw new UnsupportedOperationException("serialization type not supported");
         }
         out.flush();
-        return out;
     }
 
-    protected OutputStream sendAsObject(NetworkCommand message, Socket socket) throws IOException {
-        ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+    protected OutputStream sendAsObject(NetworkCommand message, OutputStream outputStream) throws IOException {
+        ObjectOutputStream out = new ObjectOutputStream(outputStream);
         out.writeObject(message);
         return out;
     }
 
-    protected OutputStream sendAsBytes(NetworkCommand message, Socket socket) throws IOException {
-        DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+    protected OutputStream sendAsBytes(NetworkCommand message, OutputStream outputStream) throws IOException {
+        DataOutputStream out = new DataOutputStream(outputStream);
         byte[] bytesToSend = commandMarshaller.marshall(message, byte[].class);
         out.writeInt(bytesToSend.length); // write length of the message
         out.write(bytesToSend);    // write the message
         return out;
     }
 
-    protected OutputStream sendAsJSONString(NetworkCommand message, Socket socket) throws IOException {
-        throw new UnsupportedEncodingException("send as json string not supported!");
+    protected OutputStream sendAsJSONString(NetworkCommand message, OutputStream outputStream) throws IOException {
+        throw new UnsupportedEncodingException("_send as json string not supported!");
     }
 
-    protected OutputStream sendAsString(NetworkCommand message, Socket socket) throws IOException {
-        throw new UnsupportedEncodingException("send as string not supported!");
+    protected OutputStream sendAsString(NetworkCommand message, OutputStream outputStream) throws IOException {
+        throw new UnsupportedEncodingException("_send as string not supported!");
     }
 }
