@@ -74,6 +74,7 @@ public abstract class Role {
         if(!isHandled){
             if(command instanceof Connect_NC){
                 NetworkCommand connectOK = new ConnectOK_NC()
+                        .setSenderId(getSettings().getRoleId())
                         .setSenderAddress(getSettings().getAddress())
                         .setReceiverAddress(command.getSenderAddress())
                         .setNodeType("member");

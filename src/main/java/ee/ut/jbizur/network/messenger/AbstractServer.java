@@ -28,7 +28,7 @@ public abstract class AbstractServer {
             try {
                 serverSocket.close();
             } catch (IOException e) {
-                Logger.error(e);
+                Logger.error(e, "");
             }
             return address;
         }

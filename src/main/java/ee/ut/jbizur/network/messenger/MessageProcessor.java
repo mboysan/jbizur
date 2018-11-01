@@ -97,6 +97,7 @@ public class MessageProcessor {
             if (!role.checkNodesDiscovered()) {
                 multicaster.multicast(
                         new Connect_NC()
+                                .setSenderId(role.getSettings().getRoleId())
                                 .setSenderAddress(role.getSettings().getAddress())
                                 .setNodeType("member")
                 );
