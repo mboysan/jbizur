@@ -46,6 +46,7 @@ public class NettyServer extends AbstractServer {
         final EventLoopGroup bossGroup = new NioEventLoopGroup(); // (1)
         final EventLoopGroup workerGroup = new NioEventLoopGroup();
         final TCPAddress tcpAddress;
+        final ServerHandler serverHandler = new ServerHandler();
 
         NettyServerInstance(TCPAddress tcpAddress) {
             this.tcpAddress = tcpAddress;
@@ -63,7 +64,7 @@ public class NettyServer extends AbstractServer {
                                 ch.pipeline().addLast(
                                         new ObjectDecoder(ClassResolvers.softCachingResolver(ClassLoader.getSystemClassLoader())),
                                         new ObjectEncoder(),
-                                        new ServerHandler());
+                                        serverHandler);
                             }
                         })
 //                        .option(ChannelOption.SO_BACKLOG, 128)          // (5)
@@ -79,30 +80,23 @@ public class NettyServer extends AbstractServer {
 
         void stop() {
             try {
-                channel.get().channel().closeFuture().sync();
-            } catch (InterruptedException e) {
-                Logger.error(e, "");
+                if (serverHandler.ctx != null) {
+                    serverHandler.ctx.close();
+                }
+                channel.get().channel().closeFuture();
             } finally {
-                try {
-                    workerGroup.shutdownGracefully().sync();
-                } catch (InterruptedException e) {
-                    Logger.error(e, "");
-                }
-                try {
-                    bossGroup.shutdownGracefully().sync();
-                } catch (InterruptedException e) {
-                    Logger.error(e, "");
-                }
+                workerGroup.shutdownGracefully();
+                bossGroup.shutdownGracefully();
             }
         }
     }
 
     private class ServerHandler extends ChannelInboundHandlerAdapter {
-
+        ChannelHandlerContext ctx;
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
+            this.ctx = ctx;
         }
-
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object o) { // (2)
             try {
@@ -112,7 +106,6 @@ public class NettyServer extends AbstractServer {
                 ReferenceCountUtil.release(o);
             }
         }
-
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) { // (4)
             // Close the connection when an exception is raised.
