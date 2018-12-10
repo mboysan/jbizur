@@ -7,7 +7,7 @@ import ee.ut.jbizur.network.address.Address;
 import java.io.Serializable;
 
 /**
- * The generic ee.ut.jbizur.network command to send/receive for process communication.
+ * The generic ee.ut.jbizur.network command to _send/receive for process communication.
  */
 public class NetworkCommand implements Serializable {
     /**
@@ -39,7 +39,7 @@ public class NetworkCommand implements Serializable {
      */
     private long timeStamp;
     /**
-     * Any additional payload to send.
+     * Any additional payload to _send.
      */
     private Object payload;
     /**

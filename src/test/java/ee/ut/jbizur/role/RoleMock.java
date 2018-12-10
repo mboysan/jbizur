@@ -1,8 +1,7 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.network.address.MockMulticastAddress;
-import ee.ut.jbizur.network.messenger.IMessageReceiver;
-import ee.ut.jbizur.network.messenger.IMessageSender;
+import ee.ut.jbizur.network.messenger.MessageProcessor;
+import ee.ut.jbizur.network.messenger.udp.Multicaster;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.internal.InternalCommand;
 
@@ -10,25 +9,35 @@ import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class RoleMock extends Role {
 
     public Map<Integer, NetworkCommand> receivedCommandsMap = new ConcurrentHashMap<>();
+    private final AtomicInteger recvCmdCount = new AtomicInteger(0);
 
     public RoleMock(RoleSettings settings) throws InterruptedException, UnknownHostException {
-        super(
-                new RoleSettings()
-                        .setMulticastAddress(new MockMulticastAddress((String) null, 0))
-        );
+        super(settings, new MessageProcessor() {
+            @Override
+            protected Multicaster createMulticaster() {
+                return null;
+            }
+            @Override
+            protected void initMulticast() {
+
+            }
+        });
+        messageProcessor.registerRole(this);
+        messageProcessor.start();
     }
 
     @Override
-    protected void initMulticast() {
-
+    protected void initRole() {
     }
 
     @Override
     public void handleNetworkCommand(NetworkCommand command) {
+        System.out.println("command recv (" + recvCmdCount.incrementAndGet() + "): " + command);
         receivedCommandsMap.put(command.getMsgId(), command);
     }
 
@@ -42,11 +51,7 @@ public class RoleMock extends Role {
         return null;
     }
 
-    public IMessageSender getMessageSender() {
-        return messageSender;
-    }
-
-    public IMessageReceiver getMessageReceiver() {
-        return messageReceiver;
+    public MessageProcessor getMessageProcessor() {
+        return messageProcessor;
     }
 }

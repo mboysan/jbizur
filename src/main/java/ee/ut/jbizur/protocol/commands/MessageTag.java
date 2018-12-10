@@ -1,16 +1,16 @@
 package ee.ut.jbizur.protocol.commands;
 
 /**
- * Enum to define the tag of the message to send/recv.
+ * Enum to define the tag of the message to _send/recv.
  */
 public enum MessageTag {
     /**
-     * Any tag to send/recv.
+     * Any tag to _send/recv.
      */
     ANY_TAG(0);
 
     /**
-     * Tag of the message to send/recv.
+     * Tag of the message to _send/recv.
      */
     private final int tag;
 

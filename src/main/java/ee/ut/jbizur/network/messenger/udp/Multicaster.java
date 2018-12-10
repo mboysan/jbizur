@@ -1,4 +1,4 @@
-package ee.ut.jbizur.network.messenger;
+package ee.ut.jbizur.network.messenger.udp;
 
 import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.protocol.CommandMarshaller;
@@ -76,13 +76,14 @@ public class Multicaster {
                 socket.send(packet);
                 socket.close();
             } catch (IOException e) {
-                Logger.error(e, "multicast send error.");
+                Logger.error(e, "multicast _send error.");
             }
         }
     }
 
     private class MulticastReceiver implements Runnable {
         private ExecutorService executor = Executors.newSingleThreadExecutor();
+        private MulticastSocket socket;
 
         @Override
         public void run() {
@@ -91,24 +92,36 @@ public class Multicaster {
 
         private void end(){
             new MulticastPublisher().multicast(new SignalEnd_NC());
+
         }
 
         private void recv() {
             try {
-                MulticastSocket socket = new MulticastSocket(multicastAddress.getMulticastPort());
+                socket = new MulticastSocket(multicastAddress.getMulticastPort());
                 InetAddress group = multicastAddress.getMulticastGroupAddr();
-                socket.joinGroup(group);
+                synchronized (socket) {
+                    socket.joinGroup(group);
+                }
                 byte[] msg = new byte[1024];    //fixed size byte[]
                 while (isRunning) {
                     DatagramPacket packet = new DatagramPacket(msg, msg.length);
-                    socket.receive(packet);
+                    synchronized (socket) {
+                        socket.receive(packet);
+                    }
                     byte[] msgRecv = ByteUtils.extractActualMessage(packet.getData());
 
                     NetworkCommand received = commandMarshaller.unmarshall(msgRecv);
+                    if (received instanceof SignalEnd_NC) {
+                        Logger.info("MulticastReceiver end!");
+                        roleInstance.handleNetworkCommand(received);
+                        break;
+                    }
                     executor.execute(() -> roleInstance.handleNetworkCommand(received));
                 }
-                socket.leaveGroup(group);
-                socket.close();
+                synchronized (socket) {
+                    socket.leaveGroup(group);
+                    socket.close();
+                }
             } catch (IOException e) {
                 Logger.error(e, "multicast recv error");
             }

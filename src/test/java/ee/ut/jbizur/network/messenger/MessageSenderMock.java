@@ -1,5 +1,6 @@
 package ee.ut.jbizur.network.messenger;
 
+import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.internal.SendFail_IC;
@@ -7,15 +8,21 @@ import ee.ut.jbizur.role.Role;
 import ee.ut.jbizur.role.bizur.BizurClientMock;
 import ee.ut.jbizur.role.bizur.BizurNodeMock;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
-public class MessageSenderMock implements IMessageSender {
+public class MessageSenderMock extends AbstractClient {
     private final ExecutorService executor = Executors.newCachedThreadPool();
     private final Map<String, Role> roles = new HashMap<>();
     private final CommandMarshaller commandMarshaller = new CommandMarshaller();
+
+    public MessageSenderMock(Role roleInstance) {
+        super(roleInstance);
+    }
 
     @Override
     public void send(NetworkCommand command) {
@@ -28,6 +35,11 @@ public class MessageSenderMock implements IMessageSender {
 
     public void registerRole(Role role){
         roles.put(role.getSettings().getAddress().toString(), role);
+    }
+
+    @Override
+    protected <T> T connect(Address address) throws IOException {
+        return null;
     }
 
     private class Sender implements Runnable {
