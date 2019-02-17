@@ -117,9 +117,15 @@ public class BlockingServerImpl extends AbstractServer {
                         DataInputStream dIn = new DataInputStream(inputStream);
                         int size = dIn.readInt();
                         byte[] msg = new byte[size];
-                        dIn.read(msg);
-                        message = commandMarshaller.unmarshall(msg);
+                        final int read = dIn.read(msg);
+                        if (read == size) {
+                            message = commandMarshaller.unmarshall(msg);
+                        } else {
+                            throw new IOException(String.format("Read bytes do not match the expected size:[exp=%d,act=%d]!", size, read));
+                        }
                         break;
+                    default:
+                        throw new IOException("serialization type could not be determined!");
                 }
                 if(message != null){
                     NetworkCommand command = (NetworkCommand) message;

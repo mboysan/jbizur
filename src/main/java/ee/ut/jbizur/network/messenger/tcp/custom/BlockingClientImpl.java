@@ -13,6 +13,7 @@ import org.pmw.tinylog.Logger;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -24,7 +25,6 @@ import java.util.concurrent.Executors;
 public class BlockingClientImpl extends AbstractClient {
 
     private final ExecutorService executor;
-    protected static GeneralConfig.SerializationType SERIALIZATION_TYPE = GeneralConfig.getTCPSerializationType();
     private Map<String, Socket> socketMap;
 
     /**
@@ -39,6 +39,10 @@ public class BlockingClientImpl extends AbstractClient {
         if (keepAlive) {
             socketMap = new ConcurrentHashMap<>();
         }
+    }
+
+    protected GeneralConfig.SerializationType getSerializationType() {
+        return GeneralConfig.getTCPSerializationType();
     }
 
     /**
@@ -95,13 +99,13 @@ public class BlockingClientImpl extends AbstractClient {
     }
 
     protected void disconnectAll() {
-        for (String tcpAddressStr : socketMap.keySet()) {
+        socketMap.forEach((tcpAddressStr, socket) -> {
             try {
-                disconnect(tcpAddressStr, socketMap.get(tcpAddressStr));
+                disconnect(tcpAddressStr, socket);
             } catch (IOException e) {
                 Logger.error(e);
             }
-        }
+        });
         socketMap.clear();
     }
 
@@ -133,7 +137,7 @@ public class BlockingClientImpl extends AbstractClient {
 
     protected void _send(NetworkCommand message, OutputStream outputStream) throws IOException {
         OutputStream out;
-        switch (SERIALIZATION_TYPE) {
+        switch (getSerializationType()) {
             case OBJECT:
                 out = sendAsObject(message, outputStream);
                 break;

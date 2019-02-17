@@ -44,7 +44,7 @@ public class RoleSettings {
         setAnticipatedMemberCount(NodeConfig.getAnticipatedMemberCount());
     }
 
-    public void registerRoleRef(Role roleRef) {
+    public synchronized void registerRoleRef(Role roleRef) {
         this.roleRef = roleRef;
     }
 

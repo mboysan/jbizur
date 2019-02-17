@@ -14,14 +14,17 @@ public class PropertiesLoader {
         LoggerConfig.configureLogger();
     }
 
-    public synchronized static void loadProperties(File file) {
+    public synchronized static void loadProperties(File file) throws IOException {
         PROPERTIES = new Properties();
+        InputStream is = null;
         try {
             String uri = (new File("user.dir")).toURI().relativize(file.toURI()).getPath();
-            InputStream is = new FileInputStream(new File(uri));
+            is = new FileInputStream(new File(uri));
             PROPERTIES.load(is);
-        } catch (IOException e) {
-            e.printStackTrace();
+        } finally {
+            if (is != null) {
+                is.close();
+            }
         }
     }
 
