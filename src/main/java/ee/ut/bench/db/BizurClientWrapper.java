@@ -5,6 +5,7 @@ import ee.ut.jbizur.role.bizur.BizurBuilder;
 import ee.ut.jbizur.role.bizur.BizurClient;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Set;
 
 public class BizurClientWrapper extends AbstractDBClientWrapper {
@@ -12,7 +13,7 @@ public class BizurClientWrapper extends AbstractDBClientWrapper {
     private BizurClient client;
 
     @Override
-    public void init() throws InterruptedException {
+    public void init() throws InterruptedException, IOException {
         BizurBuilder builder = BizurBuilder.builder();
         switch (Config.getPropsLocation()) {
             case RESOURCES:
