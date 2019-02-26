@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/travis-ci/travis-web.svg?branch=master)](https://travis-ci.org/travis-ci/travis-web)
+
 #### Disclaimer
 This is still a work in progress! This repository is only
 created for educational purposes (specifically, for my 
