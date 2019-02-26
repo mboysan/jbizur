@@ -5,6 +5,7 @@ import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MulticastAddress;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Set;
 
 public class BizurBuilder {
@@ -44,7 +45,7 @@ public class BizurBuilder {
         return this;
     }
 
-    public BizurBuilder loadPropertiesFrom(File workingDirFile) {
+    public BizurBuilder loadPropertiesFrom(File workingDirFile) throws IOException {
         PropertiesLoader.loadProperties(workingDirFile);
         settings.defaults();
         return this;

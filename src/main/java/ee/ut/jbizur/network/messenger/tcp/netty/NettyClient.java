@@ -75,7 +75,7 @@ public class NettyClient extends AbstractClient {
         }
     }
 
-    private class NettyClientInstance {
+    private static class NettyClientInstance {
         TCPAddress tcpAddress;
         EventLoopGroup group = new NioEventLoopGroup();
         ChannelFuture channelFuture;
@@ -156,7 +156,7 @@ public class NettyClient extends AbstractClient {
         }
     }
 
-    public class ClientHandler extends SimpleChannelInboundHandler {
+    public static class ClientHandler extends SimpleChannelInboundHandler {
         ChannelHandlerContext ctx;
 
         final NettyClientInstance client;

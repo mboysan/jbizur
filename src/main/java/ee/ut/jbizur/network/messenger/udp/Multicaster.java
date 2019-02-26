@@ -99,9 +99,7 @@ public class Multicaster {
             try {
                 socket = new MulticastSocket(multicastAddress.getMulticastPort());
                 InetAddress group = multicastAddress.getMulticastGroupAddr();
-                synchronized (socket) {
-                    socket.joinGroup(group);
-                }
+                socket.joinGroup(group);
                 byte[] msg = new byte[1024];    //fixed size byte[]
                 while (isRunning) {
                     DatagramPacket packet = new DatagramPacket(msg, msg.length);

@@ -10,7 +10,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class InitMainSingleJVM {
 
-    public static void main(String[] args) throws InterruptedException, UnknownHostException {
+    public static void main(String[] args) throws InterruptedException {
 
         int totalNodes = 3;
         if(args != null && args.length == 1){

@@ -14,8 +14,12 @@ public class RapidoidBlockingClient extends BlockingClientImpl {
 
     public RapidoidBlockingClient(Role roleInstance) {
         super(roleInstance);
-        SERIALIZATION_TYPE = GeneralConfig.SerializationType.BYTE;
         commandMarshaller.setSerializer(new ByteSerializer());
+    }
+
+    @Override
+    protected GeneralConfig.SerializationType getSerializationType() {
+        return GeneralConfig.SerializationType.BYTE;
     }
 
     protected OutputStream sendAsBytes(NetworkCommand message, OutputStream outputStream) throws IOException {
