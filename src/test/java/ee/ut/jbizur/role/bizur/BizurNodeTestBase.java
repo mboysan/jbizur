@@ -19,7 +19,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class BizurNodeTestBase {
 
-    Random random = getRandom();
+    static Random random = getRandom();
 
     private static final int NODE_COUNT = NodeTestConfig.getMemberCount();
     BizurNode[] bizurNodes;
@@ -76,13 +76,14 @@ public class BizurNodeTestBase {
     public void tearDown() {
     }
 
-    private Random getRandom() {
+    private static Random getRandom() {
         long seed = System.currentTimeMillis();
         return getRandom(seed);
     }
 
-    private Random getRandom(long seed) {
-        Logger.info("Seed: " + seed);
+    private static Random getRandom(long seed) {
+        Logger.error("seed: " + seed);
+        System.out.println("seed: " + seed);
         return new Random(seed);
     }
 
