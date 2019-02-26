@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/travis-ci/travis-web.svg?branch=master)](https://travis-ci.org/travis-ci/travis-web)
+[![codecov](https://codecov.io/gh/mboysan/jbizur/branch/master/graph/badge.svg)](https://codecov.io/gh/mboysan/jbizur)
 
 #### Disclaimer
 This is still a work in progress! This repository is only
