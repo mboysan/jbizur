@@ -1,4 +1,4 @@
-[![Build Status](https://api.travis-ci.org/mboysan/jbizur.svg?branch=master)](https://travis-ci.org/mboysan/jbizur)
+[![Build Status](https://api.travis-ci.com/mboysan/jbizur.svg?branch=master)](https://travis-ci.com/mboysan/jbizur)
 [![codecov](https://codecov.io/gh/mboysan/jbizur/branch/master/graph/badge.svg)](https://codecov.io/gh/mboysan/jbizur)
 
 #### Disclaimer
