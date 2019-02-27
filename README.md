@@ -50,4 +50,3 @@ section for more details on what will be implemented next.
 * **NB!** Since the code is constantly evolving, comments 
 will be added to the implementation details once the 
 project is in finalization state.
-
