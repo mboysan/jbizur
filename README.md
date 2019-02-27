@@ -1,5 +1,6 @@
 [![Build Status](https://api.travis-ci.com/mboysan/jbizur.svg?branch=master)](https://travis-ci.com/mboysan/jbizur)
 [![codecov](https://codecov.io/gh/mboysan/jbizur/branch/master/graph/badge.svg)](https://codecov.io/gh/mboysan/jbizur)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=mboysan_jbizur&metric=alert_status)](https://sonarcloud.io/dashboard?id=mboysan_jbizur)
 
 #### Disclaimer
 This is still a work in progress! This repository is only
