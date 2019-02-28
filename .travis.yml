@@ -12,6 +12,7 @@ addons:
     organization: "mboysan-github" # the key of the org you chose at step #3
 
 before_script:
+  - mkdir ./config
   - mkdir ./config/log
 script:
   - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install sonar:sonar -Dmaven.javadoc.skip=true -V
