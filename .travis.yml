@@ -16,9 +16,7 @@ install: true
 before_script:
   - mkdir ./config
   - mkdir ./config/log
+  - chmod +x ./scripts/uploadlog.sh
 script:
   - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install sonar:sonar -Dmaven.javadoc.skip=true -V
-after_script:
-  - cd ./scripts
-  - chmod +x ./uploadlog.sh
   - bash ./uploadlog.sh
