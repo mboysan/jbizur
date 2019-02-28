@@ -11,12 +11,15 @@ addons:
   sonarcloud:
     organization: "mboysan-github" # the key of the org you chose at step #3
 
+install: true
+
 before_script:
   - mkdir ./config
   - mkdir ./config/log
 script:
   - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install sonar:sonar -Dmaven.javadoc.skip=true -V
 after_script:
-  - chmod +x ./scripts/uploadlog.sh
   - cd ./scripts
-  - bash ./uploadlog.sh
+  - chmod +x ./uploadlog.sh
+  - bash ./uploadlog.sh > loc.out
+  - cat ./loc.out
