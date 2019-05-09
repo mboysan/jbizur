@@ -6,7 +6,7 @@ import ee.ut.jbizur.network.address.MockAddress;
 import ee.ut.jbizur.network.address.MockMulticastAddress;
 import org.junit.Assert;
 import org.junit.Test;
-import utils.RunnerWithExceptionCatcher;
+import utils.MultiThreadExecutor;
 
 import java.net.UnknownHostException;
 import java.util.HashSet;
@@ -118,9 +118,9 @@ public class BizurClientTest extends BizurNodeTestBase {
     @Test
     public void clientKeyValueSetGetMultiThreadTest() throws Throwable {
         int testCount = 50;
-        RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
+        MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
-            runner.execute(() -> {
+            executor.execute(() -> {
                 String testKey = UUID.randomUUID().toString();
                 String expVal = UUID.randomUUID().toString();
                 putExpectedKeyValue(testKey, expVal);
@@ -129,8 +129,7 @@ public class BizurClientTest extends BizurNodeTestBase {
                 Assert.assertEquals(expVal, getRandomClient().get(testKey));
             });
         }
-        runner.awaitCompletion();
-        runner.throwAnyCaughtException();
+        executor.endExecution();
     }
 
     /**
@@ -139,9 +138,9 @@ public class BizurClientTest extends BizurNodeTestBase {
     @Test
     public void clientKeyValueDeleteMultiThreadTest() throws Throwable {
         int testCount = 50;
-        RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
+        MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
-            runner.execute(() -> {
+            executor.execute(() -> {
                 String testKey = UUID.randomUUID().toString();
                 String expVal = UUID.randomUUID().toString();
                 putExpectedKeyValue(testKey, expVal);
@@ -153,8 +152,7 @@ public class BizurClientTest extends BizurNodeTestBase {
                 removeExpectedKey(testKey);
             });
         }
-        runner.awaitCompletion();
-        runner.throwAnyCaughtException();
+        executor.endExecution();
     }
 
     /**

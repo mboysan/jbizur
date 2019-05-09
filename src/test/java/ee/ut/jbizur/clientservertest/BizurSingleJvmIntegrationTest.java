@@ -7,7 +7,7 @@ import ee.ut.jbizur.role.bizur.BizurBuilder;
 import ee.ut.jbizur.role.bizur.BizurClient;
 import ee.ut.jbizur.role.bizur.BizurNode;
 import org.junit.*;
-import utils.RunnerWithExceptionCatcher;
+import utils.MultiThreadExecutor;
 
 import java.net.UnknownHostException;
 import java.util.*;
@@ -114,9 +114,9 @@ public class BizurSingleJvmIntegrationTest {
     @Test
     public void keyValueSetGetMultiThreadTest() throws Throwable {
         int testCount = 10;
-        RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
+        MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
-            runner.execute(() -> {
+            executor.execute(() -> {
                 String testKey = UUID.randomUUID().toString();
                 String expVal = UUID.randomUUID().toString();
 
@@ -124,8 +124,7 @@ public class BizurSingleJvmIntegrationTest {
                 Assert.assertEquals(expVal, client.get(testKey));
             });
         }
-        runner.awaitCompletion();
-        runner.throwAnyCaughtException();
+        executor.endExecution();
     }
 
     public BizurNode getRandomNode() {

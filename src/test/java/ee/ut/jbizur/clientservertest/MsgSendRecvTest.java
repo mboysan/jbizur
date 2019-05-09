@@ -6,7 +6,7 @@ import ee.ut.jbizur.role.RoleMock;
 import ee.ut.jbizur.role.RoleSettings;
 import org.junit.*;
 import org.pmw.tinylog.Logger;
-import utils.RunnerWithExceptionCatcher;
+import utils.MultiThreadExecutor;
 
 import java.util.Random;
 import java.util.UUID;
@@ -53,15 +53,14 @@ public class MsgSendRecvTest {
     @Test
     public void testMultithreadMessageSendRecv() throws Throwable {
         int testCount = 1000;
-        RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
+        MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
-            runner.execute(() -> {
+            executor.execute(() -> {
                 roleMock.getMessageProcessor().getClient().send(generateCommand());
             });
         }
 
-        runner.awaitCompletion();
-        runner.throwAnyCaughtException();
+        executor.endExecution();
         Thread.sleep(5000);
 
         Assert.assertEquals(testCount, roleMock.receivedCommandsMap.size());

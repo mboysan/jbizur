@@ -4,7 +4,7 @@ import ee.ut.jbizur.config.TestConfig;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
-import utils.RunnerWithExceptionCatcher;
+import utils.MultiThreadExecutor;
 
 import java.util.Set;
 
@@ -35,10 +35,10 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
     @Test
     public void keyValueSetGetMultiThreadTest() throws Throwable {
         int testCount = TestConfig.getKeyValueSetGetMultiThreadTestCount();
-        RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
+        MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
             int finalI = i;
-            runner.execute(() -> {
+            executor.execute(() -> {
                 String expKey = "tkey" + finalI;
                 String expVal = "tval" + finalI;
                 putExpectedKeyValue(expKey, expVal);
@@ -51,8 +51,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
                 Assert.assertEquals(expVal, actVal);
             });
         }
-        runner.awaitCompletion();
-        runner.throwAnyCaughtException();
+        executor.endExecution();
     }
 
     /**
@@ -85,10 +84,10 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
     @Test
     public void keyValueDeleteMultiThreadTest() throws Throwable {
         int testCount = TestConfig.getKeyValueDeleteMultiThreadTestCount();
-        RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
+        MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
             int finalI = i;
-            runner.execute(() -> {
+            executor.execute(() -> {
                 String expKey = "tkey" + finalI;
                 String expVal = "tval" + finalI;
                 putExpectedKeyValue(expKey, expVal);
@@ -100,8 +99,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
                 removeExpectedKey(expKey);
             });
         }
-        runner.awaitCompletion();
-        runner.throwAnyCaughtException();
+        executor.endExecution();
     }
 
     /**
