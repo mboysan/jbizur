@@ -2,7 +2,7 @@ package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.config.BizurTestConfig;
 import ee.ut.jbizur.datastore.bizur.BucketContainer;
-import ee.ut.jbizur.network.messenger.MessageProcessor;
+import ee.ut.jbizur.network.messenger.MessageProcessorMock;
 import ee.ut.jbizur.network.messenger.MessageReceiverMock;
 import ee.ut.jbizur.network.messenger.MessageSenderMock;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
@@ -16,13 +16,13 @@ public class BizurNodeMock extends BizurNode {
     public boolean isDead = false;
     public AtomicInteger hashIndex = new AtomicInteger(-1);
 
-    protected BizurNodeMock(BizurSettings bizurSettings, MessageProcessor messageProcessor) throws InterruptedException {
-        super(bizurSettings, messageProcessor);
+    protected BizurNodeMock(BizurSettings bizurSettings) {
+        super(bizurSettings);
     }
 
     @Override
-    public void initRole() {
-        super.initRole();
+    protected void initRole() {
+        this.messageProcessor = new MessageProcessorMock(this).start();
     }
 
     @Override

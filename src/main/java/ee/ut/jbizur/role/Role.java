@@ -23,23 +23,15 @@ public abstract class Role {
     protected final Map<Integer, SyncMessageListener> syncMessageListeners = new ConcurrentHashMap<>();
 
     private final RoleSettings settings;
-    protected final MessageProcessor messageProcessor;
+    protected MessageProcessor messageProcessor;
 
-    protected Role(RoleSettings settings) throws InterruptedException {
-        this(settings, null);
-    }
-
-    @ForTestingOnly
-    protected Role(RoleSettings settings, MessageProcessor messageProcessor) throws InterruptedException {
+    protected Role(RoleSettings settings) {
         this.settings = settings;
-        this.messageProcessor = messageProcessor == null ? new MessageProcessor(this) : messageProcessor;
         initRole();
     }
 
     protected void initRole() {
-        if (messageProcessor != null && messageProcessor.getRole() != null) {
-            this.messageProcessor.start();
-        }
+        this.messageProcessor = new MessageProcessor(this).start();
     }
 
     public boolean isAddressesAlreadyRegistered() {

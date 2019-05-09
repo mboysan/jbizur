@@ -103,4 +103,8 @@ public class NodeConfig {
     public static long getMaxElectionWaitSec() {
         return PropertiesLoader.getLong("node.max_election_wait_sec", 5);
     }
+
+    public static boolean isMulticastEnabled() {
+        return PropertiesLoader.getBoolean("node.multicast_enabled", true);
+    }
 }

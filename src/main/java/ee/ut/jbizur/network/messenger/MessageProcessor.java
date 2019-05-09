@@ -23,21 +23,11 @@ public class MessageProcessor {
 
     private ScheduledExecutorService multicastExecutor;
 
-    @ForTestingOnly
-    public MessageProcessor() {
-        this(null);
-    }
-
     public MessageProcessor(Role role) {
         this.role = role;
     }
 
-    @ForTestingOnly
-    public void registerRole(Role role) {
-        this.role = role;
-    }
-
-    public void start() {
+    public MessageProcessor start() {
         if (role == null) {
             throw new IllegalArgumentException("role instance is null");
         }
@@ -50,7 +40,8 @@ public class MessageProcessor {
         role.setAddress(modifiedAddress);
         server.startRecv(modifiedAddress);
 
-        initMulticast();
+        initMulticast();    //will not run if multicast is disabled
+        return this;
     }
 
     public void shutdown() {
@@ -64,7 +55,10 @@ public class MessageProcessor {
     }
 
     protected Multicaster createMulticaster() {
-        return new Multicaster(role.getSettings().getMulticastAddress(), role);
+        if (role.getSettings().isMultiCastEnabled()) {
+            return new Multicaster(role.getSettings().getMulticastAddress(), role);
+        }
+        return null;
     }
 
     protected AbstractClient createClient() {

@@ -4,7 +4,6 @@ import ee.ut.jbizur.config.BizurTestConfig;
 import ee.ut.jbizur.config.NodeTestConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MockAddress;
-import ee.ut.jbizur.network.address.MockMulticastAddress;
 import ee.ut.jbizur.util.IdUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -15,7 +14,6 @@ import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class BizurNodeTestBase {
 
@@ -49,7 +47,7 @@ public class BizurNodeTestBase {
         for (int i = 0; i < bizurNodes.length; i++) {
             bizurNodes[i] = BizurMockBuilder.mockBuilder()
                     .withMemberId(members[i])
-                    .withMulticastAddress(new MockMulticastAddress("", 0))
+                    .withMulticastEnabled(false)
                     .withAddress(addresses[i])
                     .withMemberAddresses(new HashSet<>(Arrays.asList(addresses)))
                     .build();

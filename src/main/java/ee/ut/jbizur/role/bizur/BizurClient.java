@@ -1,7 +1,6 @@
 package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.messenger.MessageProcessor;
 import ee.ut.jbizur.network.messenger.SyncMessageListener;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.bizur.*;
@@ -19,13 +18,8 @@ public class BizurClient extends BizurNode {
     private Address[] addresses;
     private final Object addressesLock = new Object();
 
-    protected BizurClient(BizurSettings bizurSettings) throws InterruptedException {
-        this(bizurSettings, null);
-    }
-
-    protected BizurClient(BizurSettings bizurSettings, MessageProcessor messageProcessor) throws InterruptedException {
-        super(bizurSettings, messageProcessor);
-
+    protected BizurClient(BizurSettings bizurSettings) {
+        super(bizurSettings);
         if (isAddressesAlreadyRegistered()) {
             arrangeAddresses();
         }

@@ -23,6 +23,7 @@ public class RoleSettings {
     private String roleId;
     private Address address;
     private MulticastAddress multicastAddress;
+    private boolean isMultiCastEnabled;
     private int anticipatedMemberCount;
 
     public RoleSettings() {
@@ -42,6 +43,7 @@ public class RoleSettings {
             Logger.error(e);
         }
         setAnticipatedMemberCount(NodeConfig.getAnticipatedMemberCount());
+        setMultiCastEnabled(NodeConfig.isMulticastEnabled());
     }
 
     public synchronized void registerRoleRef(Role roleRef) {
@@ -72,6 +74,15 @@ public class RoleSettings {
 
     protected RoleSettings setMulticastAddress(MulticastAddress multicastAddress) {
         this.multicastAddress = multicastAddress;
+        return this;
+    }
+
+    public boolean isMultiCastEnabled() {
+        return isMultiCastEnabled;
+    }
+
+    public RoleSettings setMultiCastEnabled(boolean multiCastEnabled) {
+        isMultiCastEnabled = multiCastEnabled;
         return this;
     }
 

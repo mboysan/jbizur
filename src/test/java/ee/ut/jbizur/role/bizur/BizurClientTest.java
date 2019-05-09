@@ -3,7 +3,6 @@ package ee.ut.jbizur.role.bizur;
 import ee.ut.jbizur.config.ClientTestConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MockAddress;
-import ee.ut.jbizur.network.address.MockMulticastAddress;
 import org.junit.Assert;
 import org.junit.Test;
 import utils.MultiThreadExecutor;
@@ -41,7 +40,7 @@ public class BizurClientTest extends BizurNodeTestBase {
         for (int i = 0; i < bizurClients.length; i++) {
             bizurClients[i] = BizurMockBuilder.mockBuilder()
                     .withMemberId(clients[i])
-                    .withMulticastAddress(new MockMulticastAddress("", 0))
+                    .withMulticastEnabled(false)
                     .withAddress(new MockAddress(clients[i]))
                     .withMemberAddresses(getMemberAddresses())
                     .buildClient();

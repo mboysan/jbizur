@@ -30,6 +30,11 @@ public class BizurBuilder {
         return this;
     }
 
+    public BizurBuilder withMulticastEnabled(boolean isEnabled) {
+        settings.setMultiCastEnabled(isEnabled);
+        return this;
+    }
+
     public BizurBuilder withMulticastAddress(MulticastAddress multicastAddress) {
         settings.setMulticastAddress(multicastAddress);
         return this;

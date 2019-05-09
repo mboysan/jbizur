@@ -1,6 +1,5 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.annotations.ForTestingOnly;
 import ee.ut.jbizur.config.BizurConfig;
 import ee.ut.jbizur.config.LoggerConfig;
 import ee.ut.jbizur.config.NodeConfig;
@@ -8,7 +7,6 @@ import ee.ut.jbizur.datastore.bizur.BucketContainer;
 import ee.ut.jbizur.exceptions.OperationFailedError;
 import ee.ut.jbizur.exceptions.RoleIsNotReadyError;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.messenger.MessageProcessor;
 import ee.ut.jbizur.network.messenger.SyncMessageListener;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.bizur.*;
@@ -28,15 +26,8 @@ public class BizurNode extends Role {
     private boolean isReady;
     BucketContainer bucketContainer;
 
-    BizurNode(BizurSettings settings) throws InterruptedException {
-        this(settings, null);
-    }
-
-    @ForTestingOnly
-    protected BizurNode(BizurSettings settings,
-                        MessageProcessor messageProcessor) throws InterruptedException {
-        super(settings, messageProcessor);
-
+    BizurNode(BizurSettings settings) {
+        super(settings);
         this.isReady = false;
         initBuckets();
     }

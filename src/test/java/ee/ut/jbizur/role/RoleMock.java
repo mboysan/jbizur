@@ -1,11 +1,9 @@
 package ee.ut.jbizur.role;
 
 import ee.ut.jbizur.network.messenger.MessageProcessor;
-import ee.ut.jbizur.network.messenger.udp.Multicaster;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.internal.InternalCommand;
 
-import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,23 +14,8 @@ public class RoleMock extends Role {
     public Map<Integer, NetworkCommand> receivedCommandsMap = new ConcurrentHashMap<>();
     private final AtomicInteger recvCmdCount = new AtomicInteger(0);
 
-    public RoleMock(RoleSettings settings) throws InterruptedException, UnknownHostException {
-        super(settings, new MessageProcessor() {
-            @Override
-            protected Multicaster createMulticaster() {
-                return null;
-            }
-            @Override
-            protected void initMulticast() {
-
-            }
-        });
-        messageProcessor.registerRole(this);
-        messageProcessor.start();
-    }
-
-    @Override
-    protected void initRole() {
+    public RoleMock(RoleSettings settings) {
+        super(settings.setMultiCastEnabled(false));
     }
 
     @Override

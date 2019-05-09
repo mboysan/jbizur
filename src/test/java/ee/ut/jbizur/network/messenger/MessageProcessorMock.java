@@ -4,8 +4,8 @@ import ee.ut.jbizur.role.Role;
 
 public class MessageProcessorMock extends MessageProcessor {
 
-    public void registerRole(Role role) {
-        this.role = role;
+    public MessageProcessorMock(Role role) {
+        super(role);
     }
 
     @Override
