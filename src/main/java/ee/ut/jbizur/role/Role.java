@@ -1,9 +1,8 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.annotations.ForTestingOnly;
 import ee.ut.jbizur.config.LoggerConfig;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.messenger.MessageProcessor;
+import ee.ut.jbizur.network.messenger.NetworkManager;
 import ee.ut.jbizur.network.messenger.SyncMessageListener;
 import ee.ut.jbizur.network.messenger.tcp.custom.BlockingServerImpl;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
@@ -23,7 +22,7 @@ public abstract class Role {
     protected final Map<Integer, SyncMessageListener> syncMessageListeners = new ConcurrentHashMap<>();
 
     private final RoleSettings settings;
-    protected MessageProcessor messageProcessor;
+    protected NetworkManager networkManager;
 
     protected Role(RoleSettings settings) {
         this.settings = settings;
@@ -31,7 +30,7 @@ public abstract class Role {
     }
 
     protected void initRole() {
-        this.messageProcessor = new MessageProcessor(this).start();
+        this.networkManager = new NetworkManager(this).start();
     }
 
     public boolean isAddressesAlreadyRegistered() {
@@ -149,7 +148,7 @@ public abstract class Role {
         if (LoggerConfig.isDebugEnabled()) {
             Logger.debug("OUT " + logMsg(message.toString()));
         }
-        messageProcessor.getClient().send(message);
+        networkManager.getClient().send(message);
     }
 
     /**
@@ -162,7 +161,7 @@ public abstract class Role {
     public abstract CompletableFuture start();
 
     public void shutdown() {
-        messageProcessor.shutdown();
+        networkManager.shutdown();
     }
 
     protected void attachMsgListener(SyncMessageListener listener){

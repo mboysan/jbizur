@@ -2,9 +2,9 @@ package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.config.BizurTestConfig;
 import ee.ut.jbizur.datastore.bizur.BucketContainer;
-import ee.ut.jbizur.network.messenger.MessageProcessorMock;
-import ee.ut.jbizur.network.messenger.MessageReceiverMock;
-import ee.ut.jbizur.network.messenger.MessageSenderMock;
+import ee.ut.jbizur.network.messenger.NetworkManagerMock;
+import ee.ut.jbizur.network.messenger.ServerMock;
+import ee.ut.jbizur.network.messenger.ClientMock;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.common.Nack_NC;
 import ee.ut.jbizur.role.Role;
@@ -22,7 +22,7 @@ public class BizurNodeMock extends BizurNode {
 
     @Override
     protected void initRole() {
-        this.messageProcessor = new MessageProcessorMock(this).start();
+        this.networkManager = new NetworkManagerMock(this).start();
     }
 
     @Override
@@ -53,7 +53,7 @@ public class BizurNodeMock extends BizurNode {
     }
 
     public void registerRole(Role role) {
-        ((MessageSenderMock) messageProcessor.getClient()).registerRole(role);
+        ((ClientMock) networkManager.getClient()).registerRole(role);
     }
 
     @Override
@@ -66,6 +66,6 @@ public class BizurNodeMock extends BizurNode {
     }
 
     public void sendCommandToMessageReceiver(NetworkCommand command) {
-        ((MessageReceiverMock) messageProcessor.getServer()).handleNetworkCommand(command);
+        ((ServerMock) networkManager.getServer()).handleNetworkCommand(command);
     }
 }

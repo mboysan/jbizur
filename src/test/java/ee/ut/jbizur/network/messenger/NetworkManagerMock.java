@@ -2,19 +2,19 @@ package ee.ut.jbizur.network.messenger;
 
 import ee.ut.jbizur.role.Role;
 
-public class MessageProcessorMock extends MessageProcessor {
+public class NetworkManagerMock extends NetworkManager {
 
-    public MessageProcessorMock(Role role) {
+    public NetworkManagerMock(Role role) {
         super(role);
     }
 
     @Override
     protected AbstractClient createClient() {
-        return new MessageSenderMock(role);
+        return new ClientMock(role);
     }
 
     @Override
     protected AbstractServer createServer() {
-        return new MessageReceiverMock(role);
+        return new ServerMock(role);
     }
 }

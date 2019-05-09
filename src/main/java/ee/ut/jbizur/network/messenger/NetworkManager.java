@@ -1,6 +1,5 @@
 package ee.ut.jbizur.network.messenger;
 
-import ee.ut.jbizur.annotations.ForTestingOnly;
 import ee.ut.jbizur.config.GeneralConfig;
 import ee.ut.jbizur.config.NodeConfig;
 import ee.ut.jbizur.network.address.Address;
@@ -13,7 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class MessageProcessor {
+public class NetworkManager {
 
     protected Role role;
 
@@ -23,11 +22,11 @@ public class MessageProcessor {
 
     private ScheduledExecutorService multicastExecutor;
 
-    public MessageProcessor(Role role) {
+    public NetworkManager(Role role) {
         this.role = role;
     }
 
-    public MessageProcessor start() {
+    public NetworkManager start() {
         if (role == null) {
             throw new IllegalArgumentException("role instance is null");
         }

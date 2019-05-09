@@ -13,14 +13,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
-public class MessageSenderMock extends AbstractClient {
+public class ClientMock extends AbstractClient {
     private final ExecutorService executor = Executors.newCachedThreadPool();
     private final Map<String, Role> roles = new HashMap<>();
     private final CommandMarshaller commandMarshaller = new CommandMarshaller();
 
-    public MessageSenderMock(Role roleInstance) {
+    ClientMock(Role roleInstance) {
         super(roleInstance);
     }
 
@@ -30,7 +29,6 @@ public class MessageSenderMock extends AbstractClient {
            with the sending process. This can be thought of as a deep-copy of the command object. */
         command = commandMarshaller.unmarshall(commandMarshaller.marshall(command));
         executor.execute(new Sender(command));
-//        new Sender(command).run();
     }
 
     public void registerRole(Role role){
