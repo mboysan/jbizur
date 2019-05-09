@@ -15,9 +15,9 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class BizurNodeTestBase {
+import static utils.TestUtils.getRandom;
 
-    static Random random = getRandom();
+public class BizurNodeTestBase {
 
     private static final int NODE_COUNT = NodeTestConfig.getMemberCount();
     BizurNode[] bizurNodes;
@@ -74,23 +74,12 @@ public class BizurNodeTestBase {
     public void tearDown() {
     }
 
-    private static Random getRandom() {
-        long seed = System.currentTimeMillis();
-        return getRandom(seed);
-    }
-
-    private static Random getRandom(long seed) {
-        Logger.error("seed: " + seed);
-        System.out.println("seed: " + seed);
-        return new Random(seed);
-    }
-
     BizurNodeMock getRandomNode() {
         return getNode(-1);
     }
 
     BizurNodeMock getNode(int inx) {
-        return (BizurNodeMock) bizurNodes[inx == -1 ? random.nextInt(bizurNodes.length) : inx];
+        return (BizurNodeMock) bizurNodes[inx == -1 ? getRandom().nextInt(bizurNodes.length) : inx];
     }
 
     protected int hashKey(String s) {

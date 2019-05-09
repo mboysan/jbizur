@@ -11,19 +11,10 @@ import utils.MultiThreadExecutor;
 import java.util.Random;
 import java.util.UUID;
 
+import static utils.TestUtils.getRandom;
+
 @Ignore
 public class MsgSendRecvTest {
-    Random random = getRandom();
-
-    private Random getRandom() {
-        long seed = System.currentTimeMillis();
-        return getRandom(seed);
-    }
-
-    private Random getRandom(long seed) {
-        Logger.info("Seed: " + seed);
-        return new Random(seed);
-    }
 
     private RoleMock roleMock;
 
@@ -68,7 +59,7 @@ public class MsgSendRecvTest {
 
     protected NetworkCommand generateCommand() {
         return new MockNetworkCommand()
-                .setMsgId(random.nextInt())
+                .setMsgId(getRandom().nextInt())
                 .setPayload(UUID.randomUUID().toString())
                 .setSenderId(roleMock.getSettings().getRoleId())
                 .setSenderAddress(roleMock.getSettings().getAddress())

@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import static utils.TestUtils.getRandom;
+
 public class BizurClientTest extends BizurNodeTestBase {
 
     private BizurClient[] bizurClients;
@@ -166,6 +168,6 @@ public class BizurClientTest extends BizurNodeTestBase {
      * @return created bizur client located in {@link #bizurClients}.
      */
     private BizurClient getClient(int inx) {
-        return bizurClients[inx == -1 ? random.nextInt(bizurClients.length) : inx];
+        return bizurClients[inx == -1 ? getRandom().nextInt(bizurClients.length) : inx];
     }
 }

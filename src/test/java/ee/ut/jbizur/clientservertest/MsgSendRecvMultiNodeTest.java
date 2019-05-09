@@ -11,16 +11,16 @@ import utils.MultiThreadExecutor;
 import java.util.Random;
 import java.util.UUID;
 
+import static utils.TestUtils.getRandom;
+
 @Ignore
 public class MsgSendRecvMultiNodeTest {
 
     private final static int NODE_COUNT = 2;
     private RoleMock[] roleMocks = new RoleMock[NODE_COUNT];
 
-    private Random random = getRandom();
-
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         for (int i = 0; i < roleMocks.length; i++) {
             roleMocks[i] = new RoleMock(new RoleSettings());
         }
@@ -34,21 +34,11 @@ public class MsgSendRecvMultiNodeTest {
         }
     }
 
-    private Random getRandom() {
-        long seed = System.currentTimeMillis();
-        return getRandom(seed);
-    }
-
-    private Random getRandom(long seed) {
-        Logger.info("Seed: " + seed);
-        return new Random(seed);
-    }
-
     private RoleMock getRandomRole() {
         return getRole(-1);
     }
     private RoleMock getRole(int inx) {
-        return roleMocks[inx == -1 ? random.nextInt(roleMocks.length) : inx];
+        return roleMocks[inx == -1 ? getRandom().nextInt(roleMocks.length) : inx];
     }
 
     @Test
@@ -101,7 +91,7 @@ public class MsgSendRecvMultiNodeTest {
 
     private NetworkCommand generateCommand(RoleMock sender, RoleMock receiver) {
         return new MockNetworkCommand()
-                .setMsgId(random.nextInt())
+                .setMsgId(getRandom().nextInt())
                 .setPayload(UUID.randomUUID().toString())
                 .setSenderId(sender.getSettings().getRoleId())
                 .setSenderAddress(sender.getSettings().getAddress())

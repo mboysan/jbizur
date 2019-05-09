@@ -13,6 +13,8 @@ import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
+import static utils.TestUtils.getRandom;
+
 @Ignore
 public class BizurSingleJvmIntegrationTest {
 
@@ -20,8 +22,6 @@ public class BizurSingleJvmIntegrationTest {
 
     protected BizurNode[] nodes;
     protected BizurClient client;
-
-    Random random = initRandom();
 
     @Before
     public void setUp() throws Exception {
@@ -128,7 +128,7 @@ public class BizurSingleJvmIntegrationTest {
     }
 
     public BizurNode getRandomNode() {
-        return nodes[random.nextInt(MEMBER_COUNT)];
+        return nodes[getRandom().nextInt(MEMBER_COUNT)];
     }
 
     public static Random initRandom() {
