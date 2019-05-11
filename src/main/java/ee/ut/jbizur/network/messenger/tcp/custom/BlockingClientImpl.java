@@ -14,6 +14,7 @@ import org.pmw.tinylog.Logger;
 import java.io.*;
 import java.net.Socket;
 import java.util.Map;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -89,11 +90,7 @@ public class BlockingClientImpl extends AbstractClient {
 
     protected void disconnect(String tcpAddressStr, SocketWrapper socketWrapper) throws IOException {
         if (socketWrapper != null) {
-            OutputStream out = socketWrapper.outputStream;
-            if (out != null) {
-                out.close();
-            }
-            socketWrapper.socket.close();
+            socketWrapper.close();
             if (keepAlive) {
                 socketMap.remove(tcpAddressStr);
             }
@@ -185,9 +182,17 @@ public class BlockingClientImpl extends AbstractClient {
         final Socket socket;
         final OutputStream outputStream;
 
+        Stack<Closeable> closeables = new Stack<>();
+
         public SocketWrapper(Socket socket) throws IOException {
             this.socket = socket;
-            this.outputStream = resolveOutputStreamType(socket.getOutputStream());
+
+            BufferedOutputStream bfo = new BufferedOutputStream(socket.getOutputStream());
+            this.outputStream = resolveOutputStreamType(bfo);
+
+            closeables.push(socket);
+            closeables.push(bfo);
+            closeables.push(outputStream);
         }
 
         OutputStream resolveOutputStreamType(OutputStream outputStream) throws IOException {
@@ -198,6 +203,17 @@ public class BlockingClientImpl extends AbstractClient {
                     return new DataOutputStream(outputStream);
                 default:
                     throw new UnsupportedOperationException("serialization type not supported");
+            }
+        }
+
+        void close() {
+            while(!closeables.isEmpty()) {
+                Closeable closeable = closeables.pop();
+                try {
+                    closeable.close();
+                } catch (IOException e) {
+                    Logger.error(e);
+                }
             }
         }
     }
