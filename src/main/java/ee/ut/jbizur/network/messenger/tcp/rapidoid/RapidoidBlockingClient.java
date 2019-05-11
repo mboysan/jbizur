@@ -8,6 +8,7 @@ import ee.ut.jbizur.role.Role;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 
 public class RapidoidBlockingClient extends BlockingClientImpl {
@@ -22,8 +23,8 @@ public class RapidoidBlockingClient extends BlockingClientImpl {
         return GeneralConfig.SerializationType.BYTE;
     }
 
-    protected OutputStream sendAsBytes(NetworkCommand message, OutputStream outputStream) throws IOException {
-        DataOutputStream out = new DataOutputStream(outputStream);
+    @Override
+    protected OutputStream sendAsBytes(NetworkCommand message, DataOutputStream out) throws IOException {
         byte[] msg = commandMarshaller.marshall(message, byte[].class);
         out.writeUTF(msg.length + String.format("%n"));
         out.write(msg);
@@ -31,7 +32,7 @@ public class RapidoidBlockingClient extends BlockingClientImpl {
     }
 
     @Override
-    protected OutputStream sendAsObject(NetworkCommand message, OutputStream outputStream) throws IOException {
+    protected OutputStream sendAsObject(NetworkCommand message, ObjectOutputStream objOut) throws IOException {
         throw new UnsupportedOperationException("_send as object not supported!");
     }
 

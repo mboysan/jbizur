@@ -13,7 +13,6 @@ import org.pmw.tinylog.Logger;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -25,7 +24,7 @@ import java.util.concurrent.Executors;
 public class BlockingClientImpl extends AbstractClient {
 
     private final ExecutorService executor;
-    private Map<String, Socket> socketMap;
+    private Map<String, SocketWrapper> socketMap;
 
     /**
      * The marshaller to marshall the command to _send.
@@ -54,15 +53,18 @@ public class BlockingClientImpl extends AbstractClient {
         Runnable sender = createSender(message);
         if(message instanceof SignalEnd_NC){
             sender.run();
-            if (keepAlive) {
-                disconnectAll();
-            }
-            executor.shutdown();
+            shutdown();
             Logger.info("Client executor shutdown [" + executor.isShutdown() + "], info=[" + executor + "]");
         } else {
-            new Thread(sender).start();
-//            executor.execute(sender);
+            executor.execute(sender);
         }
+    }
+
+    @Override
+    public void shutdown() {
+        super.shutdown();
+        executor.shutdown();
+        disconnectAll();
     }
 
     @Override
@@ -71,27 +73,27 @@ public class BlockingClientImpl extends AbstractClient {
             throw new IllegalArgumentException("address must be a TCP address");
         }
         TCPAddress tcpAddress = (TCPAddress) address;
-        Socket socket;
+        SocketWrapper socketWrapper;
         if (keepAlive) {
-            socket = socketMap.get(tcpAddress.toString());
-            if (socket == null) {
-                socket = new Socket(tcpAddress.getIp(), tcpAddress.getPortNumber());
-                socketMap.put(tcpAddress.toString(), socket);
+            socketWrapper = socketMap.get(tcpAddress.toString());
+            if (socketWrapper == null) {
+                socketWrapper = new SocketWrapper(new Socket(tcpAddress.getIp(), tcpAddress.getPortNumber()));
+                socketMap.put(tcpAddress.toString(), socketWrapper);
             }
         } else {
-            socket = new Socket(tcpAddress.getIp(), tcpAddress.getPortNumber());
+            socketWrapper = new SocketWrapper(new Socket(tcpAddress.getIp(), tcpAddress.getPortNumber()));
         }
-        socket.setKeepAlive(keepAlive);
-        return (T) socket;
+        socketWrapper.socket.setKeepAlive(keepAlive);
+        return (T) socketWrapper;
     }
 
-    protected void disconnect(String tcpAddressStr, Socket socket) throws IOException {
-        if (socket != null) {
-            OutputStream out = socket.getOutputStream();
+    protected void disconnect(String tcpAddressStr, SocketWrapper socketWrapper) throws IOException {
+        if (socketWrapper != null) {
+            OutputStream out = socketWrapper.outputStream;
             if (out != null) {
                 out.close();
             }
-            socket.close();
+            socketWrapper.socket.close();
             if (keepAlive) {
                 socketMap.remove(tcpAddressStr);
             }
@@ -99,6 +101,9 @@ public class BlockingClientImpl extends AbstractClient {
     }
 
     protected void disconnectAll() {
+        if (socketMap == null) {
+            return;
+        }
         socketMap.forEach((tcpAddressStr, socket) -> {
             try {
                 disconnect(tcpAddressStr, socket);
@@ -111,12 +116,12 @@ public class BlockingClientImpl extends AbstractClient {
 
     private Runnable createSender(final NetworkCommand message) {
         return () -> {
-            Socket socket = null;
+            SocketWrapper socketWrapper = null;
             TCPAddress receiverAddress = null;
             try {
                 receiverAddress = (TCPAddress) message.getReceiverAddress();
-                socket = connect(receiverAddress);
-                OutputStream out = socket.getOutputStream();
+                socketWrapper = connect(receiverAddress);
+                OutputStream out = socketWrapper.outputStream;
                 synchronized (out) {
                     _send(message, out);
                 }
@@ -126,7 +131,7 @@ public class BlockingClientImpl extends AbstractClient {
             } finally {
                 if (!keepAlive) {
                     try {
-                        disconnect(receiverAddress.toString(), socket);
+                        disconnect(receiverAddress.toString(), socketWrapper);
                     } catch (IOException e) {
                         Logger.error(e);
                     }
@@ -139,10 +144,10 @@ public class BlockingClientImpl extends AbstractClient {
         OutputStream out;
         switch (getSerializationType()) {
             case OBJECT:
-                out = sendAsObject(message, outputStream);
+                out = sendAsObject(message, (ObjectOutputStream) outputStream);
                 break;
             case BYTE:
-                out = sendAsBytes(message, outputStream);
+                out = sendAsBytes(message, (DataOutputStream) outputStream);
                 break;
             case JSON:
                 out = sendAsJSONString(message, outputStream);
@@ -156,14 +161,12 @@ public class BlockingClientImpl extends AbstractClient {
         out.flush();
     }
 
-    protected OutputStream sendAsObject(NetworkCommand message, OutputStream outputStream) throws IOException {
-        ObjectOutputStream out = new ObjectOutputStream(outputStream);
+    protected OutputStream sendAsObject(NetworkCommand message, ObjectOutputStream out) throws IOException {
         out.writeObject(message);
         return out;
     }
 
-    protected OutputStream sendAsBytes(NetworkCommand message, OutputStream outputStream) throws IOException {
-        DataOutputStream out = new DataOutputStream(outputStream);
+    protected OutputStream sendAsBytes(NetworkCommand message, DataOutputStream out) throws IOException {
         byte[] bytesToSend = commandMarshaller.marshall(message, byte[].class);
         out.writeInt(bytesToSend.length); // write length of the message
         out.write(bytesToSend);    // write the message
@@ -176,5 +179,26 @@ public class BlockingClientImpl extends AbstractClient {
 
     protected OutputStream sendAsString(NetworkCommand message, OutputStream outputStream) throws IOException {
         throw new UnsupportedEncodingException("_send as string not supported!");
+    }
+
+    private class SocketWrapper {
+        final Socket socket;
+        final OutputStream outputStream;
+
+        public SocketWrapper(Socket socket) throws IOException {
+            this.socket = socket;
+            this.outputStream = resolveOutputStreamType(socket.getOutputStream());
+        }
+
+        OutputStream resolveOutputStreamType(OutputStream outputStream) throws IOException {
+            switch (getSerializationType()) {
+                case OBJECT:
+                    return new ObjectOutputStream(outputStream);
+                case BYTE:
+                    return new DataOutputStream(outputStream);
+                default:
+                    throw new UnsupportedOperationException("serialization type not supported");
+            }
+        }
     }
 }

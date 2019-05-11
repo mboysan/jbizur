@@ -80,6 +80,7 @@ public abstract class Role {
                 pongForPingCommand((Ping_NC) command);
             }
             if (command instanceof SignalEnd_NC) {
+                Logger.info(logMsg("End signal received: " + command));
                 shutdown();
             }
         }
@@ -138,6 +139,7 @@ public abstract class Role {
                     .setSenderAddress(getSettings().getAddress());
             sendMessage(signalEnd);
         }
+        handleNetworkCommand(new SignalEnd_NC());
     }
 
     /**

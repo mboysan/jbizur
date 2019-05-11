@@ -5,10 +5,8 @@ import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.role.RoleMock;
 import ee.ut.jbizur.role.RoleSettings;
 import org.junit.*;
-import org.pmw.tinylog.Logger;
 import utils.MultiThreadExecutor;
 
-import java.util.Random;
 import java.util.UUID;
 
 import static utils.TestUtils.getRandom;

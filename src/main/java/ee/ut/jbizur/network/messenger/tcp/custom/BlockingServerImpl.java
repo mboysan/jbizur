@@ -13,15 +13,17 @@ import org.pmw.tinylog.Logger;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
+import java.util.Stack;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.RejectedExecutionException;
 
 /**
  * The message receiver wrapper for the communication protocols defined in {@link ee.ut.jbizur.network.ConnectionProtocol}.
  */
 public class BlockingServerImpl extends AbstractServer {
 
+    private Thread serverThread;
     private final ExecutorService socketExecutor;
     private final ExecutorService streamExecutor;
     private final static GeneralConfig.SerializationType SERIALIZATION_TYPE = GeneralConfig.getTCPSerializationType();
@@ -63,7 +65,8 @@ public class BlockingServerImpl extends AbstractServer {
         }
         TCPAddress tcpAddress = (TCPAddress) address;
         Runnable receiver = createReceiver(tcpAddress.getPortNumber());
-        new Thread(receiver, "server-thread").start();
+        serverThread = new Thread(receiver, "server-thread");
+        serverThread.start();
     }
 
     private Runnable createReceiver(final int port) {
@@ -73,26 +76,56 @@ public class BlockingServerImpl extends AbstractServer {
                 while (isRunning) {
                     Socket socket = serverSocket.accept();
                     socket.setKeepAlive(keepAlive);
-                    SocketHandler socketHandler = new SocketHandler(socket);
-                    try {
-                        socketExecutor.execute(socketHandler);
-                    } catch (RejectedExecutionException e) {
-                        Logger.warn(e, "");
-                        socketHandler.run();
-                    }
+
+                    Stack<Closeable> closeables = new Stack<>();
+                    closeables.push(serverSocket);
+
+                    InputStream is = collectInputStreams(socket, closeables);
+
+                    SocketHandler socketHandler = new SocketHandler(is, closeables);
+                    socketExecutor.execute(socketHandler);
                 }
                 Logger.info("ServerSocket end!");
             } catch (IOException e) {
-                Logger.error(e, "");
+                if (e instanceof SocketException) {
+                    Logger.warn("Socket might be closed: " + e);
+                } else {
+                    Logger.error(e);
+                }
             }
         };
     }
 
-    protected class SocketHandler implements Runnable {
-        private final Socket socket;
+    private InputStream collectInputStreams(Socket socket, Stack<Closeable> closeables) throws IOException {
+        closeables.push(socket);
 
-        SocketHandler(Socket socket) {
-            this.socket = socket;
+        InputStream socketInputStream = socket.getInputStream();
+        closeables.push(socketInputStream);
+
+        BufferedInputStream bIs = new BufferedInputStream(socketInputStream);
+        closeables.push(bIs);
+        socketInputStream = bIs;
+        switch (SERIALIZATION_TYPE) {
+            case OBJECT:
+                ObjectInputStream oIs = new ObjectInputStream(socketInputStream);
+                closeables.push(oIs);
+                return oIs;
+            case BYTE:
+                DataInputStream dIn = new DataInputStream(socketInputStream);
+                closeables.push(dIn);
+                return dIn;
+            default:
+                throw new IOException("serialization type could not be determined!");
+        }
+    }
+
+    protected class SocketHandler implements Runnable {
+        private final InputStream inputStream;
+        private final Stack<Closeable> closeables;
+
+        SocketHandler(InputStream inputStream, Stack<Closeable> closeables) {
+            this.inputStream = inputStream;
+            this.closeables = closeables;
         }
 
         @Override
@@ -100,21 +133,29 @@ public class BlockingServerImpl extends AbstractServer {
             do {
                 handleRead();
             } while (keepAlive && isRunning);
-            closeSocket();
+            close();
+        }
+
+        public void close() {
+            while(!closeables.isEmpty()) {
+                Closeable closeable = closeables.pop();
+                try {
+                    closeable.close();
+                } catch (IOException e) {
+                    Logger.error(e);
+                }
+            }
         }
 
         private void handleRead() {
             try {
                 Object message = null;
 
-                InputStream inputStream = socket.getInputStream();
-                switch (SERIALIZATION_TYPE) {
-                    case OBJECT:
-                        ObjectInputStream oIs = new ObjectInputStream(inputStream);
-                        message = oIs.readObject();
-                        break;
-                    case BYTE:
-                        DataInputStream dIn = new DataInputStream(inputStream);
+                synchronized (inputStream) {
+                    if (inputStream instanceof ObjectInputStream) {
+                        message = ((ObjectInputStream) inputStream).readObject();
+                    } else if (inputStream instanceof DataInputStream) {
+                        DataInputStream dIn = (DataInputStream) inputStream;
                         int size = dIn.readInt();
                         byte[] msg = new byte[size];
                         final int read = dIn.read(msg);
@@ -123,10 +164,11 @@ public class BlockingServerImpl extends AbstractServer {
                         } else {
                             throw new IOException(String.format("Read bytes do not match the expected size:[exp=%d,act=%d]!", size, read));
                         }
-                        break;
-                    default:
-                        throw new IOException("serialization type could not be determined!");
+                    } else {
+                        throw new UnsupportedOperationException("input stream not recognized: " + inputStream);
+                    }
                 }
+
                 if(message != null){
                     NetworkCommand command = (NetworkCommand) message;
                     if (keepAlive) {
@@ -146,16 +188,6 @@ public class BlockingServerImpl extends AbstractServer {
 //                Logger.warn(e, "");
             } catch (IOException | ClassNotFoundException e) {
                 Logger.error(e,"");
-            }
-        }
-
-        private void closeSocket() {
-            if (socket != null) {
-                try {
-                    socket.close();
-                } catch (IOException e) {
-                    Logger.error(e, "");
-                }
             }
         }
     }

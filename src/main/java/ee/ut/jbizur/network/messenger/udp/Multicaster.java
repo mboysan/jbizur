@@ -9,10 +9,7 @@ import ee.ut.jbizur.util.ByteUtils;
 import org.pmw.tinylog.Logger;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
+import java.net.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -65,8 +62,7 @@ public class Multicaster {
 
     private class MulticastPublisher {
         public void multicast(NetworkCommand messageToSend) {
-            try {
-                DatagramSocket socket = new DatagramSocket();
+            try (DatagramSocket socket = new DatagramSocket()) {
                 InetAddress group = multicastAddress.getMulticastGroupAddr();
                 byte[] msg = commandMarshaller.marshall(messageToSend, byte[].class);
                 byte[] msgWithLength = ByteUtils.prependMessageLengthTo(msg);
@@ -74,7 +70,6 @@ public class Multicaster {
                 DatagramPacket packet
                         = new DatagramPacket(msgWithLength, msgWithLength.length, group, multicastAddress.getMulticastPort());
                 socket.send(packet);
-                socket.close();
             } catch (IOException e) {
                 Logger.error(e, "multicast _send error.");
             }
@@ -91,8 +86,10 @@ public class Multicaster {
         }
 
         private void end(){
+            isRunning = false;
+            executor.shutdown();
+            shutdown();
             new MulticastPublisher().multicast(new SignalEnd_NC());
-
         }
 
         private void recv() {
@@ -111,17 +108,28 @@ public class Multicaster {
                     NetworkCommand received = commandMarshaller.unmarshall(msgRecv);
                     if (received instanceof SignalEnd_NC) {
                         Logger.info("MulticastReceiver end!");
-                        roleInstance.handleNetworkCommand(received);
                         break;
                     }
                     executor.execute(() -> roleInstance.handleNetworkCommand(received));
                 }
-                synchronized (socket) {
-                    socket.leaveGroup(group);
-                    socket.close();
-                }
+                shutdown();
             } catch (IOException e) {
-                Logger.error(e, "multicast recv error");
+                if (e instanceof SocketException) {
+                    Logger.warn("Socket might be closed: " + e);
+                } else {
+                    Logger.error(e, "multicast recv error");
+                }
+            }
+        }
+
+        private void shutdown() {
+            if (socket != null && !socket.isClosed()) {
+                try {
+                    socket.leaveGroup(multicastAddress.getMulticastGroupAddr());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                socket.close();
             }
         }
     }

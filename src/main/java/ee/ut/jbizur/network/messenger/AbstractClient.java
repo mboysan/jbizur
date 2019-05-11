@@ -23,4 +23,8 @@ public abstract class AbstractClient {
      * @param command command/message to _send to process.
      */
     public abstract void send(NetworkCommand command);
+
+    public void shutdown() {
+
+    }
 }

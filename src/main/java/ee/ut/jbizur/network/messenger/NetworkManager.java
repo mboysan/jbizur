@@ -51,6 +51,7 @@ public class NetworkManager {
             multicaster.shutdown();
         }
         server.shutdown();
+        client.shutdown();
     }
 
     protected Multicaster createMulticaster() {

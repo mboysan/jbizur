@@ -1,6 +1,7 @@
 package ee.ut.jbizur;
 
 import ee.ut.jbizur.role.bizur.BizurBuilder;
+import ee.ut.jbizur.role.bizur.BizurClient;
 import ee.ut.jbizur.role.bizur.BizurNode;
 
 import java.net.UnknownHostException;
@@ -19,7 +20,9 @@ public class InitMainSingleJVM {
 
         BizurNode[] nodes = new BizurNode[totalNodes];
         for (int i = 0; i < nodes.length; i++) {  // first index will be reserved to pinger
-            nodes[i] = BizurBuilder.builder().build();
+            nodes[i] = BizurBuilder.builder()
+                    .withMemberId("member" + i)
+                    .build();
         }
         List<CompletableFuture> futures = new ArrayList<>();
         for (BizurNode node : nodes) {
@@ -28,6 +31,18 @@ public class InitMainSingleJVM {
         for (CompletableFuture future : futures) {
             future.join();
         }
+
+        BizurClient client = BizurBuilder.builder()
+                .withMemberId("client")
+                .buildClient();
+        client.start().join();
+
+        client.set("test key", "test val");
+        System.out.println("GET TEST: " + client.get("test key"));
+
+        client.signalEndToAll();
+
+        System.out.println();
 
     }
 }

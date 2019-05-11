@@ -54,9 +54,6 @@ public class BizurClient extends BizurNode {
         if(command instanceof ConnectOK_NC){
             getSettings().registerAddress(command.getSenderAddress());
         }
-        if (command instanceof SignalEnd_NC) {
-            shutdown();
-        }
     }
 
     @Override
@@ -112,12 +109,6 @@ public class BizurClient extends BizurNode {
                         .setSenderAddress(getSettings().getAddress())
         );
         return (Set<String>) response.getPayload();
-    }
-
-    @Override
-    public void signalEndToAll() {
-        super.signalEndToAll();
-        handleNetworkCommand(new SignalEnd_NC());
     }
 
     private void arrangeAddresses() {

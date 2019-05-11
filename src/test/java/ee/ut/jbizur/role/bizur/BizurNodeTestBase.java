@@ -72,6 +72,9 @@ public class BizurNodeTestBase {
 
     @After
     public void tearDown() {
+        for (BizurNode bizurNode : bizurNodes) {
+            bizurNode.shutdown();
+        }
     }
 
     BizurNodeMock getRandomNode() {
