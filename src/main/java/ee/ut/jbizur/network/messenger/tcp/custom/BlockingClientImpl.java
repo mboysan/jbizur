@@ -1,20 +1,17 @@
 package ee.ut.jbizur.network.messenger.tcp.custom;
 
-import ee.ut.jbizur.config.GeneralConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.network.messenger.AbstractClient;
-import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
 import ee.ut.jbizur.protocol.internal.SendFail_IC;
 import ee.ut.jbizur.role.Role;
 import org.pmw.tinylog.Logger;
 
-import java.io.*;
+import java.io.IOException;
 import java.net.Socket;
 import java.util.Map;
-import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -25,24 +22,14 @@ import java.util.concurrent.Executors;
 public class BlockingClientImpl extends AbstractClient {
 
     private final ExecutorService executor;
-    private Map<String, SocketWrapper> socketMap;
-
-    /**
-     * The marshaller to marshall the command to _send.
-     */
-    protected final CommandMarshaller commandMarshaller;
+    private Map<String, SendSocket> socketMap;
 
     public BlockingClientImpl(Role roleInstance) {
         super(roleInstance);
         this.executor = Executors.newCachedThreadPool();
-        this.commandMarshaller = new CommandMarshaller();
         if (keepAlive) {
             socketMap = new ConcurrentHashMap<>();
         }
-    }
-
-    protected GeneralConfig.SerializationType getSerializationType() {
-        return GeneralConfig.getTCPSerializationType();
     }
 
     /**
@@ -61,6 +48,32 @@ public class BlockingClientImpl extends AbstractClient {
         }
     }
 
+
+    private Runnable createSender(final NetworkCommand message) {
+        return () -> {
+            SendSocket senderSocket = null;
+            TCPAddress receiverAddress = null;
+            try {
+                receiverAddress = (TCPAddress) message.getReceiverAddress();
+                senderSocket = connect(receiverAddress);
+                senderSocket.send(message);
+            } catch (IOException e) {
+                Logger.error("Send err, msg: " + message + ", " + e, e);
+                roleInstance.handleInternalCommand(new SendFail_IC(message));
+            } finally {
+                if (!keepAlive) {
+                    try {
+                        if (receiverAddress != null) {
+                            disconnect(receiverAddress.toString(), senderSocket);
+                        }
+                    } catch (IOException e) {
+                        Logger.error(e);
+                    }
+                }
+            }
+        };
+    }
+
     @Override
     public void shutdown() {
         super.shutdown();
@@ -74,23 +87,29 @@ public class BlockingClientImpl extends AbstractClient {
             throw new IllegalArgumentException("address must be a TCP address");
         }
         TCPAddress tcpAddress = (TCPAddress) address;
-        SocketWrapper socketWrapper;
+        SendSocket senderSocket;
         if (keepAlive) {
-            socketWrapper = socketMap.get(tcpAddress.toString());
-            if (socketWrapper == null) {
-                socketWrapper = new SocketWrapper(new Socket(tcpAddress.getIp(), tcpAddress.getPortNumber()));
-                socketMap.put(tcpAddress.toString(), socketWrapper);
+            senderSocket = socketMap.get(tcpAddress.toString());
+            if (senderSocket == null) {
+                senderSocket = createSenderSocket(tcpAddress);
+                socketMap.put(tcpAddress.toString(), senderSocket);
             }
         } else {
-            socketWrapper = new SocketWrapper(new Socket(tcpAddress.getIp(), tcpAddress.getPortNumber()));
+            senderSocket = createSenderSocket(tcpAddress);
         }
-        socketWrapper.socket.setKeepAlive(keepAlive);
-        return (T) socketWrapper;
+        return (T) senderSocket;
     }
 
-    protected void disconnect(String tcpAddressStr, SocketWrapper socketWrapper) throws IOException {
-        if (socketWrapper != null) {
-            socketWrapper.close();
+    protected SendSocket createSenderSocket(TCPAddress tcpAddress) throws IOException {
+        return new SendSocket(
+                new Socket(tcpAddress.getIp(), tcpAddress.getPortNumber()),
+                keepAlive
+        );
+    }
+
+    protected void disconnect(String tcpAddressStr, SendSocket senderSocket) throws IOException {
+        if (senderSocket != null) {
+            senderSocket.close();
             if (keepAlive) {
                 socketMap.remove(tcpAddressStr);
             }
@@ -109,112 +128,5 @@ public class BlockingClientImpl extends AbstractClient {
             }
         });
         socketMap.clear();
-    }
-
-    private Runnable createSender(final NetworkCommand message) {
-        return () -> {
-            SocketWrapper socketWrapper = null;
-            TCPAddress receiverAddress = null;
-            try {
-                receiverAddress = (TCPAddress) message.getReceiverAddress();
-                socketWrapper = connect(receiverAddress);
-                OutputStream out = socketWrapper.outputStream;
-                synchronized (out) {
-                    _send(message, out);
-                }
-            } catch (IOException e) {
-                Logger.error("Send err, msg: " + message + ", " + e, e);
-                roleInstance.handleInternalCommand(new SendFail_IC(message));
-            } finally {
-                if (!keepAlive) {
-                    try {
-                        disconnect(receiverAddress.toString(), socketWrapper);
-                    } catch (IOException e) {
-                        Logger.error(e);
-                    }
-                }
-            }
-        };
-    }
-
-    protected void _send(NetworkCommand message, OutputStream outputStream) throws IOException {
-        OutputStream out;
-        switch (getSerializationType()) {
-            case OBJECT:
-                out = sendAsObject(message, (ObjectOutputStream) outputStream);
-                break;
-            case BYTE:
-                out = sendAsBytes(message, (DataOutputStream) outputStream);
-                break;
-            case JSON:
-                out = sendAsJSONString(message, outputStream);
-                break;
-            case STRING:
-                out = sendAsString(message, outputStream);
-                break;
-            default:
-                throw new UnsupportedOperationException("serialization type not supported");
-        }
-        out.flush();
-    }
-
-    protected OutputStream sendAsObject(NetworkCommand message, ObjectOutputStream out) throws IOException {
-        out.writeObject(message);
-        return out;
-    }
-
-    protected OutputStream sendAsBytes(NetworkCommand message, DataOutputStream out) throws IOException {
-        byte[] bytesToSend = commandMarshaller.marshall(message, byte[].class);
-        out.writeInt(bytesToSend.length); // write length of the message
-        out.write(bytesToSend);    // write the message
-        return out;
-    }
-
-    protected OutputStream sendAsJSONString(NetworkCommand message, OutputStream outputStream) throws IOException {
-        throw new UnsupportedEncodingException("_send as json string not supported!");
-    }
-
-    protected OutputStream sendAsString(NetworkCommand message, OutputStream outputStream) throws IOException {
-        throw new UnsupportedEncodingException("_send as string not supported!");
-    }
-
-    private class SocketWrapper {
-        final Socket socket;
-        final OutputStream outputStream;
-
-        Stack<Closeable> closeables = new Stack<>();
-
-        public SocketWrapper(Socket socket) throws IOException {
-            this.socket = socket;
-
-            BufferedOutputStream bfo = new BufferedOutputStream(socket.getOutputStream());
-            this.outputStream = resolveOutputStreamType(bfo);
-
-            closeables.push(socket);
-            closeables.push(bfo);
-            closeables.push(outputStream);
-        }
-
-        OutputStream resolveOutputStreamType(OutputStream outputStream) throws IOException {
-            switch (getSerializationType()) {
-                case OBJECT:
-                    return new ObjectOutputStream(outputStream);
-                case BYTE:
-                    return new DataOutputStream(outputStream);
-                default:
-                    throw new UnsupportedOperationException("serialization type not supported");
-            }
-        }
-
-        void close() {
-            while(!closeables.isEmpty()) {
-                Closeable closeable = closeables.pop();
-                try {
-                    closeable.close();
-                } catch (IOException e) {
-                    Logger.error(e);
-                }
-            }
-        }
     }
 }
