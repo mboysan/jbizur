@@ -65,12 +65,8 @@ public class BizurSingleJvmIntegrationTest {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws InterruptedException {
         client.signalEndToAll();
-        for (BizurNode node : nodes) {
-            node.shutdown();
-        }
-        client.shutdown();
     }
 
     /**

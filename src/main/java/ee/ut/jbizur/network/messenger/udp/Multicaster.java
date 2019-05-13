@@ -127,7 +127,7 @@ public class Multicaster {
                 try {
                     socket.leaveGroup(multicastAddress.getMulticastGroupAddr());
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    Logger.error(e);
                 }
                 socket.close();
             }

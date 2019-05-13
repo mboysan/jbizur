@@ -107,7 +107,7 @@ public abstract class SocketWrapper {
         }
     }
 
-    void close() {
+    synchronized void close() {
         while(!closeables.isEmpty()) {
             Closeable closeable = closeables.pop();
             try {

@@ -9,6 +9,7 @@ import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
 import ee.ut.jbizur.protocol.internal.InternalCommand;
 import ee.ut.jbizur.protocol.internal.NodeAddressRegistered_IC;
 import ee.ut.jbizur.protocol.internal.NodeAddressUnregistered_IC;
+import ee.ut.jbizur.role.Role;
 
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
@@ -53,6 +54,9 @@ public class BizurClient extends BizurNode {
 
         if(command instanceof ConnectOK_NC){
             getSettings().registerAddress(command.getSenderAddress());
+        }
+        if (command instanceof SignalEnd_NC) {
+            super.handleNetworkCommand(command);
         }
     }
 

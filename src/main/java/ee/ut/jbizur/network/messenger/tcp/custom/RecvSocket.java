@@ -2,22 +2,15 @@ package ee.ut.jbizur.network.messenger.tcp.custom;
 
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 
-import java.io.*;
-import java.net.ServerSocket;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.net.Socket;
 
 public class RecvSocket extends SocketWrapper {
 
-    protected final ServerSocket serverSocket;
-
     public RecvSocket(Socket acceptedSocket, boolean keepAlive) throws IOException {
-        this(null, acceptedSocket, keepAlive);
-    }
-
-    public RecvSocket(ServerSocket serverSocket, Socket acceptedSocket, boolean keepAlive) throws IOException {
         super(acceptedSocket, keepAlive);
-        this.serverSocket = serverSocket;
-        closeables.add(0, serverSocket);
     }
 
     public synchronized NetworkCommand recv() throws IOException, ClassNotFoundException {
