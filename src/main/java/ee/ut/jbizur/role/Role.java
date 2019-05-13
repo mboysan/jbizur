@@ -139,7 +139,13 @@ public abstract class Role {
                     .setSenderAddress(getSettings().getAddress());
             sendMessage(signalEnd);
         }
-        handleNetworkCommand(new SignalEnd_NC());
+        try {
+            // wait for termination
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            Logger.error(e);
+        }
+        shutdown();
     }
 
     /**

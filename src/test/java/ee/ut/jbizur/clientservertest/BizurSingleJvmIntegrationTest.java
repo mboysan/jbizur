@@ -67,6 +67,7 @@ public class BizurSingleJvmIntegrationTest {
     @After
     public void tearDown() throws InterruptedException {
         client.signalEndToAll();
+        Thread.sleep(5000);
     }
 
     /**
