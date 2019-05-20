@@ -1,7 +1,6 @@
 package ee.ut.jbizur.network.messenger;
 
-import ee.ut.jbizur.config.GeneralConfig;
-import ee.ut.jbizur.config.NodeConfig;
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.messenger.udp.Multicaster;
 import ee.ut.jbizur.protocol.commands.ping.Connect_NC;
@@ -62,20 +61,20 @@ public class NetworkManager {
     }
 
     protected AbstractClient createClient() {
-        Class<? extends AbstractClient> clientClass = GeneralConfig.getClientClass();
         try {
+            Class<? extends AbstractClient> clientClass = (Class<? extends AbstractClient>) Class.forName(Conf.get().network.client);
             return clientClass.getConstructor(Role.class).newInstance(role);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException e) {
             e.printStackTrace();
         }
         throw new IllegalArgumentException("client could not be created");
     }
 
     protected AbstractServer createServer() {
-        Class<? extends AbstractServer> serverClass = GeneralConfig.getServerClass();
         try {
+            Class<? extends AbstractServer> serverClass = (Class<? extends AbstractServer>) Class.forName(Conf.get().network.server);
             return serverClass.getConstructor(Role.class).newInstance(role);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException e) {
             e.printStackTrace();
         }
         throw new IllegalArgumentException("server could not be initiated");
@@ -98,7 +97,7 @@ public class NetworkManager {
             } else {
                 multicastExecutor.shutdown();
             }
-        }, 0, NodeConfig.getMulticastIntervalMs(), TimeUnit.MILLISECONDS);
+        }, 0, Conf.get().network.multicast.intervalms, TimeUnit.MILLISECONDS);
     }
 
     public AbstractClient getClient() {

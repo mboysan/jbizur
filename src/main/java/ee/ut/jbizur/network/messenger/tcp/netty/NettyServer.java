@@ -1,6 +1,6 @@
 package ee.ut.jbizur.network.messenger.tcp.netty;
 
-import ee.ut.jbizur.config.GeneralConfig;
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.network.messenger.AbstractServer;
@@ -15,7 +15,6 @@ import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 import io.netty.util.ReferenceCountUtil;
-import org.pmw.tinylog.Logger;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -68,7 +67,7 @@ public class NettyServer extends AbstractServer {
                             }
                         })
 //                        .option(ChannelOption.SO_BACKLOG, 128)          // (5)
-                        .childOption(ChannelOption.SO_KEEPALIVE, GeneralConfig.tcpKeepAlive()); // (6)
+                        .childOption(ChannelOption.SO_KEEPALIVE, Conf.get().network.tcp.keepalive); // (6)
 
                 // Bind and start to accept incoming connections.
                 channel.set(b.bind(tcpAddress.getPortNumber()).sync()); // (7)

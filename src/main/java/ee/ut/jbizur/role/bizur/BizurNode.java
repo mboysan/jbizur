@@ -1,8 +1,7 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.BizurConfig;
-import ee.ut.jbizur.config.LoggerConfig;
-import ee.ut.jbizur.config.NodeConfig;
+import ee.ut.jbizur.config.Conf;
+import ee.ut.jbizur.config.LogConf;
 import ee.ut.jbizur.datastore.bizur.BucketContainer;
 import ee.ut.jbizur.exceptions.OperationFailedError;
 import ee.ut.jbizur.exceptions.RoleIsNotReadyError;
@@ -37,7 +36,7 @@ public class BizurNode extends Role {
     }
 
     protected BucketContainer createBucketContainer() {
-        return new BucketContainer(BizurConfig.getBucketCount()).initBuckets();
+        return new BucketContainer(Conf.get().consensus.bizur.bucketCount).initBuckets();
     }
 
     @Override
@@ -57,7 +56,7 @@ public class BizurNode extends Role {
     public CompletableFuture<Void> start() {
         return CompletableFuture.<Void>supplyAsync(() -> {
             try {
-                long multicastIntervalSec = NodeConfig.getMulticastIntervalMs();
+                long multicastIntervalSec = Conf.get().network.multicast.intervalms;
                 while (!checkNodesDiscovered()) {
                     Thread.sleep(multicastIntervalSec);
                 }
@@ -96,13 +95,13 @@ public class BizurNode extends Role {
                     lst.getPassedObjectRef().set(cmd.getPayload());
                     lst.end();
                 });
-        if (LoggerConfig.isDebugEnabled()) {
+        if (LogConf.isDebugEnabled()) {
             listener.withDebugInfo(logMsg("routeRequestAndGet : " + command));
         }
         attachMsgListener(listener);
         try {
             command.setMsgId(listener.getMsgId());
-            if (LoggerConfig.isDebugEnabled()) {
+            if (LogConf.isDebugEnabled()) {
                 Logger.debug(logMsg("routing request, retryLeft=[" + retryCount + "]: " + command));
             }
             sendMessage(command);
@@ -193,7 +192,7 @@ public class BizurNode extends Role {
         super.handleNetworkCommand(command);
 
         if (!validateCommand(command)) {
-            if (LoggerConfig.isDebugEnabled()) {
+            if (LogConf.isDebugEnabled()) {
                 Logger.debug(logMsg("command discarded [" + command + "]"));
             }
             return;

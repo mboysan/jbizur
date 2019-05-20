@@ -1,6 +1,6 @@
 package ee.ut.jbizur.network.messenger;
 
-import ee.ut.jbizur.config.GeneralConfig;
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.role.Role;
@@ -13,7 +13,7 @@ public abstract class AbstractClient {
 
     public AbstractClient(Role roleInstance) {
         this.roleInstance = roleInstance;
-        this.keepAlive = GeneralConfig.tcpKeepAlive();
+        this.keepAlive = Conf.get().network.tcp.keepalive;
     }
 
     protected abstract <T> T connect(Address address) throws IOException;

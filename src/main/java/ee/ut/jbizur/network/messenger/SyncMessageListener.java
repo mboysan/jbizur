@@ -1,6 +1,6 @@
 package ee.ut.jbizur.network.messenger;
 
-import ee.ut.jbizur.config.NodeConfig;
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.bizur.*;
 import ee.ut.jbizur.protocol.commands.common.Ack_NC;
@@ -133,7 +133,7 @@ public class SyncMessageListener {
     }
 
     public boolean waitForResponses() {
-        return waitForResponses(NodeConfig.getResponseTimeoutSec(), TimeUnit.SECONDS);
+        return waitForResponses(Conf.get().network.responseTimeoutSec, TimeUnit.SECONDS);
     }
 
     @Override

@@ -1,7 +1,6 @@
 package ee.ut.jbizur.network.messenger.tcp.custom;
 
-import ee.ut.jbizur.config.GeneralConfig;
-import ee.ut.jbizur.config.GeneralConfig.SerializationType;
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import org.pmw.tinylog.Logger;
@@ -21,7 +20,7 @@ public abstract class SocketWrapper {
     protected OutputStream outputStream;
     protected InputStream inputStream;
 
-    protected final SerializationType serializationType = GeneralConfig.getTCPSerializationType();
+    protected final String serializationType = Conf.get().network.sendRecvAs;
 
     protected final Stack<Closeable> closeables = new Stack<>();
 
@@ -51,9 +50,9 @@ public abstract class SocketWrapper {
 
     protected OutputStream resolveOutStream(OutputStream out) throws IOException {
         switch (serializationType) {
-            case OBJECT:
+            case "OBJECT":
                 return new ObjectOutputStream(out);
-            case BYTE:
+            case "BYTE":
                 return new DataOutputStream(out);
             default:
                 throw new UnsupportedOperationException("serialization type not supported");
@@ -83,9 +82,9 @@ public abstract class SocketWrapper {
 
     protected InputStream resolveInStream(InputStream in) throws IOException {
         switch (serializationType) {
-            case OBJECT:
+            case "OBJECT":
                 return new ObjectInputStream(in);
-            case BYTE:
+            case "BYTE":
                 return new DataInputStream(in);
             default:
                 throw new UnsupportedOperationException("serialization type not supported");

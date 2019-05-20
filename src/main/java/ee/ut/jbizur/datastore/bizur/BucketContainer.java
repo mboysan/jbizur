@@ -1,8 +1,8 @@
 package ee.ut.jbizur.datastore.bizur;
 
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.protocol.ISerializer;
 import ee.ut.jbizur.protocol.ByteSerializer;
+import ee.ut.jbizur.protocol.ISerializer;
 import ee.ut.jbizur.util.IdUtils;
 import org.pmw.tinylog.Logger;
 

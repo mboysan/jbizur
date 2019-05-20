@@ -1,5 +1,6 @@
 package ee.ut.jbizur.network.messenger.tcp.custom;
 
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.network.messenger.AbstractClient;
@@ -15,6 +16,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * The message sender wrapper for the communication protocols defined in {@link ee.ut.jbizur.network.ConnectionProtocol}.
@@ -78,6 +80,11 @@ public class BlockingClientImpl extends AbstractClient {
     public void shutdown() {
         super.shutdown();
         executor.shutdown();
+        try {
+            executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Logger.error(e);
+        }
         disconnectAll();
     }
 

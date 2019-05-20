@@ -11,12 +11,12 @@ import java.util.Date;
 /**
  * Configures the logging interface
  */
-public class LoggerConfig {
+public class LogConf {
 
-    public static void configureLogger(){
-        String levelStr = PropertiesLoader.getString("logger.level", "INFO");
-        String pattern = PropertiesLoader.getString("logger.pattern");
-        String file = PropertiesLoader.getString("logger.file");
+    public static synchronized void configureLogger(){
+        String levelStr = Conf.get().logging.level;
+        String pattern = Conf.get().logging.pattern;
+        String file = Conf.get().logging.file;
 
         Configurator c = Configurator.currentConfig()
                 .formatPattern(pattern)

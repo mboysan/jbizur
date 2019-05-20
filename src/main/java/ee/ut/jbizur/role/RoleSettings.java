@@ -1,6 +1,7 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.config.NodeConfig;
+import ee.ut.jbizur.config.Conf;
+import ee.ut.jbizur.config.JbizurConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
@@ -9,10 +10,7 @@ import ee.ut.jbizur.protocol.internal.NodeAddressUnregistered_IC;
 import org.pmw.tinylog.Logger;
 
 import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class RoleSettings {
 
@@ -31,19 +29,28 @@ public class RoleSettings {
     }
 
     protected void defaults() {
-        setRoleId(NodeConfig.getMemberId(0));
+        Optional<JbizurConfig.Members$Elm> m = Conf.get().members.stream().filter(e -> e.instance).findFirst();
+        setRoleId(m.isPresent() ? m.get().id : "node-" + UUID.randomUUID().toString());
         try {
-            setAddress(new TCPAddress(NodeConfig.compileTCPAddress()));
+            TCPAddress tcp = m.isPresent()
+                    ? TCPAddress.resolveTCPAddress(m.get().tcpAddress)
+                    : TCPAddress.resolveTCPAddress(Conf.get().network.tcp.defaultAddress);
+            setAddress(tcp);
         } catch (UnknownHostException e) {
             Logger.error(e);
         }
         try {
-            setMulticastAddress(new MulticastAddress(NodeConfig.compileMulticastAddress()));
+            boolean isMulticastEnabled = Conf.get().network.multicast.enabled;
+            setMultiCastEnabled(isMulticastEnabled);
+            if (isMulticastEnabled) {
+                setMulticastAddress(
+                        MulticastAddress.resolveMulticastAddress(Conf.get().network.multicast.address)
+                );
+            }
         } catch (UnknownHostException e) {
             Logger.error(e);
         }
-        setAnticipatedMemberCount(NodeConfig.getAnticipatedMemberCount());
-        setMultiCastEnabled(NodeConfig.isMulticastEnabled());
+        setAnticipatedMemberCount(Conf.get().members.size());
     }
 
     public synchronized void registerRoleRef(Role roleRef) {
@@ -128,10 +135,6 @@ public class RoleSettings {
 
     public static int calcQuorumSize(int processCount) {
         return processCount/2 + 1;
-    }
-
-    public int getQuorumSize() {
-        return getProcessCount()/2 + 1;
     }
 
     public Set<Address> getMemberAddresses() {

@@ -1,7 +1,7 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.BizurConfig;
-import ee.ut.jbizur.config.LoggerConfig;
+import ee.ut.jbizur.config.Conf;
+import ee.ut.jbizur.config.LogConf;
 import ee.ut.jbizur.datastore.bizur.Bucket;
 import ee.ut.jbizur.datastore.bizur.BucketContainer;
 import ee.ut.jbizur.datastore.bizur.BucketView;
@@ -27,7 +27,7 @@ public class BizurRun {
     protected final BucketContainer bucketContainer;
     private final int contextId;
 
-    private static final int BUCKET_LEADER_ELECTION_RETRY_COUNT = BizurConfig.getBucketLeaderElectionRetryCount();
+    private static final int BUCKET_LEADER_ELECTION_RETRY_COUNT = Conf.get().consensus.bizur.bucketElectRetryCount;
 
     BizurRun(BizurNode node) {
         this(node, IdUtils.generateId());
@@ -57,7 +57,7 @@ public class BizurRun {
     }
     protected void sendMessage(NetworkCommand command) {
         if (command.getReceiverAddress().isSame(getSettings().getAddress())) {
-            if (LoggerConfig.isDebugEnabled()) {
+            if (LogConf.isDebugEnabled()) {
                 Logger.debug("OUT " + logMsg(command.toString()));
             }
             node.handleNetworkCommand(command);
@@ -79,7 +79,7 @@ public class BizurRun {
     protected void startElection(int bucketIndex) {
         SyncMessageListener listener = SyncMessageListener.buildWithDefaultHandlers()
                 .withTotalProcessCount(getSettings().getProcessCount());
-        if (LoggerConfig.isDebugEnabled()) {
+        if (LogConf.isDebugEnabled()) {
             listener.withDebugInfo(logMsg("startElection"));
         }
         attachMsgListener(listener);
@@ -153,7 +153,7 @@ public class BizurRun {
         for (int i = 0; i < bucketContainer.getNumBuckets(); i++) {
             Bucket localBucket = bucketContainer.getBucket(i);
             int retry = 0;
-            int maxRetry = BizurConfig.getBucketLeaderElectionRetryCount();
+            int maxRetry = Conf.get().consensus.bizur.bucketElectRetryCount;
             while (retry < maxRetry) {
                 if (localBucket.getLeaderAddress() == null) {
                     electLeaderForBucket(localBucket, localBucket.getIndex(), false);
@@ -234,7 +234,7 @@ public class BizurRun {
 
         SyncMessageListener listener = SyncMessageListener.buildWithDefaultHandlers()
                 .withTotalProcessCount(getSettings().getProcessCount());
-        if (LoggerConfig.isDebugEnabled()) {
+        if (LogConf.isDebugEnabled()) {
             listener.withDebugInfo(logMsg("write"));
         }
         attachMsgListener(listener);
@@ -306,7 +306,7 @@ public class BizurRun {
 
         SyncMessageListener listener = SyncMessageListener.buildWithDefaultHandlers()
                 .withTotalProcessCount(getSettings().getProcessCount());
-        if (LoggerConfig.isDebugEnabled()) {
+        if (LogConf.isDebugEnabled()) {
             listener.withDebugInfo(logMsg("read"));
         }
         attachMsgListener(listener);
@@ -692,7 +692,7 @@ public class BizurRun {
                     .setSenderAddress(getSettings().getAddress())
                     .setReceiverAddress(address)
                     .setSenderId(getSettings().getRoleId());
-            if (LoggerConfig.isDebugEnabled()) {
+            if (LogConf.isDebugEnabled()) {
                 listener.withDebugInfo(logMsg("leader election request: " + ler));
             }
             sendMessage(ler);

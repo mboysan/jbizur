@@ -1,6 +1,6 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.ClientTestConfig;
+import ee.ut.jbizur.config.FuncTestConf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MockAddress;
 import org.junit.Assert;
@@ -33,7 +33,7 @@ public class BizurClientTest extends BizurNodeTestBase {
      * @throws InterruptedException in case of initialization errors.
      */
     private void createClients() throws InterruptedException, UnknownHostException {
-        int clientCount = ClientTestConfig.getClientCount();
+        int clientCount = FuncTestConf.get().clients.size();
         String[] clients = new String[clientCount];
         for (int i = 0; i < clients.length; i++) {
             clients[i] = "client-" + i;

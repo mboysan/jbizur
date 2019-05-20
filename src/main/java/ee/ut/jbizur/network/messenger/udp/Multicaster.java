@@ -1,5 +1,6 @@
 package ee.ut.jbizur.network.messenger.udp;
 
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
@@ -12,6 +13,7 @@ import java.io.IOException;
 import java.net.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Used for sending multicast messages. Preferably used for process discovery with
@@ -57,6 +59,11 @@ public class Multicaster {
     public void shutdown(){
         isRunning = false;
         executor.shutdown();
+        try {
+            executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Logger.error(e);
+        }
         receiver.end();
     }
 

@@ -2,7 +2,10 @@ package ee.ut.jbizur.network.messenger.tcp.custom;
 
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 
-import java.io.*;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 
 public class SendSocket extends SocketWrapper {

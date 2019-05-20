@@ -1,11 +1,10 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.PropertiesLoader;
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MulticastAddress;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Set;
 
 public class BizurBuilder {
@@ -50,16 +49,14 @@ public class BizurBuilder {
         return this;
     }
 
-    public BizurBuilder loadPropertiesFrom(File workingDirFile) throws IOException {
-        PropertiesLoader.loadProperties(workingDirFile);
+    public BizurBuilder loadConfigFrom(File workingDirFile) {
+        Conf.setConfig(workingDirFile);
         settings.defaults();
         return this;
     }
 
-    public BizurBuilder loadPropertiesFrom(Class resourceClass, String fileName) {
-        PropertiesLoader.loadProperties(resourceClass, fileName);
-        settings.defaults();
-        return this;
+    public BizurBuilder loadConfigFrom(Class resourceClass, String fileName) {
+        return loadConfigFrom(new File(BizurBuilder.class.getClassLoader().getResource(fileName).getFile()));
     }
 
     protected BizurSettings getSettings() {

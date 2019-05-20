@@ -1,6 +1,6 @@
 package ee.ut.jbizur.clientservertest;
 
-import ee.ut.jbizur.config.NodeTestConfig;
+import ee.ut.jbizur.config.IntegTestConf;
 import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.role.bizur.BizurBuilder;
@@ -18,7 +18,7 @@ import static utils.TestUtils.getRandom;
 @Ignore
 public class BizurSingleJvmIntegrationTest {
 
-    protected static final int MEMBER_COUNT = NodeTestConfig.getMemberCount();
+    protected static final int MEMBER_COUNT = IntegTestConf.get().members.size();
 
     protected BizurNode[] nodes;
     protected BizurClient client;
@@ -34,19 +34,20 @@ public class BizurSingleJvmIntegrationTest {
     protected void initNodes() throws UnknownHostException, InterruptedException {
         nodes = new BizurNode[MEMBER_COUNT];
         for (int i = 0; i < nodes.length; i++) {
+
             nodes[i] = BizurBuilder.builder()
-                    .withMemberId(NodeTestConfig.getMemberId(i))
-                    .withAddress(new TCPAddress(NodeTestConfig.compileTCPAddress()))
-                    .withMulticastAddress(new MulticastAddress(NodeTestConfig.compileMulticastAddress()))
+                    .withMemberId(String.format(IntegTestConf.get().node.member.idFormat, i))
+                    .withAddress(TCPAddress.resolveTCPAddress(IntegTestConf.get().members.get(i).tcpAddress))
+                    .withMulticastAddress(MulticastAddress.resolveMulticastAddress(IntegTestConf.get().network.multicast.address))
                     .build();
         }
     }
 
     protected void initClient() throws UnknownHostException, InterruptedException {
         client = BizurBuilder.builder()
-                .withMemberId(NodeTestConfig.getClientId())
-                .withAddress(new TCPAddress(NodeTestConfig.compileTCPAddress()))
-                .withMulticastAddress(new MulticastAddress(NodeTestConfig.compileMulticastAddress()))
+                .withMemberId(IntegTestConf.get().clients.get(0).id)
+                .withAddress(TCPAddress.resolveTCPAddress(IntegTestConf.get().clients.get(0).tcpAddress))
+                .withMulticastAddress(MulticastAddress.resolveMulticastAddress(IntegTestConf.get().network.multicast.address))
                 .buildClient();
     }
 

@@ -1,6 +1,6 @@
 package ee.ut.jbizur.network.messenger;
 
-import ee.ut.jbizur.config.GeneralConfig;
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.role.Role;
@@ -17,7 +17,7 @@ public abstract class AbstractServer {
 
     public AbstractServer(Role roleInstance) {
         this.roleInstance = roleInstance;
-        this.keepAlive = GeneralConfig.tcpKeepAlive();
+        this.keepAlive = Conf.get().network.tcp.keepalive;
     }
 
     protected Address initAndGetAddress(Address address) {

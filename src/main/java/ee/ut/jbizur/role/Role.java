@@ -1,6 +1,6 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.config.LoggerConfig;
+import ee.ut.jbizur.config.LogConf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.messenger.NetworkManager;
 import ee.ut.jbizur.network.messenger.SyncMessageListener;
@@ -48,7 +48,7 @@ public abstract class Role {
      * @param command the ee.ut.jbizur.network message to handle.
      */
     public void handleNetworkCommand(NetworkCommand command){
-        if (LoggerConfig.isDebugEnabled()) {
+        if (LogConf.isDebugEnabled()) {
             Logger.debug("IN " + logMsg(command.toString()));
         }
 
@@ -106,7 +106,7 @@ public abstract class Role {
                     .setSenderAddress(getSettings().getAddress())
                     .setReceiverAddress(address)
                     .setSenderId(getSettings().getRoleId());
-            if (LoggerConfig.isDebugEnabled()) {
+            if (LogConf.isDebugEnabled()) {
                 listener.withDebugInfo(logMsg("pingAddress: " + pingNC));
             }
             sendMessage(pingNC);
@@ -153,7 +153,7 @@ public abstract class Role {
      * @param message the ee.ut.jbizur.network message to _send.
      */
     protected void sendMessage(NetworkCommand message) {
-        if (LoggerConfig.isDebugEnabled()) {
+        if (LogConf.isDebugEnabled()) {
             Logger.debug("OUT " + logMsg(message.toString()));
         }
         networkManager.getClient().send(message);

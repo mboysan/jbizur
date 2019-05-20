@@ -1,10 +1,10 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.BizurTestConfig;
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.datastore.bizur.BucketContainer;
+import ee.ut.jbizur.network.messenger.ClientMock;
 import ee.ut.jbizur.network.messenger.NetworkManagerMock;
 import ee.ut.jbizur.network.messenger.ServerMock;
-import ee.ut.jbizur.network.messenger.ClientMock;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.common.Nack_NC;
 import ee.ut.jbizur.role.Role;
@@ -27,7 +27,7 @@ public class BizurNodeMock extends BizurNode {
 
     @Override
     protected BucketContainer createBucketContainer() {
-        return new BucketContainer(BizurTestConfig.getBucketCount()) {
+        return new BucketContainer(Conf.get().consensus.bizur.bucketCount) {
             @Override
             public int hashKey(String s) {
                 int idx = hashIndex.get();

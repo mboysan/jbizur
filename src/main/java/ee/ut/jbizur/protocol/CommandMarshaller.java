@@ -1,6 +1,6 @@
 package ee.ut.jbizur.protocol;
 
-import ee.ut.jbizur.config.GeneralConfig;
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import org.pmw.tinylog.Logger;
 
@@ -13,10 +13,12 @@ public class CommandMarshaller {
 
     public CommandMarshaller() {
         try {
-            serializer = GeneralConfig.getProtocolSerializerClass().newInstance();
+            serializer = ((Class<? extends ISerializer>) Class.forName(Conf.get().network.serializer)).newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
             Logger.warn(e, "could not create serializer from properties file, defaulting to " + ByteSerializer.class.getSimpleName());
             serializer = new ByteSerializer();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
         }
     }
 
