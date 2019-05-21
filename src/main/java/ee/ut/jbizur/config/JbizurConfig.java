@@ -112,17 +112,21 @@ public class JbizurConfig {
     public final Node.Client client;
     public final Node.Member member;
     public static class Client {
+      public final int expectedCount;
       public final java.lang.String idFormat;
       
       public Client(com.typesafe.config.Config c) {
+        this.expectedCount = c.hasPathOrNull("expectedCount") ? c.getInt("expectedCount") : 0;
         this.idFormat = c.hasPathOrNull("idFormat") ? c.getString("idFormat") : "member%d";
       }
     }
     
     public static class Member {
+      public final int expectedCount;
       public final java.lang.String idFormat;
       
       public Member(com.typesafe.config.Config c) {
+        this.expectedCount = c.hasPathOrNull("expectedCount") ? c.getInt("expectedCount") : 0;
         this.idFormat = c.hasPathOrNull("idFormat") ? c.getString("idFormat") : "member%d";
       }
     }

@@ -53,7 +53,7 @@ public class BlockingServerImpl extends AbstractServer {
     }
 
     private class ServerThread extends Thread {
-        private final ExecutorService socketExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        private final ExecutorService socketExecutor = Executors.newCachedThreadPool();
         private final ExecutorService streamExecutor = Executors.newCachedThreadPool();
 
         private ServerSocket serverSocket;

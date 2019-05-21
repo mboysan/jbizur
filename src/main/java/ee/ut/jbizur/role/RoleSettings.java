@@ -50,7 +50,11 @@ public class RoleSettings {
         } catch (UnknownHostException e) {
             Logger.error(e);
         }
-        setAnticipatedMemberCount(Conf.get().members.size());
+        int expectedMemberCount = Conf.get().members.size();
+        if (expectedMemberCount == 0) {
+            expectedMemberCount = Conf.get().node.member.expectedCount;
+        }
+        setAnticipatedMemberCount(expectedMemberCount);
     }
 
     public synchronized void registerRoleRef(Role roleRef) {

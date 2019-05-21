@@ -13,22 +13,15 @@ import java.util.stream.Stream;
 
 public class InitMainSingleJVMSimple {
     public static void main(String[] args) throws InterruptedException, UnknownHostException {
-//        withClient();
 
         Set<Address> members = Stream.of(
                 new TCPAddress("127.0.0.1:4444"),
                 new TCPAddress("127.0.0.1:4445")
         ).collect(Collectors.toSet());
 
-        BizurNode node1 = BizurBuilder.builder()
-                .loadConfigFrom(InitMainSingleJVMSimple.class, "jbizur.conf")
-                .build();
-        BizurNode node2 = BizurBuilder.builder()
-                .loadConfigFrom(InitMainSingleJVMSimple.class, "jbizur.conf")
-                .build();
-        BizurClient client = BizurBuilder.builder()
-                .loadConfigFrom(InitMainSingleJVMSimple.class, "jbizur.conf")
-                .buildClient();
+        BizurNode node1 = BizurBuilder.builder().build();
+        BizurNode node2 = BizurBuilder.builder().build();
+        BizurClient client = BizurBuilder.builder().buildClient();
 
         node1.start().join();
         node2.start().join();
