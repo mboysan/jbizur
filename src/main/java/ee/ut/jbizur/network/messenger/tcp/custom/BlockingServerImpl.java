@@ -27,13 +27,16 @@ public class BlockingServerImpl extends AbstractServer {
 
     public BlockingServerImpl(Role roleInstance) {
         super(roleInstance);
+        if (!super.keepAlive) {
+            throw new UnsupportedOperationException("non keepalive connection type not supported");
+        }
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void startRecv(Address address){
+    public void startRecv(Address address) {
         if (!(address instanceof TCPAddress)) {
             throw new IllegalArgumentException("address is not a TCP address: " + address);
         }
@@ -46,25 +49,17 @@ public class BlockingServerImpl extends AbstractServer {
     public void shutdown() {
         this.isRunning = false;
         serverThread.shutdown();
+        Logger.info("Server shutdown: " + roleInstance.toString());
     }
 
     private class ServerThread extends Thread {
-        private final ExecutorService socketExecutor;
-        private final ExecutorService streamExecutor;
+        private final ExecutorService socketExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        private final ExecutorService streamExecutor = Executors.newCachedThreadPool();
 
         private ServerSocket serverSocket;
 
         ServerThread(int port) {
             super("server-thread-" + roleInstance.getSettings().getRoleId());
-
-            if (keepAlive) {
-                socketExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-                streamExecutor = Executors.newCachedThreadPool();
-            } else {
-                socketExecutor = Executors.newCachedThreadPool();
-                streamExecutor = null;
-            }
-
             try {
                 this.serverSocket = new ServerSocket(port);
             } catch (IOException e) {
@@ -78,7 +73,7 @@ public class BlockingServerImpl extends AbstractServer {
                 while (isRunning) {
                     Socket socket = serverSocket.accept();
 
-                    RecvSocket recvSocket = new RecvSocket(socket, keepAlive);
+                    RecvSocket recvSocket = new RecvSocket(socket, true);
                     SocketHandler socketHandler = new SocketHandler(recvSocket, streamExecutor);
                     socketExecutor.execute(socketHandler);
                 }
@@ -88,8 +83,6 @@ public class BlockingServerImpl extends AbstractServer {
                 } else {
                     Logger.error(e);
                 }
-            } finally {
-                Logger.info("ServerSocket end!");
             }
         }
 
@@ -99,21 +92,19 @@ public class BlockingServerImpl extends AbstractServer {
             } catch (IOException e) {
                 Logger.error(e);
             }
+
             socketExecutor.shutdown();
             try {
                 socketExecutor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 Logger.error(e);
             }
-            Logger.info("Server socketExecutor shutdown [" + socketExecutor.isShutdown() + "], info=[" + socketExecutor + "]");
-            if (keepAlive) {
-                streamExecutor.shutdown();
-                try {
-                    streamExecutor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    Logger.error(e);
-                }
-                Logger.info("Server streamExecutor shutdown [" + streamExecutor.isShutdown() + "], info=[" + streamExecutor + "]");
+
+            streamExecutor.shutdown();
+            try {
+                streamExecutor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Logger.error(e);
             }
         }
     }
@@ -131,27 +122,22 @@ public class BlockingServerImpl extends AbstractServer {
         public void run() {
             do {
                 handleRead();
-            } while (keepAlive && isRunning);
+            } while (isRunning);
             recvSocket.close();
         }
 
         private void handleRead() {
             try {
                 NetworkCommand command = recvSocket.recv();
-                if (keepAlive) {
-                    if (command instanceof SignalEnd_NC) {
-                        roleInstance.handleNetworkCommand(command);
-                    } else {
-                        streamExecutor.execute(() -> roleInstance.handleNetworkCommand(command));
-                    }
-                } else {
+                if (command instanceof SignalEnd_NC) {
                     roleInstance.handleNetworkCommand(command);
+                } else {
+                    streamExecutor.execute(() -> roleInstance.handleNetworkCommand(command));
                 }
-            }
-            catch (EOFException e) {
+            } catch (EOFException e) {
 //                Logger.warn(e, "");
             } catch (IOException | ClassNotFoundException e) {
-                Logger.error(e,"");
+                Logger.error(e, "");
             }
         }
     }

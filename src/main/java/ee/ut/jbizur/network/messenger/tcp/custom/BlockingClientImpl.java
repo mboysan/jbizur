@@ -23,14 +23,13 @@ import java.util.concurrent.TimeUnit;
  */
 public class BlockingClientImpl extends AbstractClient {
 
-    private final ExecutorService executor;
-    private Map<String, SendSocket> socketMap;
+    private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    private final Map<String, SendSocket> socketMap = new ConcurrentHashMap<>();
 
     public BlockingClientImpl(Role roleInstance) {
         super(roleInstance);
-        this.executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        if (keepAlive) {
-            socketMap = new ConcurrentHashMap<>();
+        if (!super.keepAlive) {
+            throw new UnsupportedOperationException("non keepalive connection type not supported");
         }
     }
 
@@ -40,40 +39,52 @@ public class BlockingClientImpl extends AbstractClient {
      */
     @Override
     public void send(NetworkCommand message) {
-        Runnable sender = createSender(message);
-        if(message instanceof SignalEnd_NC){
-            sender.run();
-            shutdown();
-            Logger.info("Client executor shutdown [" + executor.isShutdown() + "], info=[" + executor + "]");
-        } else {
-            executor.execute(sender);
+        try {
+            TCPAddress receiverAddress = (TCPAddress) message.getReceiverAddress();
+            SendSocket senderSocket = connect(receiverAddress);
+            if (message instanceof SignalEnd_NC) {
+                try {
+                    senderSocket.send(message);
+                } catch (IOException e) {
+                    Logger.error("Send err, msg (1): " + message + ", " + e, e);
+                    roleInstance.handleInternalCommand(new SendFail_IC(message));
+                }
+                shutdown();
+            } else {
+                executor.submit(() -> {
+                    try {
+                        senderSocket.send(message);
+                    } catch (IOException e) {
+                        Logger.error("Send err, msg (2): " + message + ", " + e, e);
+                        roleInstance.handleInternalCommand(new SendFail_IC(message));
+                    }
+                });
+            }
+        } catch (IOException e) {
+            Logger.error("Client could not connect to server.", e);
+            roleInstance.handleInternalCommand(new SendFail_IC(message));
         }
     }
 
+    @Override
+    protected <T> T connect(Address address) throws IOException {
+        if (!(address instanceof TCPAddress)) {
+            throw new IllegalArgumentException("address must be a TCP address");
+        }
+        TCPAddress tcpAddress = (TCPAddress) address;
+        SendSocket senderSocket = socketMap.get(tcpAddress.toString());
+        if (senderSocket == null) {
+            senderSocket = createSenderSocket(tcpAddress);
+            socketMap.put(tcpAddress.toString(), senderSocket);
+        }
+        return (T) senderSocket;
+    }
 
-    private Runnable createSender(final NetworkCommand message) {
-        return () -> {
-            SendSocket senderSocket = null;
-            TCPAddress receiverAddress = null;
-            try {
-                receiverAddress = (TCPAddress) message.getReceiverAddress();
-                senderSocket = connect(receiverAddress);
-                senderSocket.send(message);
-            } catch (IOException e) {
-                Logger.error("Send err, msg: " + message + ", " + e, e);
-                roleInstance.handleInternalCommand(new SendFail_IC(message));
-            } finally {
-                if (!keepAlive) {
-                    try {
-                        if (receiverAddress != null) {
-                            disconnect(receiverAddress.toString(), senderSocket);
-                        }
-                    } catch (IOException e) {
-                        Logger.error(e);
-                    }
-                }
-            }
-        };
+    protected SendSocket createSenderSocket(TCPAddress tcpAddress) throws IOException {
+        return new SendSocket(
+                new Socket(tcpAddress.getIp(), tcpAddress.getPortNumber()),
+                true
+        );
     }
 
     @Override
@@ -86,47 +97,17 @@ public class BlockingClientImpl extends AbstractClient {
             Logger.error(e);
         }
         disconnectAll();
-    }
-
-    @Override
-    protected <T> T connect(Address address) throws IOException {
-        if (!(address instanceof TCPAddress)) {
-            throw new IllegalArgumentException("address must be a TCP address");
-        }
-        TCPAddress tcpAddress = (TCPAddress) address;
-        SendSocket senderSocket;
-        if (keepAlive) {
-            senderSocket = socketMap.get(tcpAddress.toString());
-            if (senderSocket == null) {
-                senderSocket = createSenderSocket(tcpAddress);
-                socketMap.put(tcpAddress.toString(), senderSocket);
-            }
-        } else {
-            senderSocket = createSenderSocket(tcpAddress);
-        }
-        return (T) senderSocket;
-    }
-
-    protected SendSocket createSenderSocket(TCPAddress tcpAddress) throws IOException {
-        return new SendSocket(
-                new Socket(tcpAddress.getIp(), tcpAddress.getPortNumber()),
-                keepAlive
-        );
+        Logger.info("Client shutdown: " + roleInstance.toString());
     }
 
     protected void disconnect(String tcpAddressStr, SendSocket senderSocket) throws IOException {
         if (senderSocket != null) {
             senderSocket.close();
-            if (keepAlive) {
-                socketMap.remove(tcpAddressStr);
-            }
+            socketMap.remove(tcpAddressStr);
         }
     }
 
     protected void disconnectAll() {
-        if (socketMap == null) {
-            return;
-        }
         socketMap.forEach((tcpAddressStr, socket) -> {
             try {
                 disconnect(tcpAddressStr, socket);
