@@ -25,6 +25,8 @@ public class BlockingServerImpl extends AbstractServer {
 
     private ServerThread serverThread;
 
+    private final ExecutorService executor = Executors.newCachedThreadPool();
+
     public BlockingServerImpl(Role roleInstance) {
         super(roleInstance);
         if (!super.keepAlive) {
@@ -49,13 +51,16 @@ public class BlockingServerImpl extends AbstractServer {
     public void shutdown() {
         this.isRunning = false;
         serverThread.shutdown();
+        executor.shutdown();
+        try {
+            executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Logger.error(e);
+        }
         Logger.info("Server shutdown: " + roleInstance.toString());
     }
 
     private class ServerThread extends Thread {
-        private final ExecutorService socketExecutor = Executors.newCachedThreadPool();
-        private final ExecutorService streamExecutor = Executors.newCachedThreadPool();
-
         private ServerSocket serverSocket;
 
         ServerThread(int port) {
@@ -74,8 +79,8 @@ public class BlockingServerImpl extends AbstractServer {
                     Socket socket = serverSocket.accept();
 
                     RecvSocket recvSocket = new RecvSocket(socket, true);
-                    SocketHandler socketHandler = new SocketHandler(recvSocket, streamExecutor);
-                    socketExecutor.execute(socketHandler);
+                    SocketHandler socketHandler = new SocketHandler(recvSocket);
+                    executor.execute(socketHandler);
                 }
             } catch (IOException e) {
                 if (e instanceof SocketException) {
@@ -92,30 +97,14 @@ public class BlockingServerImpl extends AbstractServer {
             } catch (IOException e) {
                 Logger.error(e);
             }
-
-            socketExecutor.shutdown();
-            try {
-                socketExecutor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                Logger.error(e);
-            }
-
-            streamExecutor.shutdown();
-            try {
-                streamExecutor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                Logger.error(e);
-            }
         }
     }
 
     protected class SocketHandler implements Runnable {
         private final RecvSocket recvSocket;
-        private final ExecutorService streamExecutor;
 
-        SocketHandler(RecvSocket recvSocket, ExecutorService streamExecutor) {
+        SocketHandler(RecvSocket recvSocket) {
             this.recvSocket = recvSocket;
-            this.streamExecutor = streamExecutor;
         }
 
         @Override
@@ -132,7 +121,7 @@ public class BlockingServerImpl extends AbstractServer {
                 if (command instanceof SignalEnd_NC) {
                     roleInstance.handleNetworkCommand(command);
                 } else {
-                    streamExecutor.execute(() -> roleInstance.handleNetworkCommand(command));
+                    executor.execute(() -> roleInstance.handleNetworkCommand(command));
                 }
             } catch (EOFException e) {
 //                Logger.warn(e, "");

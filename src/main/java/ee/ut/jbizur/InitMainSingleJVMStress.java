@@ -49,13 +49,16 @@ public class InitMainSingleJVMStress {
                 String key = UUID.randomUUID().toString();
                 String val = UUID.randomUUID().toString();
                 clients[idx].set(key, val);
-                clients[idx].get(key);
+                return clients[idx].get(key);
             }));
         }
 
+        int cnt = 0;
         for (Future<?> future : futures) {
-            future.get();
+            System.out.println(future.get());;
+            cnt++;
         }
+        System.out.println("FINAL CNT: " + cnt);
 
         clients[0].signalEndToAll();
 
