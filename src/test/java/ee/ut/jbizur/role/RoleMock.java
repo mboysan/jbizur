@@ -10,9 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RoleMock extends Role {
-
-    public Map<Integer, NetworkCommand> receivedCommandsMap = new ConcurrentHashMap<>();
-    private final AtomicInteger recvCmdCount = new AtomicInteger(0);
+    public final AtomicInteger recvCmdCount = new AtomicInteger(0);
 
     public RoleMock(RoleSettings settings) {
         super(settings.setMultiCastEnabled(false));
@@ -20,8 +18,7 @@ public class RoleMock extends Role {
 
     @Override
     public void handleNetworkCommand(NetworkCommand command) {
-        System.out.println("command recv (" + recvCmdCount.incrementAndGet() + "): " + command);
-        receivedCommandsMap.put(command.getMsgId(), command);
+        recvCmdCount.incrementAndGet();
     }
 
     @Override

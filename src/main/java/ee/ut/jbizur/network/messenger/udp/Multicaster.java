@@ -4,6 +4,7 @@ import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.ping.Connect_NC;
 import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
 import ee.ut.jbizur.role.Role;
 import ee.ut.jbizur.util.ByteUtils;
@@ -11,8 +12,8 @@ import org.pmw.tinylog.Logger;
 
 import java.io.IOException;
 import java.net.*;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -32,12 +33,15 @@ public class Multicaster {
      */
     private final Role roleInstance;
 
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    /**
+     * 2 threads for handling send/recv concurrently. These are low priority operations.
+     */
+    private final ScheduledExecutorService schExecutor = Executors.newScheduledThreadPool(2);
 
     private final MulticastReceiver receiver;
 
     public Multicaster(MulticastAddress multicastAddress, Role roleInstance) {
-        if(multicastAddress == null){
+        if (multicastAddress == null) {
             throw new IllegalArgumentException("multicast address has to be provided");
         }
         this.multicastAddress = multicastAddress;
@@ -45,58 +49,66 @@ public class Multicaster {
         this.receiver = new MulticastReceiver();
     }
 
-    public void multicast(NetworkCommand messageToSend) {
-        new MulticastPublisher().multicast(messageToSend);
+    public void initMulticast() {
+        startRecv();
+        schExecutor.scheduleAtFixedRate(() -> {
+            if (!roleInstance.checkNodesDiscovered()) {
+                multicast(
+                        new Connect_NC()
+                                .setSenderId(roleInstance.getSettings().getRoleId())
+                                .setSenderAddress(roleInstance.getSettings().getAddress())
+                                .setNodeType("member")
+                );
+            } else {
+                shutdown();
+            }
+        }, 0, Conf.get().network.multicast.intervalms, TimeUnit.MILLISECONDS);
     }
 
     public void startRecv() {
-        executor.execute(receiver);
+        schExecutor.execute(receiver);
     }
 
     /**
      * shutdown the multicaster service.
      */
-    public void shutdown(){
+    public void shutdown() {
         isRunning = false;
-        executor.shutdown();
+        receiver.shutdown();
+        schExecutor.shutdown();
         try {
-            executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
+            schExecutor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Logger.error(e);
         }
-        receiver.end();
+        schExecutor.shutdown();
+        try {
+            schExecutor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Logger.error(e);
+        }
     }
 
-    private class MulticastPublisher {
-        public void multicast(NetworkCommand messageToSend) {
-            try (DatagramSocket socket = new DatagramSocket()) {
-                InetAddress group = multicastAddress.getMulticastGroupAddr();
-                byte[] msg = commandMarshaller.marshall(messageToSend, byte[].class);
-                byte[] msgWithLength = ByteUtils.prependMessageLengthTo(msg);
+    public void multicast(NetworkCommand messageToSend) {
+        try (DatagramSocket socket = new DatagramSocket()) {
+            InetAddress group = multicastAddress.getMulticastGroupAddr();
+            byte[] msg = commandMarshaller.marshall(messageToSend, byte[].class);
+            byte[] msgWithLength = ByteUtils.prependMessageLengthTo(msg);
 
-                DatagramPacket packet
-                        = new DatagramPacket(msgWithLength, msgWithLength.length, group, multicastAddress.getMulticastPort());
-                socket.send(packet);
-            } catch (IOException e) {
-                Logger.error(e, "multicast _send error.");
-            }
+            DatagramPacket packet
+                    = new DatagramPacket(msgWithLength, msgWithLength.length, group, multicastAddress.getMulticastPort());
+            socket.send(packet);
+        } catch (IOException e) {
+            Logger.error(e, "multicast _send error.");
         }
     }
 
     private class MulticastReceiver implements Runnable {
-        private ExecutorService executor = Executors.newSingleThreadExecutor();
         private MulticastSocket socket;
 
         @Override
         public void run() {
             recv();
-        }
-
-        private void end(){
-            isRunning = false;
-            executor.shutdown();
-            shutdown();
-            new MulticastPublisher().multicast(new SignalEnd_NC());
         }
 
         private void recv() {
@@ -117,7 +129,7 @@ public class Multicaster {
                         Logger.info("MulticastReceiver end!");
                         break;
                     }
-                    executor.execute(() -> roleInstance.handleNetworkCommand(received));
+                    schExecutor.execute(() -> roleInstance.handleNetworkCommand(received));
                 }
                 shutdown();
             } catch (IOException e) {

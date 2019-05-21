@@ -49,14 +49,14 @@ public class BizurBuilder {
         return this;
     }
 
+    public BizurBuilder loadConfigFrom(Class resourceClass, String fileName) {
+        return loadConfigFrom(new File(resourceClass.getClassLoader().getResource(fileName).getFile()));
+    }
+
     public BizurBuilder loadConfigFrom(File workingDirFile) {
         Conf.setConfig(workingDirFile);
         settings.defaults();
         return this;
-    }
-
-    public BizurBuilder loadConfigFrom(Class resourceClass, String fileName) {
-        return loadConfigFrom(new File(BizurBuilder.class.getClassLoader().getResource(fileName).getFile()));
     }
 
     protected BizurSettings getSettings() {

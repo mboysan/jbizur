@@ -1,6 +1,5 @@
 package ee.ut.jbizur.clientservertest;
 
-import ee.ut.jbizur.config.IntegTestConf;
 import ee.ut.jbizur.protocol.commands.MockNetworkCommand;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.role.RoleMock;
@@ -28,7 +27,6 @@ public class MsgSendRecvMultiNodeTest {
     @After
     public void tearDown() {
         for (int i = 0; i < roleMocks.length; i++) {
-            roleMocks[i].receivedCommandsMap.clear();
             roleMocks[i].shutdown();
         }
     }
@@ -79,10 +77,10 @@ public class MsgSendRecvMultiNodeTest {
     }
 
     private void checkReceivedCommandsSize(int expCount) throws InterruptedException {
-        Thread.sleep(IntegTestConf.get().network.shutdownWaitSec * 1000);
+        Thread.sleep(5000);
         int totalRecv = 0;
         for (RoleMock roleMock : roleMocks) {
-            totalRecv += roleMock.receivedCommandsMap.size();
+            totalRecv += roleMock.recvCmdCount.get();
         }
         Assert.assertEquals(expCount, totalRecv);
         System.out.println("recv command count equals sent command count!");

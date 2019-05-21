@@ -19,7 +19,6 @@ public class MsgSendRecvTest {
     @Before
     public void setUp() throws Exception {
         roleMock = new RoleMock(new RoleSettings());
-        roleMock.receivedCommandsMap.clear();
     }
 
     @After
@@ -36,7 +35,7 @@ public class MsgSendRecvTest {
 
         Thread.sleep(5000);
 
-        Assert.assertEquals(testCount, roleMock.receivedCommandsMap.size());
+        Assert.assertEquals(testCount, roleMock.recvCmdCount.get());
     }
 
     @Test
@@ -52,7 +51,7 @@ public class MsgSendRecvTest {
         executor.endExecution();
         Thread.sleep(5000);
 
-        Assert.assertEquals(testCount, roleMock.receivedCommandsMap.size());
+        Assert.assertEquals(testCount, roleMock.recvCmdCount.get());
     }
 
     protected NetworkCommand generateCommand() {

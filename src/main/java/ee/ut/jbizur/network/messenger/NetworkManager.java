@@ -3,13 +3,9 @@ package ee.ut.jbizur.network.messenger;
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.messenger.udp.Multicaster;
-import ee.ut.jbizur.protocol.commands.ping.Connect_NC;
 import ee.ut.jbizur.role.Role;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class NetworkManager {
 
@@ -18,8 +14,6 @@ public class NetworkManager {
     private AbstractClient client;
     private AbstractServer server;
     private Multicaster multicaster;
-
-    private ScheduledExecutorService multicastExecutor;
 
     public NetworkManager(Role role) {
         this.role = role;
@@ -38,14 +32,13 @@ public class NetworkManager {
         role.setAddress(modifiedAddress);
         server.startRecv(modifiedAddress);
 
-        initMulticast();    //will not run if multicast is disabled
+        if (multicaster != null) {
+            multicaster.initMulticast();
+        }
         return this;
     }
 
     public void shutdown() {
-        if (multicastExecutor != null) {
-            multicastExecutor.shutdown();
-        }
         if (multicaster != null) {
             multicaster.shutdown();
         }
@@ -78,26 +71,6 @@ public class NetworkManager {
             e.printStackTrace();
         }
         throw new IllegalArgumentException("server could not be initiated");
-    }
-
-    protected void initMulticast() {
-        if (role.isAddressesAlreadyRegistered() || multicaster == null) {
-            return;
-        }
-        multicastExecutor = Executors.newScheduledThreadPool(1);
-        multicaster.startRecv();
-        multicastExecutor.scheduleAtFixedRate(() -> {
-            if (!role.checkNodesDiscovered()) {
-                multicaster.multicast(
-                        new Connect_NC()
-                                .setSenderId(role.getSettings().getRoleId())
-                                .setSenderAddress(role.getSettings().getAddress())
-                                .setNodeType("member")
-                );
-            } else {
-                multicastExecutor.shutdown();
-            }
-        }, 0, Conf.get().network.multicast.intervalms, TimeUnit.MILLISECONDS);
     }
 
     public AbstractClient getClient() {

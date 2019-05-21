@@ -28,7 +28,7 @@ public class BlockingClientImpl extends AbstractClient {
 
     public BlockingClientImpl(Role roleInstance) {
         super(roleInstance);
-        this.executor = Executors.newCachedThreadPool();
+        this.executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         if (keepAlive) {
             socketMap = new ConcurrentHashMap<>();
         }

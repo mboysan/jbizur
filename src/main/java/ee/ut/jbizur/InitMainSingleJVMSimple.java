@@ -1,21 +1,33 @@
 package ee.ut.jbizur;
 
+import ee.ut.jbizur.network.address.Address;
+import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.role.bizur.BizurBuilder;
 import ee.ut.jbizur.role.bizur.BizurClient;
 import ee.ut.jbizur.role.bizur.BizurNode;
 
+import java.net.UnknownHostException;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 public class InitMainSingleJVMSimple {
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, UnknownHostException {
 //        withClient();
 
+        Set<Address> members = Stream.of(
+                new TCPAddress("127.0.0.1:4444"),
+                new TCPAddress("127.0.0.1:4445")
+        ).collect(Collectors.toSet());
+
         BizurNode node1 = BizurBuilder.builder()
-                .withMemberId("member1")
+                .loadConfigFrom(InitMainSingleJVMSimple.class, "jbizur.conf")
                 .build();
         BizurNode node2 = BizurBuilder.builder()
-                .withMemberId("member2")
+                .loadConfigFrom(InitMainSingleJVMSimple.class, "jbizur.conf")
                 .build();
         BizurClient client = BizurBuilder.builder()
-                .withMemberId("client")
+                .loadConfigFrom(InitMainSingleJVMSimple.class, "jbizur.conf")
                 .buildClient();
 
         node1.start().join();

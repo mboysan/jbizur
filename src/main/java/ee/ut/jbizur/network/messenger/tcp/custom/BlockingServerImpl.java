@@ -108,6 +108,11 @@ public class BlockingServerImpl extends AbstractServer {
             Logger.info("Server socketExecutor shutdown [" + socketExecutor.isShutdown() + "], info=[" + socketExecutor + "]");
             if (keepAlive) {
                 streamExecutor.shutdown();
+                try {
+                    streamExecutor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Logger.error(e);
+                }
                 Logger.info("Server streamExecutor shutdown [" + streamExecutor.isShutdown() + "], info=[" + streamExecutor + "]");
             }
         }
