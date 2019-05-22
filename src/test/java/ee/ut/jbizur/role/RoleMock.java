@@ -1,6 +1,6 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.network.messenger.NetworkManager;
+import ee.ut.jbizur.network.io.NetworkManager;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.internal.InternalCommand;
 
@@ -32,7 +32,7 @@ public class RoleMock extends Role {
         return null;
     }
 
-    public NetworkManager getMessageProcessor() {
+    public NetworkManager getNetworkManager() {
         return networkManager;
     }
 }

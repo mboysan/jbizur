@@ -2,9 +2,9 @@ package ee.ut.jbizur.role;
 
 import ee.ut.jbizur.config.LogConf;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.messenger.NetworkManager;
-import ee.ut.jbizur.network.messenger.SyncMessageListener;
-import ee.ut.jbizur.network.messenger.tcp.custom.BlockingServerImpl;
+import ee.ut.jbizur.network.io.NetworkManager;
+import ee.ut.jbizur.network.io.SyncMessageListener;
+import ee.ut.jbizur.network.io.tcp.custom.BlockingServerImpl;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.ping.*;
 import ee.ut.jbizur.protocol.internal.InternalCommand;

@@ -1,8 +1,8 @@
-package ee.ut.jbizur.network.messenger.tcp.rapidoid;
+package ee.ut.jbizur.network.io.tcp.rapidoid;
 
 import ee.ut.jbizur.network.address.TCPAddress;
-import ee.ut.jbizur.network.messenger.tcp.custom.BlockingClientImpl;
-import ee.ut.jbizur.network.messenger.tcp.custom.SendSocket;
+import ee.ut.jbizur.network.io.tcp.custom.BlockingClientImpl;
+import ee.ut.jbizur.network.io.tcp.custom.SendSocket;
 import ee.ut.jbizur.role.Role;
 
 import java.io.IOException;

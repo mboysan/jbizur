@@ -48,7 +48,7 @@ public class MsgSendRecvMultiNodeTest {
         RoleMock sender = getRole(0);
         RoleMock receiver = getRole(1);
         for (int i = 0; i < testCount; i++) {
-            sender.getMessageProcessor().getClient().send(generateCommand(sender, receiver));
+            sender.getNetworkManager().getClient().send(generateCommand(sender, receiver));
         }
         checkReceivedCommandsSize(testCount);
     }
@@ -59,7 +59,7 @@ public class MsgSendRecvMultiNodeTest {
         for (int i = 0; i < testCount; i++) {
             RoleMock sender = getRandomRole();
             RoleMock receiver = getRandomRole();
-            sender.getMessageProcessor().getClient().send(generateCommand(sender, receiver));
+            sender.getNetworkManager().getClient().send(generateCommand(sender, receiver));
         }
         checkReceivedCommandsSize(testCount);
     }
@@ -72,7 +72,7 @@ public class MsgSendRecvMultiNodeTest {
             executor.execute(() -> {
                 RoleMock sender = getRandomRole();
                 RoleMock receiver = getRandomRole();
-                sender.getMessageProcessor().getClient().send(generateCommand(sender, receiver));
+                sender.getNetworkManager().getClient().send(generateCommand(sender, receiver));
             });
         }
         executor.endExecution();

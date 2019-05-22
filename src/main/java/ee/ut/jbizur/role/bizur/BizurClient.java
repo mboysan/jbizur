@@ -1,7 +1,7 @@
 package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.messenger.SyncMessageListener;
+import ee.ut.jbizur.network.io.SyncMessageListener;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.bizur.*;
 import ee.ut.jbizur.protocol.commands.ping.ConnectOK_NC;

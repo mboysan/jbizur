@@ -1,15 +1,14 @@
-package ee.ut.jbizur.network.messenger.tcp.rapidoid;
+package ee.ut.jbizur.network.io.tcp.rapidoid;
 
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
-import ee.ut.jbizur.network.messenger.AbstractServer;
+import ee.ut.jbizur.network.io.AbstractServer;
 import ee.ut.jbizur.protocol.ByteSerializer;
 import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.role.Role;
 import org.pmw.tinylog.Logger;
-import org.rapidoid.annotation.Run;
 import org.rapidoid.net.Server;
 import org.rapidoid.net.TCP;
 

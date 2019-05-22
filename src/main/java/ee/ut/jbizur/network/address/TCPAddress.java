@@ -1,6 +1,6 @@
 package ee.ut.jbizur.network.address;
 
-import ee.ut.jbizur.network.messenger.tcp.custom.BlockingServerImpl;
+import ee.ut.jbizur.network.io.tcp.custom.BlockingServerImpl;
 import org.pmw.tinylog.Logger;
 
 import java.io.BufferedReader;

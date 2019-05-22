@@ -1,4 +1,4 @@
-package ee.ut.jbizur.network.messenger.udp;
+package ee.ut.jbizur.network.io.udp;
 
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.MulticastAddress;

@@ -1,8 +1,8 @@
-package ee.ut.jbizur.network.messenger.tcp.netty;
+package ee.ut.jbizur.network.io.tcp.netty;
 
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
-import ee.ut.jbizur.network.messenger.AbstractClient;
+import ee.ut.jbizur.network.io.AbstractClient;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
 import ee.ut.jbizur.role.Role;

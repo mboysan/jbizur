@@ -1,9 +1,9 @@
-package ee.ut.jbizur.network.messenger.tcp.custom;
+package ee.ut.jbizur.network.io.tcp.custom;
 
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
-import ee.ut.jbizur.network.messenger.AbstractClient;
+import ee.ut.jbizur.network.io.AbstractClient;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
 import ee.ut.jbizur.protocol.internal.SendFail_IC;

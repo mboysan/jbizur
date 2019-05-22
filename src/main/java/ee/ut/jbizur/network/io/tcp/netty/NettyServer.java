@@ -1,9 +1,9 @@
-package ee.ut.jbizur.network.messenger.tcp.netty;
+package ee.ut.jbizur.network.io.tcp.netty;
 
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
-import ee.ut.jbizur.network.messenger.AbstractServer;
+import ee.ut.jbizur.network.io.AbstractServer;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.role.Role;
 import io.netty.bootstrap.ServerBootstrap;

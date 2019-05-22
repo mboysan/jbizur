@@ -35,7 +35,7 @@ public class MsgSendRecvTest {
     public void testSimpleMessageSendRecv() throws Throwable {
         int testCount = 1000;
         for (int i = 0; i < testCount; i++) {
-            roleMock.getMessageProcessor().getClient().send(generateCommand());
+            roleMock.getNetworkManager().getClient().send(generateCommand());
         }
 
         Thread.sleep(5000);
@@ -49,7 +49,7 @@ public class MsgSendRecvTest {
         MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
             executor.execute(() -> {
-                roleMock.getMessageProcessor().getClient().send(generateCommand());
+                roleMock.getNetworkManager().getClient().send(generateCommand());
             });
         }
 

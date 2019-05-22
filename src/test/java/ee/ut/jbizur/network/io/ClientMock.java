@@ -1,4 +1,4 @@
-package ee.ut.jbizur.network.messenger;
+package ee.ut.jbizur.network.io;
 
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.protocol.CommandMarshaller;

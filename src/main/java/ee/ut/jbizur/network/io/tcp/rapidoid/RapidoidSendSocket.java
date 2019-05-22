@@ -1,6 +1,6 @@
-package ee.ut.jbizur.network.messenger.tcp.rapidoid;
+package ee.ut.jbizur.network.io.tcp.rapidoid;
 
-import ee.ut.jbizur.network.messenger.tcp.custom.SendSocket;
+import ee.ut.jbizur.network.io.tcp.custom.SendSocket;
 import ee.ut.jbizur.protocol.ByteSerializer;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 

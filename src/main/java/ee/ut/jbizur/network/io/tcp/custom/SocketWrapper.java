@@ -1,4 +1,4 @@
-package ee.ut.jbizur.network.messenger.tcp.custom;
+package ee.ut.jbizur.network.io.tcp.custom;
 
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.protocol.CommandMarshaller;

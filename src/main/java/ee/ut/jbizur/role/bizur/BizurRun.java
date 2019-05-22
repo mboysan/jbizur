@@ -8,7 +8,7 @@ import ee.ut.jbizur.datastore.bizur.BucketView;
 import ee.ut.jbizur.exceptions.LeaderResolutionFailedError;
 import ee.ut.jbizur.exceptions.OperationFailedError;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.messenger.SyncMessageListener;
+import ee.ut.jbizur.network.io.SyncMessageListener;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.bizur.*;
 import ee.ut.jbizur.protocol.commands.common.Nack_NC;

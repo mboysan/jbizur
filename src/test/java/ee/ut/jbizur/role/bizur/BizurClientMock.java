@@ -1,8 +1,8 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.network.messenger.ClientMock;
-import ee.ut.jbizur.network.messenger.NetworkManagerMock;
-import ee.ut.jbizur.network.messenger.ServerMock;
+import ee.ut.jbizur.network.io.ClientMock;
+import ee.ut.jbizur.network.io.NetworkManagerMock;
+import ee.ut.jbizur.network.io.ServerMock;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.role.Role;
 
