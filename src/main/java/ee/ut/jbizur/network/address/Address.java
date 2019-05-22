@@ -14,12 +14,6 @@ public abstract class Address implements Serializable {
 
     public abstract String resolveAddressId();
 
-    /**
-     * @param other other address to check if it is the same with this one.
-     * @return true if this and other matches, false otherwise.
-     */
-    public abstract boolean isSame(Address other);
-
     @Override
     public String toString() {
         return "Address{}";

@@ -56,7 +56,7 @@ public class BizurRun {
         return node.getSettings();
     }
     protected void sendMessage(NetworkCommand command) {
-        if (command.getReceiverAddress().isSame(getSettings().getAddress())) {
+        if (command.getReceiverAddress().equals(getSettings().getAddress())) {
             if (LogConf.isDebugEnabled()) {
                 Logger.debug("OUT " + logMsg(command.toString()));
             }
@@ -123,7 +123,7 @@ public class BizurRun {
         if (electId > localBucket.getVotedElectId()) {
             localBucket.setVotedElectId(electId);
             localBucket.setLeaderAddress(source);
-            localBucket.updateLeader(source.isSame(getSettings().getAddress()));
+            localBucket.updateLeader(source.equals(getSettings().getAddress()));
 
             vote = new AckVote_NC()
                     .setMsgId(pleaseVoteNc.getMsgId())
@@ -131,7 +131,7 @@ public class BizurRun {
                     .setReceiverAddress(source)
                     .setSenderAddress(getSettings().getAddress())
                     .setContextId(pleaseVoteNc.getContextId());
-        } else if(electId == localBucket.getVotedElectId() && source.isSame(localBucket.getLeaderAddress())) {
+        } else if(electId == localBucket.getVotedElectId() && source.equals(localBucket.getLeaderAddress())) {
             vote = new AckVote_NC()
                     .setMsgId(pleaseVoteNc.getMsgId())
                     .setSenderId(getSettings().getRoleId())
@@ -189,7 +189,7 @@ public class BizurRun {
 
     protected void electLeaderForBucket(Bucket localBucket, int startIdx, boolean forceElection) {
         Address nextAddr = IdUtils.nextAddressInUnorderedSet(getSettings().getMemberAddresses(), startIdx);
-        if (nextAddr.isSame(getSettings().getAddress())) {
+        if (nextAddr.equals(getSettings().getAddress())) {
             Logger.info(logMsg("initializing election process on bucket idx=" + localBucket.getIndex()));
             electLeaderForBucket(localBucket);
         } else {
@@ -353,7 +353,7 @@ public class BizurRun {
         } else {
             localBucket.setVotedElectId(electId);
             localBucket.setLeaderAddress(source);
-            localBucket.updateLeader(source.isSame(getSettings().getAddress()));
+            localBucket.updateLeader(source.equals(getSettings().getAddress()));
 
             NetworkCommand ackRead = new AckRead_NC()
                     .setBucketView(localBucket.createView())
@@ -657,12 +657,12 @@ public class BizurRun {
         try {
             if (localBucket.checkLeaderElectionInProgress()) {
                 localBucket.waitForLeaderElection();
-                isSuccess = localBucket.getLeaderAddress().isSame(getSettings().getAddress());
+                isSuccess = localBucket.getLeaderAddress().equals(getSettings().getAddress());
             } else {
                 localBucket.initLeaderElection();
                 try {
                     Address leaderAddr = electLeaderForBucket(localBucket);
-                    isSuccess = leaderAddr.isSame(getSettings().getAddress());
+                    isSuccess = leaderAddr.equals(getSettings().getAddress());
                 } finally {
                     localBucket.endLeaderElection();
                 }

@@ -7,6 +7,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.*;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -134,19 +135,23 @@ public class TCPAddress extends Address {
         return null;
     }
 
-    @Override
-    public boolean isSame(Address other) {
-        if(other == null){
-            return false;
-        }
-        TCPAddress address = (TCPAddress) other;
-        return address.getIp().toString().equals(this.getIp().toString())
-                && address.getPortNumber() == this.getPortNumber();
-    }
-
     public static TCPAddress resolveTCPAddress(String ipStr) throws UnknownHostException {
         String[] arr = ipStr.split(SEP);
         return new TCPAddress(arr[0], Integer.parseInt(arr[1]));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TCPAddress that = (TCPAddress) o;
+        return portNumber == that.portNumber &&
+                Objects.equals(ip, that.ip);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(ip, portNumber);
     }
 
     @Override

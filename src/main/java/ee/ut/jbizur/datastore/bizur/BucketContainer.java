@@ -59,7 +59,7 @@ public class BucketContainer {
 
             Address prevAddr = getBucket(bucketIndex).getLeaderAddress();
             if (prevAddr != null) {
-                if (prevAddr.isSame(newAddr)) {
+                if (prevAddr.equals(newAddr)) {
                     return;
                 }
                 String prevAddrStr = serializer.serializeToString(prevAddr);

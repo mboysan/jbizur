@@ -180,7 +180,7 @@ public class BizurNode extends Role {
 
     protected boolean validateCommand(NetworkCommand command) {
         if (command.getSenderAddress() != null && command.getReceiverAddress() != null) {
-            if (command.getSenderAddress().isSame(command.getReceiverAddress())) {
+            if (command.getSenderAddress().equals(command.getReceiverAddress())) {
                 return syncMessageListeners.get(command.getMsgId()) != null;
             }
         }

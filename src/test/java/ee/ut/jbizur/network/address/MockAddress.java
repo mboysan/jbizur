@@ -1,5 +1,7 @@
 package ee.ut.jbizur.network.address;
 
+import java.util.Objects;
+
 public class MockAddress extends Address {
 
     private final String address;
@@ -14,8 +16,16 @@ public class MockAddress extends Address {
     }
 
     @Override
-    public boolean isSame(Address other) {
-        return other != null && other.resolveAddressId().equals(address);
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MockAddress that = (MockAddress) o;
+        return Objects.equals(address, that.address);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(address);
     }
 
     @Override
