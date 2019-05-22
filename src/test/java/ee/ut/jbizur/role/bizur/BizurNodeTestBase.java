@@ -1,6 +1,6 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.FuncTestConf;
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MockAddress;
 import ee.ut.jbizur.util.IdUtils;
@@ -19,8 +19,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import static utils.TestUtils.getRandom;
 
 public class BizurNodeTestBase {
+    static {
+        Conf.setConfigFromResources("jbizur_func_test.conf");
+    }
 
-    private static final int NODE_COUNT = FuncTestConf.get().members.size();
+    private static final int NODE_COUNT = Conf.get().members.size();
     BizurNode[] bizurNodes;
 
     private Map<String, String> expKeyVals;
@@ -36,11 +39,11 @@ public class BizurNodeTestBase {
     }
 
     private void createNodes() throws UnknownHostException, InterruptedException {
-        int nodeCount = FuncTestConf.get().members.size();
+        int nodeCount = Conf.get().members.size();
         Address[] addresses = new MockAddress[nodeCount];
         String[] members = new String[nodeCount];
         for (int i = 0; i < members.length; i++) {
-            members[i] = FuncTestConf.get().members.get(i).id;
+            members[i] = Conf.get().members.get(i).id;
             addresses[i] = new MockAddress(members[i]);
         }
 
@@ -87,7 +90,7 @@ public class BizurNodeTestBase {
     }
 
     protected int hashKey(String s) {
-        return IdUtils.hashKey(s, FuncTestConf.get().consensus.bizur.bucketCount);
+        return IdUtils.hashKey(s, Conf.get().consensus.bizur.bucketCount);
     }
 
     void putExpectedKeyValue(String expKey, String expVal) {

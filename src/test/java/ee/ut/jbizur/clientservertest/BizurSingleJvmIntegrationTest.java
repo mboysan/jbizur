@@ -1,6 +1,6 @@
 package ee.ut.jbizur.clientservertest;
 
-import ee.ut.jbizur.config.IntegTestConf;
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.role.bizur.BizurBuilder;
@@ -13,12 +13,13 @@ import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
-import static utils.TestUtils.getRandom;
-
 @Ignore
 public class BizurSingleJvmIntegrationTest {
+    static {
+        Conf.setConfigFromResources("jbizur_integ_test.conf");
+    }
 
-    protected static final int MEMBER_COUNT = IntegTestConf.get().members.size();
+    protected static final int MEMBER_COUNT = Conf.get().members.size();
 
     protected BizurNode[] nodes;
     protected BizurClient client;
@@ -36,18 +37,18 @@ public class BizurSingleJvmIntegrationTest {
         for (int i = 0; i < nodes.length; i++) {
 
             nodes[i] = BizurBuilder.builder()
-                    .withMemberId(String.format(IntegTestConf.get().node.member.idFormat, i))
-                    .withAddress(TCPAddress.resolveTCPAddress(IntegTestConf.get().members.get(i).tcpAddress))
-                    .withMulticastAddress(MulticastAddress.resolveMulticastAddress(IntegTestConf.get().network.multicast.address))
+                    .withMemberId(String.format(Conf.get().node.member.idFormat, i))
+                    .withAddress(TCPAddress.resolveTCPAddress(Conf.get().members.get(i).tcpAddress))
+                    .withMulticastAddress(MulticastAddress.resolveMulticastAddress(Conf.get().network.multicast.address))
                     .build();
         }
     }
 
     protected void initClient() throws UnknownHostException, InterruptedException {
         client = BizurBuilder.builder()
-                .withMemberId(IntegTestConf.get().clients.get(0).id)
-                .withAddress(TCPAddress.resolveTCPAddress(IntegTestConf.get().clients.get(0).tcpAddress))
-                .withMulticastAddress(MulticastAddress.resolveMulticastAddress(IntegTestConf.get().network.multicast.address))
+                .withMemberId(Conf.get().clients.get(0).id)
+                .withAddress(TCPAddress.resolveTCPAddress(Conf.get().clients.get(0).tcpAddress))
+                .withMulticastAddress(MulticastAddress.resolveMulticastAddress(Conf.get().network.multicast.address))
                 .buildClient();
     }
 
@@ -124,15 +125,4 @@ public class BizurSingleJvmIntegrationTest {
         }
         executor.endExecution();
     }
-
-    public BizurNode getRandomNode() {
-        return nodes[getRandom().nextInt(MEMBER_COUNT)];
-    }
-
-    public static Random initRandom() {
-        long seed = System.currentTimeMillis();
-        System.out.println("seed: " + seed);
-        return new Random(seed);
-    }
-
 }

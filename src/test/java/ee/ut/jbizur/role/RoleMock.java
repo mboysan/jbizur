@@ -4,9 +4,7 @@ import ee.ut.jbizur.network.messenger.NetworkManager;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.internal.InternalCommand;
 
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RoleMock extends Role {
@@ -18,7 +16,10 @@ public class RoleMock extends Role {
 
     @Override
     public void handleNetworkCommand(NetworkCommand command) {
-        recvCmdCount.incrementAndGet();
+        int cnt = recvCmdCount.incrementAndGet();
+        if (cnt % 50 == 0) {
+            System.out.println("cnt: " + cnt);
+        }
     }
 
     @Override

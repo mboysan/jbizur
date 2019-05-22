@@ -9,8 +9,12 @@ public class Conf {
 
     private static JbizurConfig instance;
     static {
-        setConfig(new File(Conf.class.getClassLoader().getResource("jbizur.conf").getFile()));
+        setConfigFromResources("jbizur.conf");
         LogConf.configureLogger();
+    }
+
+    public synchronized static void setConfigFromResources(String resourceName) {
+        setConfig(new File(Conf.class.getClassLoader().getResource(resourceName).getFile()));
     }
 
     public synchronized static void setConfig(File file) {

@@ -43,7 +43,7 @@ public class InitMainSingleJVMStress {
 
         ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         List<Future<?>> futures = new ArrayList<>();
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 500; i++) {
             int idx = i % clients.length;
             futures.add(executor.submit(() -> {
                 String key = UUID.randomUUID().toString();
@@ -55,7 +55,10 @@ public class InitMainSingleJVMStress {
 
         int cnt = 0;
         for (Future<?> future : futures) {
-            System.out.println(future.get());;
+            future.get();
+            if (cnt % 50 == 0) {
+                System.out.println("cnt: " + cnt);
+            }
             cnt++;
         }
         System.out.println("FINAL CNT: " + cnt);

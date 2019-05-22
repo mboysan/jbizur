@@ -1,5 +1,6 @@
 package ee.ut.jbizur.clientservertest;
 
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.protocol.commands.MockNetworkCommand;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.role.RoleMock;
@@ -13,6 +14,9 @@ import static utils.TestUtils.getRandom;
 
 @Ignore
 public class MsgSendRecvMultiNodeTest {
+    static {
+        Conf.setConfigFromResources("jbizur_integ_test.conf");
+    }
 
     private final static int NODE_COUNT = 2;
     private RoleMock[] roleMocks = new RoleMock[NODE_COUNT];

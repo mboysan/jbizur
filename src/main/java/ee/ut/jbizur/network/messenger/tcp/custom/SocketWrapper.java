@@ -14,35 +14,40 @@ public abstract class SocketWrapper {
     /**
      * The marshaller to marshall the command to _send.
      */
-    protected final CommandMarshaller commandMarshaller;
+    protected final CommandMarshaller commandMarshaller = new CommandMarshaller();
 
     private final Socket socket;
-    protected OutputStream outputStream;
-    protected InputStream inputStream;
+    protected final OutputStream outputStream;
+    protected final InputStream inputStream;
 
     protected final String serializationType = Conf.get().network.sendRecvAs;
+    protected final boolean isBufferedIO = Conf.get().network.bufferedIO;
 
     protected final Stack<Closeable> closeables = new Stack<>();
 
     public SocketWrapper(Socket socket, boolean keepAlive) throws IOException {
-        this.commandMarshaller = new CommandMarshaller();
-
         this.socket = socket;
         this.socket.setKeepAlive(keepAlive);
         closeables.push(socket);
 
         OutputStream sockOut = socket.getOutputStream();
         closeables.push(sockOut);
-//        BufferedOutputStream bfo = new BufferedOutputStream(socket.getOutputStream());
-//        closeables.push(bfo);
-        this.outputStream = resolveOutStream(socket.getOutputStream());
+        if (isBufferedIO) {
+            BufferedOutputStream bfo = new BufferedOutputStream(sockOut);
+            closeables.push(bfo);
+            sockOut = bfo;
+        }
+        this.outputStream = resolveOutStream(sockOut);
         closeables.push(outputStream);
 
-        InputStream sockIS = socket.getInputStream();
-        closeables.push(sockIS);
-//        BufferedInputStream bfi = new BufferedInputStream(socket.getInputStream());
-//        closeables.push(bfi);
-        this.inputStream = resolveInStream(socket.getInputStream());
+        InputStream sockIn = socket.getInputStream();
+        closeables.push(sockIn);
+        if (isBufferedIO) {
+            BufferedInputStream bfi = new BufferedInputStream(sockIn);
+            closeables.push(bfi);
+            sockIn = bfi;
+        }
+        this.inputStream = resolveInStream(sockIn);
         closeables.push(inputStream);
     }
 
@@ -61,12 +66,14 @@ public abstract class SocketWrapper {
 
     protected void sendAsObject(NetworkCommand message, ObjectOutputStream out) throws IOException {
         out.writeObject(message);
+        out.flush();
     }
 
     protected void sendAsBytes(NetworkCommand message, DataOutputStream out) throws IOException {
         byte[] bytesToSend = commandMarshaller.marshall(message, byte[].class);
         out.writeInt(bytesToSend.length); // write length of the message
         out.write(bytesToSend);    // write the message
+        out.flush();
     }
 
     protected void sendAsJSONString(NetworkCommand message, OutputStream outputStream) throws IOException {

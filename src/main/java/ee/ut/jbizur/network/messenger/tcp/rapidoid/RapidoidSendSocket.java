@@ -4,10 +4,7 @@ import ee.ut.jbizur.network.messenger.tcp.custom.SendSocket;
 import ee.ut.jbizur.protocol.ByteSerializer;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.Socket;
 
 public class RapidoidSendSocket extends SendSocket {
@@ -22,10 +19,16 @@ public class RapidoidSendSocket extends SendSocket {
     }
 
     @Override
+    protected InputStream resolveInStream(InputStream in) throws IOException {
+        return new DataInputStream(in);
+    }
+
+    @Override
     protected void sendAsBytes(NetworkCommand message, DataOutputStream out) throws IOException {
         byte[] msg = commandMarshaller.marshall(message, byte[].class);
         out.writeUTF(msg.length + String.format("%n"));
         out.write(msg);
+        out.flush();
     }
 
     @Override

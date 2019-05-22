@@ -64,6 +64,7 @@ public class JbizurConfig {
   }
   
   public static class Network {
+    public final boolean bufferedIO;
     public final java.lang.String client;
     public final Network.Multicast multicast;
     public final long responseTimeoutSec;
@@ -96,6 +97,7 @@ public class JbizurConfig {
     }
     
     public Network(com.typesafe.config.Config c) {
+      this.bufferedIO = c.hasPathOrNull("bufferedIO") && c.getBoolean("bufferedIO");
       this.client = c.hasPathOrNull("client") ? c.getString("client") : "ee.ut.jbizur.network.messenger.tcp.custom.BlockingClientImpl";
       this.multicast = c.hasPathOrNull("multicast") ? new Network.Multicast(c.getConfig("multicast")) : new Network.Multicast(com.typesafe.config.ConfigFactory.parseString("multicast{}"));
       this.responseTimeoutSec = c.hasPathOrNull("responseTimeoutSec") ? c.getLong("responseTimeoutSec") : 10;

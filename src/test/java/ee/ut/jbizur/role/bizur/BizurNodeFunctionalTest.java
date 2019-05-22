@@ -1,6 +1,6 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.FuncTestConf;
+import ee.ut.jbizur.config.Conf;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -15,7 +15,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueSetGetTest() {
-        int testCount = FuncTestConf.get().tests.functional.keyValueSetGetTest;
+        int testCount = Conf.get().tests.functional.keyValueSetGetTest;
         for (int i = 0; i < testCount; i++) {
             String expKey = "tkey" + i;
             String expVal = "tval" + i;
@@ -34,7 +34,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueSetGetMultiThreadTest() throws Throwable {
-        int testCount = FuncTestConf.get().tests.functional.keyValueSetGetMultiThreadTest;
+        int testCount = Conf.get().tests.functional.keyValueSetGetMultiThreadTest;
         MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
             int finalI = i;
@@ -59,7 +59,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueDeleteTest() {
-        int testCount = FuncTestConf.get().tests.functional.keyValueDeleteTest;
+        int testCount = Conf.get().tests.functional.keyValueDeleteTest;
         for (int i = 0; i < testCount; i++) {
             String expKey = "tkey" + i;
             String expVal = "tval" + i;
@@ -83,7 +83,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueDeleteMultiThreadTest() throws Throwable {
-        int testCount = FuncTestConf.get().tests.functional.keyValueDeleteMultiThreadTest;
+        int testCount = Conf.get().tests.functional.keyValueDeleteMultiThreadTest;
         MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
             int finalI = i;
@@ -109,7 +109,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
     @Test
     @Ignore
     public void iterateKeysTest() {
-        int keyCount = FuncTestConf.get().tests.functional.iterateKeysTest;
+        int keyCount = Conf.get().tests.functional.iterateKeysTest;
         for (int i = 0; i < keyCount; i++) {
             String key = "tkey" + i;
             String val = "tval" + i;
