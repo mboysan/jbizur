@@ -2,17 +2,16 @@ package ee.ut.jbizur.network.io;
 
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.protocol.commands.NetworkCommand;
-import ee.ut.jbizur.role.Role;
+import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 
 import java.io.IOException;
 
 public abstract class AbstractClient {
-    protected final Role roleInstance;
+    protected final NetworkManager networkManager;
     protected final boolean keepAlive;
 
-    public AbstractClient(Role roleInstance) {
-        this.roleInstance = roleInstance;
+    public AbstractClient(NetworkManager networkManager) {
+        this.networkManager = networkManager;
         this.keepAlive = Conf.get().network.tcp.keepalive;
     }
 
@@ -24,7 +23,5 @@ public abstract class AbstractClient {
      */
     public abstract void send(NetworkCommand command);
 
-    public void shutdown() {
-
-    }
+    public abstract void shutdown();
 }

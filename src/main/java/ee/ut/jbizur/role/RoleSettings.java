@@ -5,8 +5,8 @@ import ee.ut.jbizur.config.JbizurConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
-import ee.ut.jbizur.protocol.internal.NodeAddressRegistered_IC;
-import ee.ut.jbizur.protocol.internal.NodeAddressUnregistered_IC;
+import ee.ut.jbizur.protocol.commands.ic.NodeAddressRegistered_IC;
+import ee.ut.jbizur.protocol.commands.ic.NodeAddressUnregistered_IC;
 import org.pmw.tinylog.Logger;
 
 import java.net.UnknownHostException;

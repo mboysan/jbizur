@@ -143,18 +143,22 @@ public class JbizurConfig {
     public final Tests.Functional functional;
     public final Tests.Integration integration;
     public static class Functional {
+      public final boolean clientMultiThreading;
       public final java.lang.Integer iterateKeysTest;
       public final java.lang.Integer keyValueDeleteMultiThreadTest;
       public final java.lang.Integer keyValueDeleteTest;
       public final java.lang.Integer keyValueSetGetMultiThreadTest;
       public final java.lang.Integer keyValueSetGetTest;
+      public final boolean serverMultiThreading;
       
       public Functional(com.typesafe.config.Config c) {
+        this.clientMultiThreading = !c.hasPathOrNull("clientMultiThreading") || c.getBoolean("clientMultiThreading");
         this.iterateKeysTest = c.hasPathOrNull("iterateKeysTest") ? c.getInt("iterateKeysTest") : null;
         this.keyValueDeleteMultiThreadTest = c.hasPathOrNull("keyValueDeleteMultiThreadTest") ? c.getInt("keyValueDeleteMultiThreadTest") : null;
         this.keyValueDeleteTest = c.hasPathOrNull("keyValueDeleteTest") ? c.getInt("keyValueDeleteTest") : null;
         this.keyValueSetGetMultiThreadTest = c.hasPathOrNull("keyValueSetGetMultiThreadTest") ? c.getInt("keyValueSetGetMultiThreadTest") : null;
         this.keyValueSetGetTest = c.hasPathOrNull("keyValueSetGetTest") ? c.getInt("keyValueSetGetTest") : null;
+        this.serverMultiThreading = !c.hasPathOrNull("serverMultiThreading") || c.getBoolean("serverMultiThreading");
       }
     }
     

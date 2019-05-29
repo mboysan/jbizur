@@ -2,12 +2,9 @@ package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.datastore.bizur.BucketContainer;
-import ee.ut.jbizur.network.io.ClientMock;
 import ee.ut.jbizur.network.io.NetworkManagerMock;
-import ee.ut.jbizur.network.io.ServerMock;
-import ee.ut.jbizur.protocol.commands.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.common.Nack_NC;
-import ee.ut.jbizur.role.Role;
+import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.nc.common.Nack_NC;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -46,16 +43,6 @@ public class BizurNodeMock extends BizurNode {
         isDead = false;
     }
 
-    public void registerRoles(Role[] roles){
-        for (Role role : roles) {
-            registerRole(role);
-        }
-    }
-
-    public void registerRole(Role role) {
-        ((ClientMock) networkManager.getClient()).registerRole(role);
-    }
-
     @Override
     public void handleNetworkCommand(NetworkCommand command) {
         if(isDead) {
@@ -65,7 +52,7 @@ public class BizurNodeMock extends BizurNode {
         }
     }
 
-    public void sendCommandToMessageReceiver(NetworkCommand command) {
-        ((ServerMock) networkManager.getServer()).handleNetworkCommand(command);
+    public NetworkManagerMock getNetworkManager() {
+        return (NetworkManagerMock) networkManager;
     }
 }

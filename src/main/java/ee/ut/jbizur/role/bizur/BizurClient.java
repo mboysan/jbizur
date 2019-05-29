@@ -1,14 +1,13 @@
 package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.io.SyncMessageListener;
-import ee.ut.jbizur.protocol.commands.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.bizur.*;
-import ee.ut.jbizur.protocol.commands.ping.ConnectOK_NC;
-import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
-import ee.ut.jbizur.protocol.internal.InternalCommand;
-import ee.ut.jbizur.protocol.internal.NodeAddressRegistered_IC;
-import ee.ut.jbizur.protocol.internal.NodeAddressUnregistered_IC;
+import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
+import ee.ut.jbizur.protocol.commands.ic.NodeAddressRegistered_IC;
+import ee.ut.jbizur.protocol.commands.ic.NodeAddressUnregistered_IC;
+import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.nc.bizur.*;
+import ee.ut.jbizur.protocol.commands.nc.ping.ConnectOK_NC;
+import ee.ut.jbizur.protocol.commands.nc.ping.SignalEnd_NC;
 
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
@@ -43,14 +42,6 @@ public class BizurClient extends BizurNode {
 
     @Override
     public void handleNetworkCommand(NetworkCommand command) {
-        Integer assocMsgId = command.getMsgId();
-        if(assocMsgId != null){
-            SyncMessageListener listener = syncMessageListeners.get(assocMsgId);
-            if(listener != null){
-                listener.handleMessage(command);
-            }
-        }
-
         if(command instanceof ConnectOK_NC){
             getSettings().registerAddress(command.getSenderAddress());
         }

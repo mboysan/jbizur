@@ -2,11 +2,12 @@ package ee.ut.jbizur.network.io.udp;
 
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.MulticastAddress;
+import ee.ut.jbizur.network.io.NetworkManager;
 import ee.ut.jbizur.protocol.CommandMarshaller;
-import ee.ut.jbizur.protocol.commands.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.ping.Connect_NC;
-import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
-import ee.ut.jbizur.role.Role;
+import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.nc.ping.Connect_NC;
+import ee.ut.jbizur.protocol.commands.nc.ping.SignalEnd_NC;
+import ee.ut.jbizur.role.RoleSettings;
 import ee.ut.jbizur.util.ByteUtils;
 import org.pmw.tinylog.Logger;
 
@@ -24,6 +25,7 @@ public class Multicaster {
 
     private volatile boolean isRunning = true;
 
+    private final RoleSettings roleSettings;
     private final MulticastAddress multicastAddress;
 
     private final CommandMarshaller commandMarshaller = new CommandMarshaller();
@@ -31,7 +33,7 @@ public class Multicaster {
     /**
      * For handling received multicast messages.
      */
-    private final Role roleInstance;
+    private final NetworkManager networkManager;
 
     /**
      * 2 threads for handling send/recv concurrently. These are low priority operations.
@@ -40,28 +42,26 @@ public class Multicaster {
 
     private final MulticastReceiver receiver;
 
-    public Multicaster(MulticastAddress multicastAddress, Role roleInstance) {
-        if (multicastAddress == null) {
-            throw new IllegalArgumentException("multicast address has to be provided");
+    public Multicaster(NetworkManager networkManager, RoleSettings roleSettings) {
+        if (roleSettings == null || roleSettings.getMulticastAddress() == null) {
+            throw new IllegalArgumentException("role settings and multicast address have to be provided");
         }
-        this.multicastAddress = multicastAddress;
-        this.roleInstance = roleInstance;
+        this.networkManager = networkManager;
+        this.roleSettings = roleSettings;
+        this.multicastAddress = roleSettings.getMulticastAddress();
+
         this.receiver = new MulticastReceiver();
     }
 
     public void initMulticast() {
         startRecv();
         schExecutor.scheduleAtFixedRate(() -> {
-            if (!roleInstance.checkNodesDiscovered()) {
-                multicast(
-                        new Connect_NC()
-                                .setSenderId(roleInstance.getSettings().getRoleId())
-                                .setSenderAddress(roleInstance.getSettings().getAddress())
-                                .setNodeType("member")
-                );
-            } else {
-                shutdown();
-            }
+            multicast(
+                    new Connect_NC()
+                            .setSenderId(roleSettings.getRoleId())
+                            .setSenderAddress(roleSettings.getAddress())
+                            .setNodeType("member")
+            );
         }, 0, Conf.get().network.multicast.intervalms, TimeUnit.MILLISECONDS);
     }
 
@@ -129,7 +129,7 @@ public class Multicaster {
                         Logger.info("MulticastReceiver end!");
                         break;
                     }
-                    schExecutor.execute(() -> roleInstance.handleNetworkCommand(received));
+                    schExecutor.execute(() -> networkManager.handleCmd(received));
                 }
                 shutdown();
             } catch (IOException e) {

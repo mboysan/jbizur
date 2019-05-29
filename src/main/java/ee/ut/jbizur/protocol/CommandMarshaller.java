@@ -1,7 +1,7 @@
 package ee.ut.jbizur.protocol;
 
 import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.protocol.commands.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import org.pmw.tinylog.Logger;
 
 /**

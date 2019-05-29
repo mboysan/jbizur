@@ -1,8 +1,6 @@
 package ee.ut.jbizur;
 
 import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.role.bizur.BizurBuilder;
 import ee.ut.jbizur.role.bizur.BizurClient;
 import ee.ut.jbizur.role.bizur.BizurNode;
@@ -10,11 +8,11 @@ import ee.ut.jbizur.role.bizur.BizurNode;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class InitMainSingleJVMStress {
 

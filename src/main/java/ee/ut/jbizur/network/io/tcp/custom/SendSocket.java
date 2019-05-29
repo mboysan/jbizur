@@ -1,6 +1,6 @@
 package ee.ut.jbizur.network.io.tcp.custom;
 
-import ee.ut.jbizur.protocol.commands.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 
 import java.io.DataOutputStream;
 import java.io.IOException;

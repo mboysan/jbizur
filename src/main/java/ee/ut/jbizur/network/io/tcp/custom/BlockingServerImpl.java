@@ -4,9 +4,9 @@ import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.network.io.AbstractServer;
-import ee.ut.jbizur.protocol.commands.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
-import ee.ut.jbizur.role.Role;
+import ee.ut.jbizur.network.io.NetworkManager;
+import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.nc.ping.SignalEnd_NC;
 import org.pmw.tinylog.Logger;
 
 import java.io.EOFException;
@@ -27,8 +27,8 @@ public class BlockingServerImpl extends AbstractServer {
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
-    public BlockingServerImpl(Role roleInstance) {
-        super(roleInstance);
+    public BlockingServerImpl(NetworkManager networkManager) {
+        super(networkManager);
         if (!super.keepAlive) {
             throw new UnsupportedOperationException("non keepalive connection type not supported");
         }
@@ -57,14 +57,14 @@ public class BlockingServerImpl extends AbstractServer {
         } catch (InterruptedException e) {
             Logger.error(e);
         }
-        Logger.info("Server shutdown: " + roleInstance.toString());
+        Logger.info("Server shutdown: " + networkManager.toString());
     }
 
     private class ServerThread extends Thread {
         private ServerSocket serverSocket;
 
         ServerThread(int port) {
-            super("server-thread-" + roleInstance.getSettings().getRoleId());
+            super("server-thread-" + networkManager.getId());
             try {
                 this.serverSocket = new ServerSocket(port);
             } catch (IOException e) {
@@ -119,9 +119,9 @@ public class BlockingServerImpl extends AbstractServer {
             try {
                 NetworkCommand command = recvSocket.recv();
                 if (command instanceof SignalEnd_NC) {
-                    roleInstance.handleNetworkCommand(command);
+                    networkManager.handleCmd(command);
                 } else {
-                    executor.execute(() -> roleInstance.handleNetworkCommand(command));
+                    executor.execute(() -> networkManager.handleCmd(command));
                 }
             } catch (EOFException e) {
 //                Logger.warn(e, "");

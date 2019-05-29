@@ -3,7 +3,6 @@ package ee.ut.jbizur.network.io;
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
-import ee.ut.jbizur.role.Role;
 import org.pmw.tinylog.Logger;
 
 import java.io.IOException;
@@ -12,11 +11,11 @@ import java.net.ServerSocket;
 public abstract class AbstractServer {
     protected volatile boolean isRunning = true;
 
-    protected Role roleInstance;
+    protected final NetworkManager networkManager;
     protected final boolean keepAlive;
 
-    public AbstractServer(Role roleInstance) {
-        this.roleInstance = roleInstance;
+    public AbstractServer(NetworkManager networkManager) {
+        this.networkManager = networkManager;
         this.keepAlive = Conf.get().network.tcp.keepalive;
     }
 

@@ -2,7 +2,7 @@ package ee.ut.jbizur.network.io.tcp.custom;
 
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.protocol.CommandMarshaller;
-import ee.ut.jbizur.protocol.commands.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import org.pmw.tinylog.Logger;
 
 import java.io.*;
