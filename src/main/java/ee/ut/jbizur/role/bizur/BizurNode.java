@@ -1,15 +1,12 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.annotations.ForTestingOnly;
-import ee.ut.jbizur.config.BizurConfig;
-import ee.ut.jbizur.config.LoggerConfig;
-import ee.ut.jbizur.config.NodeConfig;
+import ee.ut.jbizur.config.Conf;
+import ee.ut.jbizur.config.LogConf;
 import ee.ut.jbizur.datastore.bizur.BucketContainer;
 import ee.ut.jbizur.exceptions.OperationFailedError;
 import ee.ut.jbizur.exceptions.RoleIsNotReadyError;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.messenger.MessageProcessor;
-import ee.ut.jbizur.network.messenger.SyncMessageListener;
+import ee.ut.jbizur.network.io.SyncMessageListener;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.bizur.*;
 import ee.ut.jbizur.protocol.commands.common.Nack_NC;
@@ -28,15 +25,8 @@ public class BizurNode extends Role {
     private boolean isReady;
     BucketContainer bucketContainer;
 
-    BizurNode(BizurSettings settings) throws InterruptedException {
-        this(settings, null);
-    }
-
-    @ForTestingOnly
-    protected BizurNode(BizurSettings settings,
-                        MessageProcessor messageProcessor) throws InterruptedException {
-        super(settings, messageProcessor);
-
+    BizurNode(BizurSettings settings) {
+        super(settings);
         this.isReady = false;
         initBuckets();
     }
@@ -46,7 +36,7 @@ public class BizurNode extends Role {
     }
 
     protected BucketContainer createBucketContainer() {
-        return new BucketContainer(BizurConfig.getBucketCount()).initBuckets();
+        return new BucketContainer(Conf.get().consensus.bizur.bucketCount).initBuckets();
     }
 
     @Override
@@ -66,7 +56,7 @@ public class BizurNode extends Role {
     public CompletableFuture<Void> start() {
         return CompletableFuture.<Void>supplyAsync(() -> {
             try {
-                long multicastIntervalSec = NodeConfig.getMulticastIntervalMs();
+                long multicastIntervalSec = Conf.get().network.multicast.intervalms;
                 while (!checkNodesDiscovered()) {
                     Thread.sleep(multicastIntervalSec);
                 }
@@ -105,13 +95,13 @@ public class BizurNode extends Role {
                     lst.getPassedObjectRef().set(cmd.getPayload());
                     lst.end();
                 });
-        if (LoggerConfig.isDebugEnabled()) {
+        if (LogConf.isDebugEnabled()) {
             listener.withDebugInfo(logMsg("routeRequestAndGet : " + command));
         }
         attachMsgListener(listener);
         try {
             command.setMsgId(listener.getMsgId());
-            if (LoggerConfig.isDebugEnabled()) {
+            if (LogConf.isDebugEnabled()) {
                 Logger.debug(logMsg("routing request, retryLeft=[" + retryCount + "]: " + command));
             }
             sendMessage(command);
@@ -190,7 +180,7 @@ public class BizurNode extends Role {
 
     protected boolean validateCommand(NetworkCommand command) {
         if (command.getSenderAddress() != null && command.getReceiverAddress() != null) {
-            if (command.getSenderAddress().isSame(command.getReceiverAddress())) {
+            if (command.getSenderAddress().equals(command.getReceiverAddress())) {
                 return syncMessageListeners.get(command.getMsgId()) != null;
             }
         }
@@ -202,7 +192,7 @@ public class BizurNode extends Role {
         super.handleNetworkCommand(command);
 
         if (!validateCommand(command)) {
-            if (LoggerConfig.isDebugEnabled()) {
+            if (LogConf.isDebugEnabled()) {
                 Logger.debug(logMsg("command discarded [" + command + "]"));
             }
             return;

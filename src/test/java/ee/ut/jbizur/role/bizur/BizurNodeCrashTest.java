@@ -99,7 +99,7 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         Address nextAddr = IdUtils.nextAddressInUnorderedSet(node.getSettings().getMemberAddresses(), index);
         BizurNodeMock nextNode = null;
         for (BizurNode bizurNode : bizurNodes) {
-            if (bizurNode.getSettings().getAddress().isSame(nextAddr)) {
+            if (bizurNode.getSettings().getAddress().equals(nextAddr)) {
                 nextNode = (BizurNodeMock) bizurNode;
                 break;
             }

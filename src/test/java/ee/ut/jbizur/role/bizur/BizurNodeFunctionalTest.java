@@ -1,10 +1,10 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.TestConfig;
+import ee.ut.jbizur.config.Conf;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
-import utils.RunnerWithExceptionCatcher;
+import utils.MultiThreadExecutor;
 
 import java.util.Set;
 
@@ -15,7 +15,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueSetGetTest() {
-        int testCount = TestConfig.getKeyValueSetGetTestCount();
+        int testCount = Conf.get().tests.functional.keyValueSetGetTest;
         for (int i = 0; i < testCount; i++) {
             String expKey = "tkey" + i;
             String expVal = "tval" + i;
@@ -34,11 +34,11 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueSetGetMultiThreadTest() throws Throwable {
-        int testCount = TestConfig.getKeyValueSetGetMultiThreadTestCount();
-        RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
+        int testCount = Conf.get().tests.functional.keyValueSetGetMultiThreadTest;
+        MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
             int finalI = i;
-            runner.execute(() -> {
+            executor.execute(() -> {
                 String expKey = "tkey" + finalI;
                 String expVal = "tval" + finalI;
                 putExpectedKeyValue(expKey, expVal);
@@ -51,8 +51,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
                 Assert.assertEquals(expVal, actVal);
             });
         }
-        runner.awaitCompletion();
-        runner.throwAnyCaughtException();
+        executor.endExecution();
     }
 
     /**
@@ -60,7 +59,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueDeleteTest() {
-        int testCount = TestConfig.getKeyValueDeleteTestCount();
+        int testCount = Conf.get().tests.functional.keyValueDeleteTest;
         for (int i = 0; i < testCount; i++) {
             String expKey = "tkey" + i;
             String expVal = "tval" + i;
@@ -84,11 +83,11 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueDeleteMultiThreadTest() throws Throwable {
-        int testCount = TestConfig.getKeyValueDeleteMultiThreadTestCount();
-        RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
+        int testCount = Conf.get().tests.functional.keyValueDeleteMultiThreadTest;
+        MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
             int finalI = i;
-            runner.execute(() -> {
+            executor.execute(() -> {
                 String expKey = "tkey" + finalI;
                 String expVal = "tval" + finalI;
                 putExpectedKeyValue(expKey, expVal);
@@ -100,8 +99,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
                 removeExpectedKey(expKey);
             });
         }
-        runner.awaitCompletion();
-        runner.throwAnyCaughtException();
+        executor.endExecution();
     }
 
     /**
@@ -111,7 +109,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
     @Test
     @Ignore
     public void iterateKeysTest() {
-        int keyCount = TestConfig.getIterateKeysTestCount();
+        int keyCount = Conf.get().tests.functional.iterateKeysTest;
         for (int i = 0; i < keyCount; i++) {
             String key = "tkey" + i;
             String val = "tval" + i;

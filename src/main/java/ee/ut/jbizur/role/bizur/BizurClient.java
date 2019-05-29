@@ -1,8 +1,7 @@
 package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.messenger.MessageProcessor;
-import ee.ut.jbizur.network.messenger.SyncMessageListener;
+import ee.ut.jbizur.network.io.SyncMessageListener;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.bizur.*;
 import ee.ut.jbizur.protocol.commands.ping.ConnectOK_NC;
@@ -19,13 +18,8 @@ public class BizurClient extends BizurNode {
     private Address[] addresses;
     private final Object addressesLock = new Object();
 
-    protected BizurClient(BizurSettings bizurSettings) throws InterruptedException {
-        this(bizurSettings, null);
-    }
-
-    protected BizurClient(BizurSettings bizurSettings, MessageProcessor messageProcessor) throws InterruptedException {
-        super(bizurSettings, messageProcessor);
-
+    protected BizurClient(BizurSettings bizurSettings) {
+        super(bizurSettings);
         if (isAddressesAlreadyRegistered()) {
             arrangeAddresses();
         }
@@ -61,7 +55,7 @@ public class BizurClient extends BizurNode {
             getSettings().registerAddress(command.getSenderAddress());
         }
         if (command instanceof SignalEnd_NC) {
-            shutdown();
+            super.handleNetworkCommand(command);
         }
     }
 
@@ -118,12 +112,6 @@ public class BizurClient extends BizurNode {
                         .setSenderAddress(getSettings().getAddress())
         );
         return (Set<String>) response.getPayload();
-    }
-
-    @Override
-    public void signalEndToAll() {
-        super.signalEndToAll();
-        handleNetworkCommand(new SignalEnd_NC());
     }
 
     private void arrangeAddresses() {

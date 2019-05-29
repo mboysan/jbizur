@@ -1,27 +1,29 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.BizurTestConfig;
-import ee.ut.jbizur.config.NodeTestConfig;
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MockAddress;
-import ee.ut.jbizur.network.address.MockMulticastAddress;
 import ee.ut.jbizur.util.IdUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.pmw.tinylog.Logger;
 
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+
+import static utils.TestUtils.getRandom;
 
 public class BizurNodeTestBase {
+    static {
+        Conf.setConfigFromResources("jbizur_func_test.conf");
+    }
 
-    static Random random = getRandom();
-
-    private static final int NODE_COUNT = NodeTestConfig.getMemberCount();
+    private static final int NODE_COUNT = Conf.get().members.size();
     BizurNode[] bizurNodes;
 
     private Map<String, String> expKeyVals;
@@ -37,11 +39,11 @@ public class BizurNodeTestBase {
     }
 
     private void createNodes() throws UnknownHostException, InterruptedException {
-        int nodeCount = NodeTestConfig.getMemberCount();
+        int nodeCount = Conf.get().members.size();
         Address[] addresses = new MockAddress[nodeCount];
         String[] members = new String[nodeCount];
         for (int i = 0; i < members.length; i++) {
-            members[i] = NodeTestConfig.getMemberId(i);
+            members[i] = Conf.get().members.get(i).id;
             addresses[i] = new MockAddress(members[i]);
         }
 
@@ -49,7 +51,7 @@ public class BizurNodeTestBase {
         for (int i = 0; i < bizurNodes.length; i++) {
             bizurNodes[i] = BizurMockBuilder.mockBuilder()
                     .withMemberId(members[i])
-                    .withMulticastAddress(new MockMulticastAddress("", 0))
+                    .withMulticastEnabled(false)
                     .withAddress(addresses[i])
                     .withMemberAddresses(new HashSet<>(Arrays.asList(addresses)))
                     .build();
@@ -74,17 +76,9 @@ public class BizurNodeTestBase {
 
     @After
     public void tearDown() {
-    }
-
-    private static Random getRandom() {
-        long seed = System.currentTimeMillis();
-        return getRandom(seed);
-    }
-
-    private static Random getRandom(long seed) {
-        Logger.error("seed: " + seed);
-        System.out.println("seed: " + seed);
-        return new Random(seed);
+        for (BizurNode bizurNode : bizurNodes) {
+            bizurNode.shutdown();
+        }
     }
 
     BizurNodeMock getRandomNode() {
@@ -92,11 +86,11 @@ public class BizurNodeTestBase {
     }
 
     BizurNodeMock getNode(int inx) {
-        return (BizurNodeMock) bizurNodes[inx == -1 ? random.nextInt(bizurNodes.length) : inx];
+        return (BizurNodeMock) bizurNodes[inx == -1 ? getRandom().nextInt(bizurNodes.length) : inx];
     }
 
     protected int hashKey(String s) {
-        return IdUtils.hashKey(s, BizurTestConfig.getBucketCount());
+        return IdUtils.hashKey(s, Conf.get().consensus.bizur.bucketCount);
     }
 
     void putExpectedKeyValue(String expKey, String expVal) {

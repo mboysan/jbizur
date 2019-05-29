@@ -1,14 +1,14 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.BizurConfig;
-import ee.ut.jbizur.config.LoggerConfig;
+import ee.ut.jbizur.config.Conf;
+import ee.ut.jbizur.config.LogConf;
 import ee.ut.jbizur.datastore.bizur.Bucket;
 import ee.ut.jbizur.datastore.bizur.BucketContainer;
 import ee.ut.jbizur.datastore.bizur.BucketView;
 import ee.ut.jbizur.exceptions.LeaderResolutionFailedError;
 import ee.ut.jbizur.exceptions.OperationFailedError;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.messenger.SyncMessageListener;
+import ee.ut.jbizur.network.io.SyncMessageListener;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.bizur.*;
 import ee.ut.jbizur.protocol.commands.common.Nack_NC;
@@ -27,7 +27,7 @@ public class BizurRun {
     protected final BucketContainer bucketContainer;
     private final int contextId;
 
-    private static final int BUCKET_LEADER_ELECTION_RETRY_COUNT = BizurConfig.getBucketLeaderElectionRetryCount();
+    private static final int BUCKET_LEADER_ELECTION_RETRY_COUNT = Conf.get().consensus.bizur.bucketElectRetryCount;
 
     BizurRun(BizurNode node) {
         this(node, IdUtils.generateId());
@@ -56,8 +56,8 @@ public class BizurRun {
         return node.getSettings();
     }
     protected void sendMessage(NetworkCommand command) {
-        if (command.getReceiverAddress().isSame(getSettings().getAddress())) {
-            if (LoggerConfig.isDebugEnabled()) {
+        if (command.getReceiverAddress().equals(getSettings().getAddress())) {
+            if (LogConf.isDebugEnabled()) {
                 Logger.debug("OUT " + logMsg(command.toString()));
             }
             node.handleNetworkCommand(command);
@@ -79,7 +79,7 @@ public class BizurRun {
     protected void startElection(int bucketIndex) {
         SyncMessageListener listener = SyncMessageListener.buildWithDefaultHandlers()
                 .withTotalProcessCount(getSettings().getProcessCount());
-        if (LoggerConfig.isDebugEnabled()) {
+        if (LogConf.isDebugEnabled()) {
             listener.withDebugInfo(logMsg("startElection"));
         }
         attachMsgListener(listener);
@@ -123,7 +123,7 @@ public class BizurRun {
         if (electId > localBucket.getVotedElectId()) {
             localBucket.setVotedElectId(electId);
             localBucket.setLeaderAddress(source);
-            localBucket.updateLeader(source.isSame(getSettings().getAddress()));
+            localBucket.updateLeader(source.equals(getSettings().getAddress()));
 
             vote = new AckVote_NC()
                     .setMsgId(pleaseVoteNc.getMsgId())
@@ -131,7 +131,7 @@ public class BizurRun {
                     .setReceiverAddress(source)
                     .setSenderAddress(getSettings().getAddress())
                     .setContextId(pleaseVoteNc.getContextId());
-        } else if(electId == localBucket.getVotedElectId() && source.isSame(localBucket.getLeaderAddress())) {
+        } else if(electId == localBucket.getVotedElectId() && source.equals(localBucket.getLeaderAddress())) {
             vote = new AckVote_NC()
                     .setMsgId(pleaseVoteNc.getMsgId())
                     .setSenderId(getSettings().getRoleId())
@@ -153,7 +153,7 @@ public class BizurRun {
         for (int i = 0; i < bucketContainer.getNumBuckets(); i++) {
             Bucket localBucket = bucketContainer.getBucket(i);
             int retry = 0;
-            int maxRetry = BizurConfig.getBucketLeaderElectionRetryCount();
+            int maxRetry = Conf.get().consensus.bizur.bucketElectRetryCount;
             while (retry < maxRetry) {
                 if (localBucket.getLeaderAddress() == null) {
                     electLeaderForBucket(localBucket, localBucket.getIndex(), false);
@@ -189,7 +189,7 @@ public class BizurRun {
 
     protected void electLeaderForBucket(Bucket localBucket, int startIdx, boolean forceElection) {
         Address nextAddr = IdUtils.nextAddressInUnorderedSet(getSettings().getMemberAddresses(), startIdx);
-        if (nextAddr.isSame(getSettings().getAddress())) {
+        if (nextAddr.equals(getSettings().getAddress())) {
             Logger.info(logMsg("initializing election process on bucket idx=" + localBucket.getIndex()));
             electLeaderForBucket(localBucket);
         } else {
@@ -234,7 +234,7 @@ public class BizurRun {
 
         SyncMessageListener listener = SyncMessageListener.buildWithDefaultHandlers()
                 .withTotalProcessCount(getSettings().getProcessCount());
-        if (LoggerConfig.isDebugEnabled()) {
+        if (LogConf.isDebugEnabled()) {
             listener.withDebugInfo(logMsg("write"));
         }
         attachMsgListener(listener);
@@ -306,7 +306,7 @@ public class BizurRun {
 
         SyncMessageListener listener = SyncMessageListener.buildWithDefaultHandlers()
                 .withTotalProcessCount(getSettings().getProcessCount());
-        if (LoggerConfig.isDebugEnabled()) {
+        if (LogConf.isDebugEnabled()) {
             listener.withDebugInfo(logMsg("read"));
         }
         attachMsgListener(listener);
@@ -353,7 +353,7 @@ public class BizurRun {
         } else {
             localBucket.setVotedElectId(electId);
             localBucket.setLeaderAddress(source);
-            localBucket.updateLeader(source.isSame(getSettings().getAddress()));
+            localBucket.updateLeader(source.equals(getSettings().getAddress()));
 
             NetworkCommand ackRead = new AckRead_NC()
                     .setBucketView(localBucket.createView())
@@ -657,12 +657,12 @@ public class BizurRun {
         try {
             if (localBucket.checkLeaderElectionInProgress()) {
                 localBucket.waitForLeaderElection();
-                isSuccess = localBucket.getLeaderAddress().isSame(getSettings().getAddress());
+                isSuccess = localBucket.getLeaderAddress().equals(getSettings().getAddress());
             } else {
                 localBucket.initLeaderElection();
                 try {
                     Address leaderAddr = electLeaderForBucket(localBucket);
-                    isSuccess = leaderAddr.isSame(getSettings().getAddress());
+                    isSuccess = leaderAddr.equals(getSettings().getAddress());
                 } finally {
                     localBucket.endLeaderElection();
                 }
@@ -692,7 +692,7 @@ public class BizurRun {
                     .setSenderAddress(getSettings().getAddress())
                     .setReceiverAddress(address)
                     .setSenderId(getSettings().getRoleId());
-            if (LoggerConfig.isDebugEnabled()) {
+            if (LogConf.isDebugEnabled()) {
                 listener.withDebugInfo(logMsg("leader election request: " + ler));
             }
             sendMessage(ler);

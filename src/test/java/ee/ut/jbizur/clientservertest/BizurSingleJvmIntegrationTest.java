@@ -1,13 +1,13 @@
 package ee.ut.jbizur.clientservertest;
 
-import ee.ut.jbizur.config.NodeTestConfig;
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.role.bizur.BizurBuilder;
 import ee.ut.jbizur.role.bizur.BizurClient;
 import ee.ut.jbizur.role.bizur.BizurNode;
 import org.junit.*;
-import utils.RunnerWithExceptionCatcher;
+import utils.MultiThreadExecutor;
 
 import java.net.UnknownHostException;
 import java.util.*;
@@ -15,13 +15,14 @@ import java.util.concurrent.CompletableFuture;
 
 @Ignore
 public class BizurSingleJvmIntegrationTest {
+    static {
+        Conf.setConfigFromResources("jbizur_integ_test.conf");
+    }
 
-    protected static final int MEMBER_COUNT = NodeTestConfig.getMemberCount();
+    protected static final int MEMBER_COUNT = Conf.get().members.size();
 
     protected BizurNode[] nodes;
     protected BizurClient client;
-
-    Random random = initRandom();
 
     @Before
     public void setUp() throws Exception {
@@ -34,19 +35,20 @@ public class BizurSingleJvmIntegrationTest {
     protected void initNodes() throws UnknownHostException, InterruptedException {
         nodes = new BizurNode[MEMBER_COUNT];
         for (int i = 0; i < nodes.length; i++) {
+
             nodes[i] = BizurBuilder.builder()
-                    .withMemberId(NodeTestConfig.getMemberId(i))
-                    .withAddress(new TCPAddress(NodeTestConfig.compileTCPAddress()))
-                    .withMulticastAddress(new MulticastAddress(NodeTestConfig.compileMulticastAddress()))
+                    .withMemberId(String.format(Conf.get().node.member.idFormat, i))
+                    .withAddress(TCPAddress.resolveTCPAddress(Conf.get().members.get(i).tcpAddress))
+                    .withMulticastAddress(MulticastAddress.resolveMulticastAddress(Conf.get().network.multicast.address))
                     .build();
         }
     }
 
     protected void initClient() throws UnknownHostException, InterruptedException {
         client = BizurBuilder.builder()
-                .withMemberId(NodeTestConfig.getClientId())
-                .withAddress(new TCPAddress(NodeTestConfig.compileTCPAddress()))
-                .withMulticastAddress(new MulticastAddress(NodeTestConfig.compileMulticastAddress()))
+                .withMemberId(Conf.get().clients.get(0).id)
+                .withAddress(TCPAddress.resolveTCPAddress(Conf.get().clients.get(0).tcpAddress))
+                .withMulticastAddress(MulticastAddress.resolveMulticastAddress(Conf.get().network.multicast.address))
                 .buildClient();
     }
 
@@ -65,12 +67,9 @@ public class BizurSingleJvmIntegrationTest {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws InterruptedException {
         client.signalEndToAll();
-        for (BizurNode node : nodes) {
-            node.shutdown();
-        }
-        client.shutdown();
+        Thread.sleep(5000);
     }
 
     /**
@@ -114,9 +113,9 @@ public class BizurSingleJvmIntegrationTest {
     @Test
     public void keyValueSetGetMultiThreadTest() throws Throwable {
         int testCount = 10;
-        RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
+        MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
-            runner.execute(() -> {
+            executor.execute(() -> {
                 String testKey = UUID.randomUUID().toString();
                 String expVal = UUID.randomUUID().toString();
 
@@ -124,18 +123,6 @@ public class BizurSingleJvmIntegrationTest {
                 Assert.assertEquals(expVal, client.get(testKey));
             });
         }
-        runner.awaitCompletion();
-        runner.throwAnyCaughtException();
+        executor.endExecution();
     }
-
-    public BizurNode getRandomNode() {
-        return nodes[random.nextInt(MEMBER_COUNT)];
-    }
-
-    public static Random initRandom() {
-        long seed = System.currentTimeMillis();
-        System.out.println("seed: " + seed);
-        return new Random(seed);
-    }
-
 }

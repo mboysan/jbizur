@@ -1,18 +1,19 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.ClientTestConfig;
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MockAddress;
-import ee.ut.jbizur.network.address.MockMulticastAddress;
 import org.junit.Assert;
 import org.junit.Test;
-import utils.RunnerWithExceptionCatcher;
+import utils.MultiThreadExecutor;
 
 import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+
+import static utils.TestUtils.getRandom;
 
 public class BizurClientTest extends BizurNodeTestBase {
 
@@ -32,7 +33,7 @@ public class BizurClientTest extends BizurNodeTestBase {
      * @throws InterruptedException in case of initialization errors.
      */
     private void createClients() throws InterruptedException, UnknownHostException {
-        int clientCount = ClientTestConfig.getClientCount();
+        int clientCount = Conf.get().clients.size();
         String[] clients = new String[clientCount];
         for (int i = 0; i < clients.length; i++) {
             clients[i] = "client-" + i;
@@ -41,7 +42,7 @@ public class BizurClientTest extends BizurNodeTestBase {
         for (int i = 0; i < bizurClients.length; i++) {
             bizurClients[i] = BizurMockBuilder.mockBuilder()
                     .withMemberId(clients[i])
-                    .withMulticastAddress(new MockMulticastAddress("", 0))
+                    .withMulticastEnabled(false)
                     .withAddress(new MockAddress(clients[i]))
                     .withMemberAddresses(getMemberAddresses())
                     .buildClient();
@@ -118,9 +119,9 @@ public class BizurClientTest extends BizurNodeTestBase {
     @Test
     public void clientKeyValueSetGetMultiThreadTest() throws Throwable {
         int testCount = 50;
-        RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
+        MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
-            runner.execute(() -> {
+            executor.execute(() -> {
                 String testKey = UUID.randomUUID().toString();
                 String expVal = UUID.randomUUID().toString();
                 putExpectedKeyValue(testKey, expVal);
@@ -129,8 +130,7 @@ public class BizurClientTest extends BizurNodeTestBase {
                 Assert.assertEquals(expVal, getRandomClient().get(testKey));
             });
         }
-        runner.awaitCompletion();
-        runner.throwAnyCaughtException();
+        executor.endExecution();
     }
 
     /**
@@ -139,9 +139,9 @@ public class BizurClientTest extends BizurNodeTestBase {
     @Test
     public void clientKeyValueDeleteMultiThreadTest() throws Throwable {
         int testCount = 50;
-        RunnerWithExceptionCatcher runner = new RunnerWithExceptionCatcher(testCount);
+        MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
-            runner.execute(() -> {
+            executor.execute(() -> {
                 String testKey = UUID.randomUUID().toString();
                 String expVal = UUID.randomUUID().toString();
                 putExpectedKeyValue(testKey, expVal);
@@ -153,8 +153,7 @@ public class BizurClientTest extends BizurNodeTestBase {
                 removeExpectedKey(testKey);
             });
         }
-        runner.awaitCompletion();
-        runner.throwAnyCaughtException();
+        executor.endExecution();
     }
 
     /**
@@ -169,6 +168,6 @@ public class BizurClientTest extends BizurNodeTestBase {
      * @return created bizur client located in {@link #bizurClients}.
      */
     private BizurClient getClient(int inx) {
-        return bizurClients[inx == -1 ? random.nextInt(bizurClients.length) : inx];
+        return bizurClients[inx == -1 ? getRandom().nextInt(bizurClients.length) : inx];
     }
 }

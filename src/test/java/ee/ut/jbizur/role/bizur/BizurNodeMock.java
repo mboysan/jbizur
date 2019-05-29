@@ -1,10 +1,10 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.BizurTestConfig;
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.datastore.bizur.BucketContainer;
-import ee.ut.jbizur.network.messenger.MessageProcessor;
-import ee.ut.jbizur.network.messenger.MessageReceiverMock;
-import ee.ut.jbizur.network.messenger.MessageSenderMock;
+import ee.ut.jbizur.network.io.ClientMock;
+import ee.ut.jbizur.network.io.NetworkManagerMock;
+import ee.ut.jbizur.network.io.ServerMock;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.common.Nack_NC;
 import ee.ut.jbizur.role.Role;
@@ -16,18 +16,18 @@ public class BizurNodeMock extends BizurNode {
     public boolean isDead = false;
     public AtomicInteger hashIndex = new AtomicInteger(-1);
 
-    protected BizurNodeMock(BizurSettings bizurSettings, MessageProcessor messageProcessor) throws InterruptedException {
-        super(bizurSettings, messageProcessor);
+    protected BizurNodeMock(BizurSettings bizurSettings) {
+        super(bizurSettings);
     }
 
     @Override
-    public void initRole() {
-        super.initRole();
+    protected void initRole() {
+        this.networkManager = new NetworkManagerMock(this).start();
     }
 
     @Override
     protected BucketContainer createBucketContainer() {
-        return new BucketContainer(BizurTestConfig.getBucketCount()) {
+        return new BucketContainer(Conf.get().consensus.bizur.bucketCount) {
             @Override
             public int hashKey(String s) {
                 int idx = hashIndex.get();
@@ -53,7 +53,7 @@ public class BizurNodeMock extends BizurNode {
     }
 
     public void registerRole(Role role) {
-        ((MessageSenderMock) messageProcessor.getClient()).registerRole(role);
+        ((ClientMock) networkManager.getClient()).registerRole(role);
     }
 
     @Override
@@ -66,6 +66,6 @@ public class BizurNodeMock extends BizurNode {
     }
 
     public void sendCommandToMessageReceiver(NetworkCommand command) {
-        ((MessageReceiverMock) messageProcessor.getServer()).handleNetworkCommand(command);
+        ((ServerMock) networkManager.getServer()).handleNetworkCommand(command);
     }
 }

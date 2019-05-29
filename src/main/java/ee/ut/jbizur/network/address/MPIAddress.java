@@ -1,5 +1,7 @@
 package ee.ut.jbizur.network.address;
 
+import java.util.Objects;
+
 /**
  * Defines an MPI ee.ut.jbizur.protocol host address
  */
@@ -58,12 +60,17 @@ public class MPIAddress extends Address {
     }
 
     @Override
-    public boolean isSame(Address other) {
-        if(other == null) {
-            return false;
-        }
-        MPIAddress addr = (MPIAddress) other;
-        return addr.getRank() == this.getRank() && addr.getGroupId() == this.groupId;
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MPIAddress that = (MPIAddress) o;
+        return rank == that.rank &&
+                groupId == that.groupId;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(rank, groupId);
     }
 
     @Override

@@ -1,11 +1,10 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.annotations.ForTestingOnly;
-import ee.ut.jbizur.config.LoggerConfig;
+import ee.ut.jbizur.config.LogConf;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.messenger.MessageProcessor;
-import ee.ut.jbizur.network.messenger.SyncMessageListener;
-import ee.ut.jbizur.network.messenger.tcp.custom.BlockingServerImpl;
+import ee.ut.jbizur.network.io.NetworkManager;
+import ee.ut.jbizur.network.io.SyncMessageListener;
+import ee.ut.jbizur.network.io.tcp.custom.BlockingServerImpl;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.ping.*;
 import ee.ut.jbizur.protocol.internal.InternalCommand;
@@ -23,23 +22,15 @@ public abstract class Role {
     protected final Map<Integer, SyncMessageListener> syncMessageListeners = new ConcurrentHashMap<>();
 
     private final RoleSettings settings;
-    protected final MessageProcessor messageProcessor;
+    protected NetworkManager networkManager;
 
-    protected Role(RoleSettings settings) throws InterruptedException {
-        this(settings, null);
-    }
-
-    @ForTestingOnly
-    protected Role(RoleSettings settings, MessageProcessor messageProcessor) throws InterruptedException {
+    protected Role(RoleSettings settings) {
         this.settings = settings;
-        this.messageProcessor = messageProcessor == null ? new MessageProcessor(this) : messageProcessor;
         initRole();
     }
 
     protected void initRole() {
-        if (messageProcessor != null && messageProcessor.getRole() != null) {
-            this.messageProcessor.start();
-        }
+        this.networkManager = new NetworkManager(this).start();
     }
 
     public boolean isAddressesAlreadyRegistered() {
@@ -57,7 +48,7 @@ public abstract class Role {
      * @param command the ee.ut.jbizur.network message to handle.
      */
     public void handleNetworkCommand(NetworkCommand command){
-        if (LoggerConfig.isDebugEnabled()) {
+        if (LogConf.isDebugEnabled()) {
             Logger.debug("IN " + logMsg(command.toString()));
         }
 
@@ -89,6 +80,7 @@ public abstract class Role {
                 pongForPingCommand((Ping_NC) command);
             }
             if (command instanceof SignalEnd_NC) {
+                Logger.info(logMsg("End signal received: " + command));
                 shutdown();
             }
         }
@@ -114,7 +106,7 @@ public abstract class Role {
                     .setSenderAddress(getSettings().getAddress())
                     .setReceiverAddress(address)
                     .setSenderId(getSettings().getRoleId());
-            if (LoggerConfig.isDebugEnabled()) {
+            if (LogConf.isDebugEnabled()) {
                 listener.withDebugInfo(logMsg("pingAddress: " + pingNC));
             }
             sendMessage(pingNC);
@@ -147,6 +139,13 @@ public abstract class Role {
                     .setSenderAddress(getSettings().getAddress());
             sendMessage(signalEnd);
         }
+        try {
+            // wait for termination
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            Logger.error(e);
+        }
+        shutdown();
     }
 
     /**
@@ -154,10 +153,10 @@ public abstract class Role {
      * @param message the ee.ut.jbizur.network message to _send.
      */
     protected void sendMessage(NetworkCommand message) {
-        if (LoggerConfig.isDebugEnabled()) {
+        if (LogConf.isDebugEnabled()) {
             Logger.debug("OUT " + logMsg(message.toString()));
         }
-        messageProcessor.getClient().send(message);
+        networkManager.getClient().send(message);
     }
 
     /**
@@ -170,7 +169,7 @@ public abstract class Role {
     public abstract CompletableFuture start();
 
     public void shutdown() {
-        messageProcessor.shutdown();
+        networkManager.shutdown();
     }
 
     protected void attachMsgListener(SyncMessageListener listener){

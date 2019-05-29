@@ -1,44 +1,25 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.network.messenger.MessageProcessor;
-import ee.ut.jbizur.network.messenger.udp.Multicaster;
+import ee.ut.jbizur.network.io.NetworkManager;
 import ee.ut.jbizur.protocol.commands.NetworkCommand;
 import ee.ut.jbizur.protocol.internal.InternalCommand;
 
-import java.net.UnknownHostException;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RoleMock extends Role {
+    public final AtomicInteger recvCmdCount = new AtomicInteger(0);
 
-    public Map<Integer, NetworkCommand> receivedCommandsMap = new ConcurrentHashMap<>();
-    private final AtomicInteger recvCmdCount = new AtomicInteger(0);
-
-    public RoleMock(RoleSettings settings) throws InterruptedException, UnknownHostException {
-        super(settings, new MessageProcessor() {
-            @Override
-            protected Multicaster createMulticaster() {
-                return null;
-            }
-            @Override
-            protected void initMulticast() {
-
-            }
-        });
-        messageProcessor.registerRole(this);
-        messageProcessor.start();
-    }
-
-    @Override
-    protected void initRole() {
+    public RoleMock(RoleSettings settings) {
+        super(settings.setMultiCastEnabled(false));
     }
 
     @Override
     public void handleNetworkCommand(NetworkCommand command) {
-        System.out.println("command recv (" + recvCmdCount.incrementAndGet() + "): " + command);
-        receivedCommandsMap.put(command.getMsgId(), command);
+        int cnt = recvCmdCount.incrementAndGet();
+        if (cnt % 50 == 0) {
+            System.out.println("cnt: " + cnt);
+        }
     }
 
     @Override
@@ -51,7 +32,7 @@ public class RoleMock extends Role {
         return null;
     }
 
-    public MessageProcessor getMessageProcessor() {
-        return messageProcessor;
+    public NetworkManager getNetworkManager() {
+        return networkManager;
     }
 }
