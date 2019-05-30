@@ -2,9 +2,9 @@ package ee.ut.jbizur.protocol;
 
 import ee.ut.jbizur.datastore.bizur.BucketView;
 import ee.ut.jbizur.network.address.MockAddress;
-import ee.ut.jbizur.protocol.commands.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.bizur.AckRead_NC;
-import ee.ut.jbizur.protocol.commands.common.Nack_NC;
+import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.nc.bizur.AckRead_NC;
+import ee.ut.jbizur.protocol.commands.nc.common.Nack_NC;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

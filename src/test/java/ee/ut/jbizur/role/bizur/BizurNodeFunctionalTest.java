@@ -107,7 +107,6 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      * iterates over the inserted keys and compares with the expected values.
      */
     @Test
-    @Ignore
     public void iterateKeysTest() {
         int keyCount = Conf.get().tests.functional.iterateKeysTest;
         for (int i = 0; i < keyCount; i++) {

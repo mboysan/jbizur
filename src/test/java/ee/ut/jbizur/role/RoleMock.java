@@ -1,8 +1,8 @@
 package ee.ut.jbizur.role;
 
 import ee.ut.jbizur.network.io.NetworkManager;
-import ee.ut.jbizur.protocol.commands.NetworkCommand;
-import ee.ut.jbizur.protocol.internal.InternalCommand;
+import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;

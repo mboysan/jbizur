@@ -4,10 +4,10 @@ import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.network.io.AbstractClient;
-import ee.ut.jbizur.protocol.commands.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.ping.SignalEnd_NC;
-import ee.ut.jbizur.protocol.internal.SendFail_IC;
-import ee.ut.jbizur.role.Role;
+import ee.ut.jbizur.network.io.NetworkManager;
+import ee.ut.jbizur.protocol.commands.ic.SendFail_IC;
+import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.nc.ping.SignalEnd_NC;
 import org.pmw.tinylog.Logger;
 
 import java.io.IOException;
@@ -26,8 +26,8 @@ public class BlockingClientImpl extends AbstractClient {
     private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     private final Map<String, SendSocket> socketMap = new ConcurrentHashMap<>();
 
-    public BlockingClientImpl(Role roleInstance) {
-        super(roleInstance);
+    public BlockingClientImpl(NetworkManager networkManager) {
+        super(networkManager);
         if (!super.keepAlive) {
             throw new UnsupportedOperationException("non keepalive connection type not supported");
         }
@@ -47,7 +47,7 @@ public class BlockingClientImpl extends AbstractClient {
                     senderSocket.send(message);
                 } catch (IOException e) {
                     Logger.error("Send err, msg (1): " + message + ", " + e, e);
-                    roleInstance.handleInternalCommand(new SendFail_IC(message));
+                    networkManager.handleCmd(new SendFail_IC(message));
                 }
                 shutdown();
             } else {
@@ -56,13 +56,13 @@ public class BlockingClientImpl extends AbstractClient {
                         senderSocket.send(message);
                     } catch (IOException e) {
                         Logger.error("Send err, msg (2): " + message + ", " + e, e);
-                        roleInstance.handleInternalCommand(new SendFail_IC(message));
+                        networkManager.handleCmd(new SendFail_IC(message));
                     }
                 });
             }
         } catch (IOException e) {
             Logger.error("Client could not connect to server.", e);
-            roleInstance.handleInternalCommand(new SendFail_IC(message));
+            networkManager.handleCmd(new SendFail_IC(message));
         }
     }
 
@@ -89,7 +89,6 @@ public class BlockingClientImpl extends AbstractClient {
 
     @Override
     public void shutdown() {
-        super.shutdown();
         executor.shutdown();
         try {
             executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
@@ -97,7 +96,7 @@ public class BlockingClientImpl extends AbstractClient {
             Logger.error(e);
         }
         disconnectAll();
-        Logger.info("Client shutdown: " + roleInstance.toString());
+        Logger.info("Client shutdown: " + networkManager.toString());
     }
 
     protected void disconnect(String tcpAddressStr, SendSocket senderSocket) throws IOException {

@@ -23,8 +23,6 @@ public class BizurClientTest extends BizurNodeTestBase {
     public void setUp() throws Exception {
         super.setUp();
         createClients();
-        registerRolesToClients();
-        registerClientsToRoles();
         startClients();
     }
 
@@ -55,21 +53,6 @@ public class BizurClientTest extends BizurNodeTestBase {
             addressSet.add(bizurNode.getSettings().getAddress());
         }
         return addressSet;
-    }
-
-    /**
-     * Registers clients to bizur nodes and vise versa.
-     */
-    private void registerRolesToClients() {
-        for (BizurClient bizurClient : bizurClients) {
-            ((BizurClientMock) bizurClient).registerRoles(bizurNodes);
-        }
-    }
-
-    private void registerClientsToRoles() {
-        for (BizurNode bizurNode : bizurNodes) {
-            ((BizurNodeMock) bizurNode).registerRoles(bizurClients);
-        }
     }
 
     private void startClients() {

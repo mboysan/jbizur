@@ -1,7 +1,7 @@
 package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.protocol.commands.bizur.*;
+import ee.ut.jbizur.protocol.commands.nc.bizur.*;
 
 import java.util.Set;
 

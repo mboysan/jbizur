@@ -3,6 +3,7 @@ package ee.ut.jbizur.role.bizur;
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MockAddress;
+import ee.ut.jbizur.network.io.NetworkManagerMock;
 import ee.ut.jbizur.util.IdUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -31,8 +32,8 @@ public class BizurNodeTestBase {
 
     @Before
     public void setUp() throws Exception {
+        NetworkManagerMock.clearRoles();
         createNodes();
-        registerRoles();
         startRoles();
         this.expKeyVals = new ConcurrentHashMap<>();
         this.leaderDefinedBucketIndexes = ConcurrentHashMap.newKeySet();
@@ -58,12 +59,6 @@ public class BizurNodeTestBase {
         }
     }
 
-    private void registerRoles() {
-        for (BizurNode bizurNode : bizurNodes) {
-            ((BizurNodeMock) bizurNode).registerRoles(bizurNodes);
-        }
-    }
-
     private void startRoles() {
         CompletableFuture[] futures = new CompletableFuture[bizurNodes.length];
         for (int i = 0; i < bizurNodes.length; i++) {
@@ -71,13 +66,6 @@ public class BizurNodeTestBase {
         }
         for (CompletableFuture future : futures) {
             future.join();
-        }
-    }
-
-    @After
-    public void tearDown() {
-        for (BizurNode bizurNode : bizurNodes) {
-            bizurNode.shutdown();
         }
     }
 
@@ -97,18 +85,27 @@ public class BizurNodeTestBase {
         expKeyVals.put(expKey, expVal);
         leaderDefinedBucketIndexes.add(hashKey(expKey));
     }
+
     void removeExpectedKey(String expKey) {
         expKeyVals.remove(expKey);
     }
+
     String getExpectedValue(String expKey) {
         return expKeyVals.get(expKey);
     }
+
     Set<String> getExpectedKeySet() {
         return expKeyVals.keySet();
     }
 
     @After
-    public void validateKeyValsForAllNodes() {
+    public void postValidationsAndTearDown() {
+        validateKeyValsForAllNodes();
+        validateLocalBucketKeyVals();
+        tearDown();
+    }
+
+    private void validateKeyValsForAllNodes() {
         for (BizurNode bizurNode : bizurNodes) {
             validateKeyVals(bizurNode);
         }
@@ -125,8 +122,7 @@ public class BizurNodeTestBase {
         }
     }
 
-    @After
-    public void validateLocalBucketKeyVals() {
+    private void validateLocalBucketKeyVals() {
         if (expKeyVals.size() == 0) {
             leaderDefinedBucketIndexes.iterator().forEachRemaining(bIdx -> {
                 BizurNode leader = findLeaderOfBucket(bIdx);
@@ -159,4 +155,10 @@ public class BizurNodeTestBase {
                 bizurNode.bucketContainer.getBucket(bucketIndex).getKeySet());
     }
 
+    public void tearDown() {
+        for (BizurNode bizurNode : bizurNodes) {
+            bizurNode.shutdown();
+        }
+        NetworkManagerMock.clearRoles();
+    }
 }

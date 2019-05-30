@@ -1,18 +1,19 @@
 package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.config.LogConf;
 import ee.ut.jbizur.datastore.bizur.BucketContainer;
 import ee.ut.jbizur.exceptions.OperationFailedError;
 import ee.ut.jbizur.exceptions.RoleIsNotReadyError;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.io.SyncMessageListener;
-import ee.ut.jbizur.protocol.commands.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.bizur.*;
-import ee.ut.jbizur.protocol.commands.common.Nack_NC;
-import ee.ut.jbizur.protocol.internal.InternalCommand;
-import ee.ut.jbizur.protocol.internal.NodeDead_IC;
-import ee.ut.jbizur.protocol.internal.SendFail_IC;
+import ee.ut.jbizur.network.handlers.CallbackState;
+import ee.ut.jbizur.network.handlers.QuorumState;
+import ee.ut.jbizur.protocol.commands.ICommand;
+import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
+import ee.ut.jbizur.protocol.commands.ic.NodeDead_IC;
+import ee.ut.jbizur.protocol.commands.ic.SendFail_IC;
+import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.nc.bizur.*;
+import ee.ut.jbizur.protocol.commands.nc.common.Nack_NC;
 import ee.ut.jbizur.role.Role;
 import ee.ut.jbizur.role.RoleValidation;
 import org.pmw.tinylog.Logger;
@@ -20,6 +21,9 @@ import org.pmw.tinylog.Logger;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public class BizurNode extends Role {
     private boolean isReady;
@@ -73,57 +77,36 @@ public class BizurNode extends Role {
      * Message Routing
      * ***************************************************************************/
 
-    protected <T> T routeRequestAndGet(NetworkCommand command) {
-        return routeRequestAndGet(command, command.getRetryCount());
-    }
-
-    protected <T> T routeRequestAndGet(NetworkCommand command, int retryCount) throws OperationFailedError {
-        if (retryCount < 0) {
-            throw new OperationFailedError(logMsg("Routing failed for command: " + command));
-        }
-        SyncMessageListener listener = SyncMessageListener.build()
-                .withTotalProcessCount(1)
-                .registerHandler(Nack_NC.class, (cmd,lst) -> {
-                    lst.getPassedObjectRef().set(new SendFail_IC(cmd));
-                    lst.end();
-                })
-                .registerHandler(ClientResponse_NC.class, (cmd, lst) -> {
-                    lst.getPassedObjectRef().set(cmd);
-                    lst.end();
-                })
-                .registerHandler(LeaderResponse_NC.class, (cmd, lst) -> {
-                    lst.getPassedObjectRef().set(cmd.getPayload());
-                    lst.end();
-                });
-        if (LogConf.isDebugEnabled()) {
-            listener.withDebugInfo(logMsg("routeRequestAndGet : " + command));
-        }
-        attachMsgListener(listener);
-        try {
-            command.setMsgId(listener.getMsgId());
-            if (LogConf.isDebugEnabled()) {
-                Logger.debug(logMsg("routing request, retryLeft=[" + retryCount + "]: " + command));
+    public <T> T routeRequestAndGet(NetworkCommand command) throws OperationFailedError {
+        AtomicReference<Object> respRef = new AtomicReference<>();
+        Predicate<ICommand> cdHandler = (cmd) -> {
+            if (cmd instanceof Nack_NC) {
+                respRef.set(new SendFail_IC((Nack_NC) cmd));
+                return true;
+            } else if (cmd instanceof ClientResponse_NC) {
+                respRef.set(cmd);
+                return true;
+            } else if (cmd instanceof LeaderResponse_NC) {
+                respRef.set(((LeaderResponse_NC) cmd).getPayload());
+                return true;
             }
-            sendMessage(command);
-
-            if (listener.waitForResponses()) {
-                T rsp = (T) listener.getPassedObjectRef().get();
-                if(!(rsp instanceof SendFail_IC)) {
-                    return rsp;
-                } else {
-                    Logger.warn(logMsg("Send failed: " + rsp.toString()));
+            return false;
+        };
+        for (int i = 0; i < command.getRetryCount() + 1; i++) {
+            if(sendMessage(command, null, cdHandler).awaitResponses()) {
+                T retVal = (T) respRef.get();
+                if (!(retVal instanceof SendFail_IC)) {
+                    return retVal;
                 }
             }
-
-            return routeRequestAndGet(command, retryCount - 1);
-
-        } finally {
-            detachMsgListener(listener);
         }
+        throw new OperationFailedError(logMsg("Routing failed for command: " + command));
     }
 
     protected boolean initLeaderPerBucketElectionFlow() throws InterruptedException {
-        return new BizurRun(this).initLeaderPerBucketElectionFlow();
+        try (BizurRun br = new BizurRun(this)) {
+            return br.initLeaderPerBucketElectionFlow();
+        }
     }
 
     private void pleaseVote(PleaseVote_NC pleaseVoteNc) {
@@ -131,16 +114,22 @@ public class BizurNode extends Role {
     }
 
     private void replicaWrite(ReplicaWrite_NC replicaWriteNc){
-        new BizurRun(this).replicaWrite(replicaWriteNc);
+        try (BizurRun br = new BizurRun(this)) {
+            br.replicaWrite(replicaWriteNc);
+        }
     }
 
     private void replicaRead(ReplicaRead_NC replicaReadNc){
-        new BizurRun(this).replicaRead(replicaReadNc);
+        try (BizurRun br = new BizurRun(this)) {
+            br.replicaRead(replicaReadNc);
+        }
     }
 
     public String get(String key) throws RoleIsNotReadyError {
         checkReady();
-        return new BizurRun(this).get(key);
+        try (BizurRun br = new BizurRun(this)) {
+            return br.get(key);
+        }
     }
     private void getByLeader(ApiGet_NC getNc) {
         new BizurRun(this, getNc.getContextId()).getByLeader(getNc);
@@ -148,7 +137,9 @@ public class BizurNode extends Role {
 
     public boolean set(String key, String val) throws RoleIsNotReadyError {
         checkReady();
-        return new BizurRun(this).set(key, val);
+        try (BizurRun br = new BizurRun(this)) {
+            return br.set(key,val);
+        }
     }
     private void setByLeader(ApiSet_NC setNc) {
         new BizurRun(this, setNc.getContextId()).setByLeader(setNc);
@@ -156,7 +147,9 @@ public class BizurNode extends Role {
 
     public boolean delete(String key) throws RoleIsNotReadyError {
         checkReady();
-        return new BizurRun(this).delete(key);
+        try (BizurRun br = new BizurRun(this)) {
+            return br.delete(key);
+        }
     }
     private void deleteByLeader(ApiDelete_NC deleteNc) {
         new BizurRun(this, deleteNc.getContextId()).deleteByLeader(deleteNc);
@@ -164,7 +157,9 @@ public class BizurNode extends Role {
 
     public Set<String> iterateKeys() throws RoleIsNotReadyError {
         checkReady();
-        return new BizurRun(this).iterateKeys();
+        try (BizurRun br = new BizurRun(this)) {
+            return br.iterateKeys();
+        }
     }
     private void iterateKeysByLeader(ApiIterKeys_NC iterKeysNc) {
         new BizurRun(this, iterKeysNc.getContextId()).iterateKeysByLeader(iterKeysNc);
@@ -178,25 +173,9 @@ public class BizurNode extends Role {
      * Message Handling
      * ***************************************************************************/
 
-    protected boolean validateCommand(NetworkCommand command) {
-        if (command.getSenderAddress() != null && command.getReceiverAddress() != null) {
-            if (command.getSenderAddress().equals(command.getReceiverAddress())) {
-                return syncMessageListeners.get(command.getMsgId()) != null;
-            }
-        }
-        return true;
-    }
-
     @Override
     public void handleNetworkCommand(NetworkCommand command) {
         super.handleNetworkCommand(command);
-
-        if (!validateCommand(command)) {
-            if (LogConf.isDebugEnabled()) {
-                Logger.debug(logMsg("command discarded [" + command + "]"));
-            }
-            return;
-        }
 
         if (command instanceof LeaderElectionRequest_NC) {
             handleLeaderElection((LeaderElectionRequest_NC) command);
@@ -228,22 +207,23 @@ public class BizurNode extends Role {
 
         /* Client Request-response */
         if (command instanceof ClientRequest_NC) {
-            BizurRunForClient bcRun = new BizurRunForClient(this);
-            ClientResponse_NC response = null;
-            if(command instanceof ClientApiGet_NC){
-                response = bcRun.get((ClientApiGet_NC) command);
-            }
-            if(command instanceof ClientApiSet_NC){
-                response = bcRun.set((ClientApiSet_NC) command);
-            }
-            if(command instanceof ClientApiDelete_NC){
-                response = bcRun.delete((ClientApiDelete_NC) command);
-            }
-            if(command instanceof ClientApiIterKeys_NC){
-                response = bcRun.iterateKeys((ClientApiIterKeys_NC) command);
-            }
-            if (response != null) {
-                sendMessage(response);
+            try (BizurRunForClient bcRun = new BizurRunForClient(this)) {
+                ClientResponse_NC response = null;
+                if(command instanceof ClientApiGet_NC){
+                    response = bcRun.get((ClientApiGet_NC) command);
+                }
+                if(command instanceof ClientApiSet_NC){
+                    response = bcRun.set((ClientApiSet_NC) command);
+                }
+                if(command instanceof ClientApiDelete_NC){
+                    response = bcRun.delete((ClientApiDelete_NC) command);
+                }
+                if(command instanceof ClientApiIterKeys_NC){
+                    response = bcRun.iterateKeys((ClientApiIterKeys_NC) command);
+                }
+                if (response != null) {
+                    sendMessage(response);
+                }
             }
         }
     }
@@ -251,21 +231,16 @@ public class BizurNode extends Role {
     @Override
     public void handleInternalCommand(InternalCommand command) {
         if(command instanceof SendFail_IC) {
-            new BizurRun(this).handleSendFailureWithoutRetry((SendFail_IC) command);
+            try (BizurRun br = new BizurRun(this)) {
+                br.handleSendFailureWithoutRetry((SendFail_IC) command);
+            }
         }
         if(command instanceof NodeDead_IC) {
             handleNodeFailure(((NodeDead_IC) command).getNodeAddress());
         }
     }
 
-    @Override
-    protected void attachMsgListener(SyncMessageListener listener) {
-        super.attachMsgListener(listener);
-    }
-    @Override
-    protected void detachMsgListener(SyncMessageListener listener) {
-        super.detachMsgListener(listener);
-    }
+
     @Override
     public String logMsg(String msg) {
         return super.logMsg(msg);
@@ -274,8 +249,22 @@ public class BizurNode extends Role {
     protected void sendMessage(NetworkCommand message) {
         super.sendMessage(message);
     }
+
+    @Override
+    protected CallbackState sendMessage(NetworkCommand command, Predicate<ICommand> handler, Predicate<ICommand> countdownHandler) {
+        return super.sendMessage(command, handler, countdownHandler);
+    }
+
+    @Override
+    protected QuorumState sendMessageToQuorum(Supplier<NetworkCommand> cmdSupplier, Integer contextId, Integer msgId, Predicate<ICommand> handler, Predicate<ICommand> countdownHandler) {
+        return super.sendMessageToQuorum(cmdSupplier, contextId, msgId, handler, countdownHandler);
+    }
     @Override
     protected boolean pingAddress(Address address) {
         return super.pingAddress(address);
+    }
+
+    void handleCmd(ICommand cmd) {
+        networkManager.handleCmd(cmd);
     }
 }

@@ -2,7 +2,7 @@ package ee.ut.jbizur.clientservertest;
 
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.protocol.commands.MockNetworkCommand;
-import ee.ut.jbizur.protocol.commands.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.role.RoleMock;
 import ee.ut.jbizur.role.RoleSettings;
 import org.junit.*;
