@@ -40,14 +40,16 @@ public class JbizurConfig {
   }
   
   public static class Logging {
-    public final java.lang.String file;
     public final java.lang.String level;
     public final java.lang.String pattern;
+    public final boolean writeToConsole;
+    public final java.lang.String writeToFile;
     
     public Logging(com.typesafe.config.Config c) {
-      this.file = c.hasPathOrNull("file") ? c.getString("file") : null;
       this.level = c.hasPathOrNull("level") ? c.getString("level") : "INFO";
       this.pattern = c.hasPathOrNull("pattern") ? c.getString("pattern") : "[{level}] {date:HH:mm:ss:SSS} {class}.{method}(): {message}";
+      this.writeToConsole = !c.hasPathOrNull("writeToConsole") || c.getBoolean("writeToConsole");
+      this.writeToFile = c.hasPathOrNull("writeToFile") ? c.getString("writeToFile") : null;
     }
   }
   

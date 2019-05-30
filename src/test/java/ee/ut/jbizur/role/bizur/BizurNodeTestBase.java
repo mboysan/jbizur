@@ -32,7 +32,7 @@ public class BizurNodeTestBase {
 
     @Before
     public void setUp() throws Exception {
-        NetworkManagerMock.ROLES.clear();
+        NetworkManagerMock.clearRoles();
         createNodes();
         startRoles();
         this.expKeyVals = new ConcurrentHashMap<>();
@@ -85,12 +85,15 @@ public class BizurNodeTestBase {
         expKeyVals.put(expKey, expVal);
         leaderDefinedBucketIndexes.add(hashKey(expKey));
     }
+
     void removeExpectedKey(String expKey) {
         expKeyVals.remove(expKey);
     }
+
     String getExpectedValue(String expKey) {
         return expKeyVals.get(expKey);
     }
+
     Set<String> getExpectedKeySet() {
         return expKeyVals.keySet();
     }
@@ -156,6 +159,6 @@ public class BizurNodeTestBase {
         for (BizurNode bizurNode : bizurNodes) {
             bizurNode.shutdown();
         }
-        NetworkManagerMock.ROLES.clear();
+        NetworkManagerMock.clearRoles();
     }
 }

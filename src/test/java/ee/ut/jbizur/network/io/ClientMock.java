@@ -3,21 +3,22 @@ package ee.ut.jbizur.network.io;
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.protocol.CommandMarshaller;
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.ic.SendFail_IC;
+import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.role.Role;
 import ee.ut.jbizur.role.bizur.BizurClientMock;
 import ee.ut.jbizur.role.bizur.BizurNodeMock;
+import org.pmw.tinylog.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
-import static ee.ut.jbizur.network.io.NetworkManagerMock.ROLES;
+import static ee.ut.jbizur.network.io.NetworkManagerMock.getRole;
 
 public class ClientMock extends AbstractClient {
     private final ExecutorService executor = Executors.newCachedThreadPool();
@@ -37,10 +38,10 @@ public class ClientMock extends AbstractClient {
 
         NetworkCommand finalCommand = command;
         Runnable r = () -> {
-            Role receiverRole = ROLES.get(finalCommand.getReceiverAddress());
+            Role receiverRole = getRole(finalCommand.getReceiverAddress());
             if (receiverRole instanceof BizurNodeMock) {
                 if(((BizurNodeMock) receiverRole).isDead) {
-                    Role senderRole = ROLES.get(finalCommand.getSenderAddress());
+                    Role senderRole = getRole(finalCommand.getSenderAddress());
                     if (senderRole instanceof BizurNodeMock) {
                         ((BizurNodeMock) senderRole).getNetworkManager().getServer().recv(new SendFail_IC(finalCommand));
                     } else if (senderRole instanceof BizurClientMock) {
@@ -72,12 +73,10 @@ public class ClientMock extends AbstractClient {
     @Override
     public void shutdown() {
         executor.shutdown();
-        for (Future<?> task : tasks) {
-            try {
-                task.get();
-            } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
-            }
+        try {
+            executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Logger.warn(e);
         }
     }
 }

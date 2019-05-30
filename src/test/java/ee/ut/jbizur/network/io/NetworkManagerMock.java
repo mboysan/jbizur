@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class NetworkManagerMock extends NetworkManager {
 
-    public static final Map<Address, Role> ROLES = new ConcurrentHashMap<>();
+    private static final Map<Address, Role> ROLES = new ConcurrentHashMap<>();
 
     private final Address roleAddress;
 
@@ -39,7 +39,19 @@ public class NetworkManagerMock extends NetworkManager {
     @Override
     public void shutdown() {
         super.shutdown();
-        ROLES.remove(roleAddress);
+        removeRole(roleAddress);
+    }
+
+    static Role getRole(Address address) {
+        return ROLES.get(address);
+    }
+
+    private static synchronized void removeRole(Address address) {
+        ROLES.remove(address);
+    }
+
+    public static synchronized void clearRoles() {
+        ROLES.clear();
     }
 
     @Override

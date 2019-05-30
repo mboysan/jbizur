@@ -3,13 +3,14 @@ package ee.ut.jbizur.network.io;
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.protocol.commands.ICommand;
+import org.pmw.tinylog.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public class ServerMock extends AbstractServer {
     private final ExecutorService executor = Executors.newCachedThreadPool();
@@ -35,12 +36,10 @@ public class ServerMock extends AbstractServer {
     @Override
     public void shutdown() {
         executor.shutdown();
-        for (Future<?> task : tasks) {
-            try {
-                task.get();
-            } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
-            }
+        try {
+            executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Logger.warn(e);
         }
     }
 }
