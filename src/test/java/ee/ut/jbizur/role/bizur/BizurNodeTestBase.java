@@ -113,7 +113,8 @@ public class BizurNodeTestBase {
 
     private void validateKeyVals(BizurNode byNode) {
         Set<String> actKeys = byNode.iterateKeys();
-        Assert.assertEquals(getExpectedKeySet().size(), actKeys.size());
+        Assert.assertEquals(byNode.logMsg("expected keyset and actual keyset size don't match"),
+                getExpectedKeySet().size(), actKeys.size());
         for (String expKey : getExpectedKeySet()) {
             Assert.assertEquals(logNode(byNode, hashKey(expKey)), getExpectedValue(expKey), byNode.get(expKey));
         }

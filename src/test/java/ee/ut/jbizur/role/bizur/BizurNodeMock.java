@@ -5,6 +5,7 @@ import ee.ut.jbizur.datastore.bizur.BucketContainer;
 import ee.ut.jbizur.network.io.NetworkManagerMock;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.common.Nack_NC;
+import org.pmw.tinylog.Logger;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,10 +38,12 @@ public class BizurNodeMock extends BizurNode {
 
     public void kill() {
         isDead = true;
+        Logger.info(logMsg("NODE KILLED"));
     }
 
     public void revive() {
         isDead = false;
+        Logger.info(logMsg("NODE REVIVED"));
     }
 
     @Override
