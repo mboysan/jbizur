@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class Bucket {
+public class Bucket implements Comparable<Bucket> {
 
     private final BucketLock bucketLock = new BucketLock();
 
@@ -198,15 +198,12 @@ public class Bucket {
                 .setVotedElectId(bucketView.getVerElectId());
     }
 
-    public int compareVersion(Bucket other) {
-        return compareVersions(this, other);
-    }
-
-    public static int compareVersions(Bucket mainBucket, Bucket otherBucket) {
-        if(mainBucket.getVerElectId() > otherBucket.getVerElectId()){
+    @Override
+    public int compareTo(Bucket o) {
+        if(this.getVerElectId() > o.getVerElectId()){
             return 1;
-        } else if (mainBucket.getVerElectId() == otherBucket.getVerElectId()){
-            return Integer.compare(mainBucket.getVerCounter(), otherBucket.getVerCounter());
+        } else if (this.getVerElectId() == o.getVerElectId()){
+            return Integer.compare(this.getVerCounter(), o.getVerCounter());
         } else {
             return -1;
         }

@@ -290,7 +290,7 @@ public class BizurRun implements AutoCloseable {
                 BucketView bucketView = ((AckRead_NC) cmd).getBucketView();
                 synchronized (maxVerBucketView) {
                     if (!maxVerBucketView.compareAndSet(null, bucketView)) {
-                        if (bucketView.compareVersion((BucketView) maxVerBucketView.get()) > 0) {
+                        if (bucketView.compareTo(maxVerBucketView.get()) > 0) {
                             maxVerBucketView.set(bucketView);
                         }
                     }

@@ -1,8 +1,6 @@
 package ee.ut.jbizur.datastore.bizur;
 
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.protocol.ByteSerializer;
-import ee.ut.jbizur.protocol.ISerializer;
 import ee.ut.jbizur.util.IdUtils;
 import org.pmw.tinylog.Logger;
 
@@ -10,15 +8,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class BucketContainer {
 
     private final Bucket[] localBuckets;
     private final int numBuckets;
 
-    private final Map<String, Set<Integer>> addressBucketIndexMap = new HashMap<>();
-    private final ISerializer serializer = new ByteSerializer();
+    private final Map<Address, Set<Integer>> addressBucketIndexMap = new HashMap<>();
 
     public BucketContainer(int numBuckets) {
         this.numBuckets = numBuckets;
@@ -54,18 +50,16 @@ public class BucketContainer {
             throw new IllegalStateException("new address must not be null!");
         }
         synchronized (addressBucketIndexMap) {
-            String newAddrStr = serializer.serializeToString(newAddr);
-            addressBucketIndexMap.putIfAbsent(newAddrStr, new HashSet<>());
+            addressBucketIndexMap.putIfAbsent(newAddr, new HashSet<>());
 
             Address prevAddr = getBucket(bucketIndex).getLeaderAddress();
             if (prevAddr != null) {
                 if (prevAddr.equals(newAddr)) {
                     return;
                 }
-                String prevAddrStr = serializer.serializeToString(prevAddr);
-                addressBucketIndexMap.get(prevAddrStr).remove(bucketIndex);
+                addressBucketIndexMap.get(prevAddr).remove(bucketIndex);
             }
-            addressBucketIndexMap.get(newAddrStr).add(bucketIndex);
+            addressBucketIndexMap.get(newAddr).add(bucketIndex);
         }
     }
 
@@ -74,13 +68,11 @@ public class BucketContainer {
     }
 
     public Set<Address> collectAddressesWithBucketLeaders() {
-        return addressBucketIndexMap.keySet().stream()
-                .map(s -> (Address) serializer.deSerializeFromString(s))
-                .collect(Collectors.toSet());
+        return addressBucketIndexMap.keySet();
     }
 
     public Set<Integer> bucketIndices(Address address) {
-        return addressBucketIndexMap.get(serializer.serializeToString(address));
+        return addressBucketIndexMap.get(address);
     }
 
     /**

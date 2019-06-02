@@ -5,7 +5,7 @@ import ee.ut.jbizur.network.address.Address;
 import java.io.Serializable;
 import java.util.Map;
 
-public class BucketView implements Serializable {
+public class BucketView implements Serializable, Comparable<BucketView> {
 
     private Map<String, String> bucketMap;
     private int index;
@@ -70,15 +70,12 @@ public class BucketView implements Serializable {
                 .setLeaderAddress(getLeaderAddress(), false);
     }
 
-    public int compareVersion(BucketView other) {
-        return compareVersions(this, other);
-    }
-
-    public static int compareVersions(BucketView mainBucketView, BucketView otherBucketView) {
-        if(mainBucketView.getVerElectId() > otherBucketView.getVerElectId()){
+    @Override
+    public int compareTo(BucketView o) {
+        if(this.getVerElectId() > o.getVerElectId()){
             return 1;
-        } else if (mainBucketView.getVerElectId() == otherBucketView.getVerElectId()){
-            return Integer.compare(mainBucketView.getVerCounter(), otherBucketView.getVerCounter());
+        } else if (this.getVerElectId() == o.getVerElectId()){
+            return Integer.compare(this.getVerCounter(), o.getVerCounter());
         } else {
             return -1;
         }
