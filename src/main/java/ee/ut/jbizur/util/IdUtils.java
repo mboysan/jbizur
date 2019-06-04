@@ -16,6 +16,11 @@ public final class IdUtils {
         return RANDOM.nextInt(Integer.MAX_VALUE);
     }
 
+    /**
+     * Taken from <a href="https://algs4.cs.princeton.edu/34hash/">34hash site</a>.
+     * @param s key to hash.
+     * @return index of the bucket.
+     */
     public static int hashKey(String s, int size) {
         int R = 31;
         int hash = 0;

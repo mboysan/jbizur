@@ -88,13 +88,6 @@ public class Bucket implements Comparable<Bucket> {
     }
 
     public Bucket setLeaderAddress(Address leaderAddress) {
-        return setLeaderAddress(leaderAddress, true);
-    }
-
-    public Bucket setLeaderAddress(Address leaderAddress, boolean update) {
-        if (update) {
-            bucketContainer.updateLeaderAddress(getIndex(), leaderAddress);
-        }
         this.leaderAddress.set(leaderAddress);
         return this;
     }
@@ -194,7 +187,7 @@ public class Bucket implements Comparable<Bucket> {
 //                    .setIndex(bucketView.getIndex())
 //                    .setVerElectId(bucketView.getVerElectId())
 //                    .setVerCounter(bucketView.getVerCounter())
-                .setLeaderAddress(bucketView.getLeaderAddress(), false)
+                .setLeaderAddress(bucketView.getLeaderAddress())
                 .setVotedElectId(bucketView.getVerElectId());
     }
 

@@ -40,7 +40,7 @@ public class BizurNode extends Role {
     }
 
     protected BucketContainer createBucketContainer() {
-        return new BucketContainer(Conf.get().consensus.bizur.bucketCount).initBuckets();
+        return new BucketContainer(Conf.get().consensus.bizur.bucketCount);
     }
 
     @Override

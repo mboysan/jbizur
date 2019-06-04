@@ -369,7 +369,7 @@ public class BizurRun implements AutoCloseable {
 
     private Set<String> _iterateKeys() {
         Set<String> res = new HashSet<>();
-        bucketContainer.bucketIndices(getSettings().getAddress()).forEach(bucketIdx -> {
+        bucketContainer.bucketIndicesOfAddress(getSettings().getAddress()).forEach(bucketIdx -> {
             bucketContainer.lockBucket(bucketIdx);
             try {
                 Bucket bucket = read(bucketIdx);

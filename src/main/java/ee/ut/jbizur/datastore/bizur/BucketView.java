@@ -67,7 +67,7 @@ public class BucketView implements Serializable, Comparable<BucketView> {
                 .setIndex(getIndex())
                 .setVerElectId(getVerElectId())
                 .setVerCounter(getVerCounter())
-                .setLeaderAddress(getLeaderAddress(), false);
+                .setLeaderAddress(getLeaderAddress());
     }
 
     @Override

@@ -33,7 +33,7 @@ public class BizurNodeMock extends BizurNode {
                         ? super.hashKey(s)
                         : idx;
             }
-        }.initBuckets();
+        };
     }
 
     public void kill() {
