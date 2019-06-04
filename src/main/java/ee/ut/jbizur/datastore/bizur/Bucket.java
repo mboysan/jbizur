@@ -50,6 +50,10 @@ public class Bucket implements Comparable<Bucket> {
         this.electionInProgress = new AtomicBoolean(false);
     }
 
+    /* ***************************************************************************
+     * Map Operations
+     * ***************************************************************************/
+
     public String putOp(String key, String val){
         if (LogConf.isDebugEnabled()) {
             Logger.debug(String.format("put key=[%s],val=[%s] in bucket=[%s]", key, val, this));
@@ -68,6 +72,10 @@ public class Bucket implements Comparable<Bucket> {
     public Set<String> getKeySet(){
         return bucketMap.keySet();
     }
+
+    /* ***************************************************************************
+     * Specifications
+     * ***************************************************************************/
 
     public int getIndex() {
         return index.get();
@@ -144,6 +152,11 @@ public class Bucket implements Comparable<Bucket> {
         return verCounter.get();
     }
 
+
+    /* ***************************************************************************
+     * Election Operations
+     * ***************************************************************************/
+
     public void initLeaderElection() {
         synchronized (this) {
             electionInProgress.set(true);
@@ -171,6 +184,11 @@ public class Bucket implements Comparable<Bucket> {
         }
     }
 
+
+    /* ***************************************************************************
+     * BucketView
+     * ***************************************************************************/
+
     public BucketView createView(){
         return new BucketView()
                 .setBucketMap(new HashMap<>(bucketMap))
@@ -178,10 +196,6 @@ public class Bucket implements Comparable<Bucket> {
                 .setVerElectId(getVerElectId())
                 .setVerCounter(getVerCounter())
                 .setLeaderAddress(getLeaderAddress());
-    }
-
-    public Bucket replaceBucketForReplicationWith(Bucket bucket){
-        return replaceBucketForReplicationWith(bucket.createView());
     }
 
     public Bucket replaceBucketForReplicationWith(BucketView bucketView) {
@@ -192,6 +206,11 @@ public class Bucket implements Comparable<Bucket> {
                 .setLeaderAddress(bucketView.getLeaderAddress())
                 .setVotedElectId(bucketView.getVerElectId());
     }
+
+
+    /* ***************************************************************************
+     * Utils
+     * ***************************************************************************/
 
     @Override
     public int compareTo(Bucket o) {
