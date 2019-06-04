@@ -11,10 +11,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Bucket implements Comparable<Bucket> {
 
-    private final BucketLock bucketLock = new BucketLock();
+    private final Lock bucketLock = new ReentrantLock();
 
     private final AtomicReference<Address> leaderAddress;
     private final AtomicBoolean isLeader;
@@ -203,11 +205,7 @@ public class Bucket implements Comparable<Bucket> {
     }
 
     public void lock() {
-        try {
-            bucketLock.lock();
-        } catch (InterruptedException e) {
-            Logger.error(e);
-        }
+        bucketLock.lock();
     }
 
     public void unlock() {
