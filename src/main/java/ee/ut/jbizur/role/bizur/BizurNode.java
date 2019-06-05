@@ -104,9 +104,7 @@ public class BizurNode extends Role {
     }
 
     protected boolean initLeaderPerBucketElectionFlow() throws InterruptedException {
-        try (BizurRun br = new BizurRun(this)) {
-            return br.initLeaderPerBucketElectionFlow();
-        }
+        return new BizurRun(this).initLeaderPerBucketElectionFlow();
     }
 
     private void pleaseVote(PleaseVote_NC pleaseVoteNc) {
@@ -114,22 +112,16 @@ public class BizurNode extends Role {
     }
 
     private void replicaWrite(ReplicaWrite_NC replicaWriteNc){
-        try (BizurRun br = new BizurRun(this)) {
-            br.replicaWrite(replicaWriteNc);
-        }
+        new BizurRun(this).replicaWrite(replicaWriteNc);
     }
 
     private void replicaRead(ReplicaRead_NC replicaReadNc){
-        try (BizurRun br = new BizurRun(this)) {
-            br.replicaRead(replicaReadNc);
-        }
+        new BizurRun(this).replicaRead(replicaReadNc);
     }
 
     public String get(String key) throws RoleIsNotReadyError {
         checkReady();
-        try (BizurRun br = new BizurRun(this)) {
-            return br.get(key);
-        }
+        return new BizurRun(this).get(key);
     }
     private void getByLeader(ApiGet_NC getNc) {
         new BizurRun(this, getNc.getContextId()).getByLeader(getNc);
@@ -137,9 +129,7 @@ public class BizurNode extends Role {
 
     public boolean set(String key, String val) throws RoleIsNotReadyError {
         checkReady();
-        try (BizurRun br = new BizurRun(this)) {
-            return br.set(key,val);
-        }
+        return new BizurRun(this).set(key,val);
     }
     private void setByLeader(ApiSet_NC setNc) {
         new BizurRun(this, setNc.getContextId()).setByLeader(setNc);
@@ -147,9 +137,7 @@ public class BizurNode extends Role {
 
     public boolean delete(String key) throws RoleIsNotReadyError {
         checkReady();
-        try (BizurRun br = new BizurRun(this)) {
-            return br.delete(key);
-        }
+        return new BizurRun(this).delete(key);
     }
     private void deleteByLeader(ApiDelete_NC deleteNc) {
         new BizurRun(this, deleteNc.getContextId()).deleteByLeader(deleteNc);
@@ -157,9 +145,7 @@ public class BizurNode extends Role {
 
     public Set<String> iterateKeys() throws RoleIsNotReadyError {
         checkReady();
-        try (BizurRun br = new BizurRun(this)) {
-            return br.iterateKeys();
-        }
+        return new BizurRun(this).iterateKeys();
     }
     private void iterateKeysByLeader(ApiIterKeys_NC iterKeysNc) {
         new BizurRun(this, iterKeysNc.getContextId()).iterateKeysByLeader(iterKeysNc);
@@ -207,23 +193,22 @@ public class BizurNode extends Role {
 
         /* Client Request-response */
         if (command instanceof ClientRequest_NC) {
-            try (BizurRunForClient bcRun = new BizurRunForClient(this)) {
-                ClientResponse_NC response = null;
-                if(command instanceof ClientApiGet_NC){
-                    response = bcRun.get((ClientApiGet_NC) command);
-                }
-                if(command instanceof ClientApiSet_NC){
-                    response = bcRun.set((ClientApiSet_NC) command);
-                }
-                if(command instanceof ClientApiDelete_NC){
-                    response = bcRun.delete((ClientApiDelete_NC) command);
-                }
-                if(command instanceof ClientApiIterKeys_NC){
-                    response = bcRun.iterateKeys((ClientApiIterKeys_NC) command);
-                }
-                if (response != null) {
-                    sendMessage(response);
-                }
+            BizurRunForClient bcRun = new BizurRunForClient(this);
+            ClientResponse_NC response = null;
+            if(command instanceof ClientApiGet_NC){
+                response = bcRun.get((ClientApiGet_NC) command);
+            }
+            if(command instanceof ClientApiSet_NC){
+                response = bcRun.set((ClientApiSet_NC) command);
+            }
+            if(command instanceof ClientApiDelete_NC){
+                response = bcRun.delete((ClientApiDelete_NC) command);
+            }
+            if(command instanceof ClientApiIterKeys_NC){
+                response = bcRun.iterateKeys((ClientApiIterKeys_NC) command);
+            }
+            if (response != null) {
+                sendMessage(response);
             }
         }
     }
@@ -231,9 +216,7 @@ public class BizurNode extends Role {
     @Override
     public void handleInternalCommand(InternalCommand command) {
         if(command instanceof SendFail_IC) {
-            try (BizurRun br = new BizurRun(this)) {
-                br.handleSendFailureWithoutRetry((SendFail_IC) command);
-            }
+            new BizurRun(this).handleSendFailureWithoutRetry((SendFail_IC) command);
         }
         if(command instanceof NodeDead_IC) {
             handleNodeFailure(((NodeDead_IC) command).getNodeAddress());

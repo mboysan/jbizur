@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-public class BizurRun implements AutoCloseable {
+public class BizurRun {
 
     protected BizurNode node;
 
@@ -578,9 +578,5 @@ public class BizurRun implements AutoCloseable {
     void handleSendFailureWithoutRetry(SendFail_IC sendFailIc) {
         node.handleCmd(sendFailIc.getNackNC());
 //        pinger.registerUnreachableAddress(failedCommand.getReceiverAddress());
-    }
-
-    @Override
-    public void close() {
     }
 }
