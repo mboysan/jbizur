@@ -3,7 +3,6 @@ package ee.ut.jbizur.datastore.bizur;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.util.IdUtils;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,8 +12,6 @@ public class BucketContainer {
 
     private final Map<Integer, Bucket> localBuckets;
     private final int numBuckets;
-
-    private final Map<Address, Set<Integer>> addressBucketIndexMap = new HashMap<>();
 
     public BucketContainer(int numBuckets) {
         this.numBuckets = numBuckets;
@@ -26,7 +23,7 @@ public class BucketContainer {
     }
 
     public Bucket getBucket(int index) {
-        return localBuckets.computeIfAbsent(index, idx -> new Bucket(this).setIndex(idx));
+        return localBuckets.computeIfAbsent(index, idx -> new Bucket().setIndex(idx));
     }
 
     public void lockBucket(int index) {

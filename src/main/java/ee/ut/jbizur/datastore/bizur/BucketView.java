@@ -60,8 +60,8 @@ public class BucketView implements Serializable, Comparable<BucketView> {
         return this;
     }
 
-    public Bucket createBucket(BucketContainer bucketContainer) {
-        return new Bucket(bucketContainer)
+    public Bucket createBucket() {
+        return new Bucket()
                 .setIndex(getIndex())
                 .setBucketMap(getBucketMap())
                 .setIndex(getIndex())

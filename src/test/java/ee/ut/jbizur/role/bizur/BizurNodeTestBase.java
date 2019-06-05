@@ -127,7 +127,7 @@ public class BizurNodeTestBase {
         if (expKeyVals.size() == 0) {
             leaderDefinedBucketIndexes.iterator().forEachRemaining(bIdx -> {
                 BizurNode leader = findLeaderOfBucket(bIdx);
-                Assert.assertEquals(logNode(leader, bIdx), 0, leader.bucketContainer.getBucket(bIdx).getKeySet().size());
+                Assert.assertEquals(logNode(leader, bIdx), 0, leader.bucketContainer.getBucket(bIdx).getKeySetOp().size());
             });
         } else {
             expKeyVals.forEach((expKey, expVal) -> {
@@ -153,7 +153,7 @@ public class BizurNodeTestBase {
         return String.format(log,
                 bizurNode.toString(),
                 bizurNode.bucketContainer.getBucket(bucketIndex),
-                bizurNode.bucketContainer.getBucket(bucketIndex).getKeySet());
+                bizurNode.bucketContainer.getBucket(bucketIndex).getKeySetOp());
     }
 
     public void tearDown() {

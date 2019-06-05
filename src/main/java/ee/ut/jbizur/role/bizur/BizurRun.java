@@ -307,7 +307,7 @@ public class BizurRun implements AutoCloseable {
 
         final boolean isSuccess;
         if (sendMsgToAll(replicaRead, handler, null).awaitMajority()) {
-            Bucket maxVerBucket = maxVerBucketView.get().createBucket(bucketContainer);
+            Bucket maxVerBucket = maxVerBucketView.get().createBucket();
             maxVerBucket.setVerElectId(electId);
             maxVerBucket.setVerCounter(0);
             isSuccess = write(maxVerBucket);
@@ -374,7 +374,7 @@ public class BizurRun implements AutoCloseable {
             try {
                 Bucket bucket = read(bucketIdx);
                 if(bucket != null){
-                    res.addAll(bucket.getKeySet());
+                    res.addAll(bucket.getKeySetOp());
                 } else {
                     Logger.warn(logMsg(String.format("bucket keys could not be iterated by leader. bucket=[%s]", bucket)));
                 }
