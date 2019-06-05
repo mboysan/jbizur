@@ -1,5 +1,5 @@
 [![Build Status](https://api.travis-ci.com/mboysan/jbizur.svg?branch=master)](https://travis-ci.com/mboysan/jbizur)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=mboysan_jbizur&metric=alert_status)](https://sonarcloud.io/dashboard?id=mboysan_jbizur)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ee.ut%3Ajbizur&metric=alert_status)](https://sonarcloud.io/dashboard?id=ee.ut%3Ajbizur)
 
 #### Disclaimer
 This is still a work in progress! This repository is only
@@ -10,9 +10,7 @@ masters thesis).
 ### Introduction
 
 This repository is created to provide a distributed in-memory
-database solution written in Java that uses the [Bizur consensus algorithm](https://arxiv.org/pdf/1702.04242.pdf).
-
-The paper can be found in directory ```./docs/bizur_paper.pdf```.
+database solution written in Java that uses the Bizur consensus algorithm (see paper at: [https://arxiv.org/pdf/1702.04242.pdf](https://arxiv.org/pdf/1702.04242.pdf))
 
 
 ### Description
