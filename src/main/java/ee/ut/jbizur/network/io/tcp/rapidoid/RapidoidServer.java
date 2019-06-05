@@ -52,6 +52,7 @@ public class RapidoidServer extends AbstractServer {
             executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Logger.error(e);
+            Thread.currentThread().interrupt();
         }
         if (rapidoidServer.isActive()) {
             rapidoidServer.shutdown();

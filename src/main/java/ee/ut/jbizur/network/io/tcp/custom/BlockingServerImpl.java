@@ -56,6 +56,7 @@ public class BlockingServerImpl extends AbstractServer {
             executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Logger.error(e);
+            Thread.currentThread().interrupt();
         }
         Logger.info("Server shutdown: " + networkManager.toString());
     }

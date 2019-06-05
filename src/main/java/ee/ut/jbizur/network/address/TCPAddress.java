@@ -108,6 +108,9 @@ public class TCPAddress extends Address {
                 TimeUnit.MILLISECONDS.sleep(500);
             } catch (SocketException | UnknownHostException | InterruptedException e) {
                 Logger.error(e);
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
             }
         }
         /* if above solution does not work, use ifconfig.co */

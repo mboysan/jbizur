@@ -94,6 +94,7 @@ public class BlockingClientImpl extends AbstractClient {
             executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Logger.error(e);
+            Thread.currentThread().interrupt();
         }
         disconnectAll();
         Logger.info("Client shutdown: " + networkManager.toString());

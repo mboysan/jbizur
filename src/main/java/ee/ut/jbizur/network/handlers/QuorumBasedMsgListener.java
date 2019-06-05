@@ -102,6 +102,7 @@ public class QuorumBasedMsgListener implements IMsgListener {
             }
         } catch (InterruptedException e) {
             Logger.error(e);
+            Thread.currentThread().interrupt();
         } finally {
             deregisterSelf(msgListeners);
         }
