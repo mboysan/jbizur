@@ -134,6 +134,6 @@ public class BizurClient extends BizurNode {
     }
 
     private void updateLeaderOfBucket(String bucketKey, Address assumedLeader) {
-        bucketContainer.getBucket(bucketKey).setLeaderAddress(assumedLeader, false);
+        bucketContainer.getBucket(bucketKey).setLeaderAddress(assumedLeader);
     }
 }

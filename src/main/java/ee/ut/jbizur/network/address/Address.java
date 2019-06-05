@@ -7,12 +7,17 @@ import java.io.Serializable;
  * @see TCPAddress
  * @see MPIAddress
  */
-public abstract class Address implements Serializable {
+public abstract class Address implements Serializable, Comparable<Address> {
 
     public Address() {
     }
 
     public abstract String resolveAddressId();
+
+    @Override
+    public int compareTo(Address o) {
+        return Integer.compare(hashCode(), o.hashCode());
+    }
 
     @Override
     public String toString() {

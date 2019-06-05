@@ -15,8 +15,7 @@ import java.util.*;
 public class RoleSettings {
 
     private Role roleRef;
-    private Map<String, Address> memberAddressMap = new HashMap<>();
-    private Set<Address> memberAddresses = new HashSet<>();
+    private Set<Address> memberAddresses = Collections.synchronizedSortedSet(new TreeSet<>());
 
     private String roleId;
     private Address address;
@@ -109,9 +108,7 @@ public class RoleSettings {
      * @param toRegister address to register
      */
     protected synchronized void registerAddress(Address toRegister){
-        Address prv = memberAddressMap.putIfAbsent(toRegister.resolveAddressId(), toRegister);
-        if (prv == null) {
-            memberAddresses.add(toRegister);
+        if (memberAddresses.add(toRegister)) {
             if (roleRef != null) {
                 roleRef.handleInternalCommand(new NodeAddressRegistered_IC());
             }
@@ -120,9 +117,7 @@ public class RoleSettings {
     }
 
     protected synchronized void unregisterAddress(Address toUnregister) {
-        Address prv = memberAddressMap.remove(toUnregister.resolveAddressId());
-        if (prv != null) {
-            memberAddresses.remove(toUnregister);
+        if (memberAddresses.remove(toUnregister)) {
             if (roleRef != null) {
                 roleRef.handleInternalCommand(new NodeAddressUnregistered_IC());
             }
@@ -131,10 +126,10 @@ public class RoleSettings {
     }
 
     /**
-     * @return the size of the {@link #memberAddressMap}.
+     * @return the size of the {@link #memberAddresses}.
      */
     public int getProcessCount(){
-        return memberAddressMap.size();
+        return memberAddresses.size();
     }
 
     public static int calcQuorumSize(int processCount) {

@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-public class BizurRun implements AutoCloseable {
+public class BizurRun {
 
     protected BizurNode node;
 
@@ -290,7 +290,7 @@ public class BizurRun implements AutoCloseable {
                 BucketView bucketView = ((AckRead_NC) cmd).getBucketView();
                 synchronized (maxVerBucketView) {
                     if (!maxVerBucketView.compareAndSet(null, bucketView)) {
-                        if (bucketView.compareVersion((BucketView) maxVerBucketView.get()) > 0) {
+                        if (bucketView.compareTo(maxVerBucketView.get()) > 0) {
                             maxVerBucketView.set(bucketView);
                         }
                     }
@@ -307,7 +307,7 @@ public class BizurRun implements AutoCloseable {
 
         final boolean isSuccess;
         if (sendMsgToAll(replicaRead, handler, null).awaitMajority()) {
-            Bucket maxVerBucket = maxVerBucketView.get().createBucket(bucketContainer);
+            Bucket maxVerBucket = maxVerBucketView.get().createBucket();
             maxVerBucket.setVerElectId(electId);
             maxVerBucket.setVerCounter(0);
             isSuccess = write(maxVerBucket);
@@ -369,12 +369,12 @@ public class BizurRun implements AutoCloseable {
 
     private Set<String> _iterateKeys() {
         Set<String> res = new HashSet<>();
-        bucketContainer.bucketIndices(getSettings().getAddress()).forEach(bucketIdx -> {
+        bucketContainer.bucketIndicesOfAddress(getSettings().getAddress()).forEach(bucketIdx -> {
             bucketContainer.lockBucket(bucketIdx);
             try {
                 Bucket bucket = read(bucketIdx);
                 if(bucket != null){
-                    res.addAll(bucket.getKeySet());
+                    res.addAll(bucket.getKeySetOp());
                 } else {
                     Logger.warn(logMsg(String.format("bucket keys could not be iterated by leader. bucket=[%s]", bucket)));
                 }
@@ -578,9 +578,5 @@ public class BizurRun implements AutoCloseable {
     void handleSendFailureWithoutRetry(SendFail_IC sendFailIc) {
         node.handleCmd(sendFailIc.getNackNC());
 //        pinger.registerUnreachableAddress(failedCommand.getReceiverAddress());
-    }
-
-    @Override
-    public void close() {
     }
 }
