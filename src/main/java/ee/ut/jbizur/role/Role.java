@@ -36,7 +36,7 @@ public abstract class Role {
     }
 
     public boolean isAddressesAlreadyRegistered() {
-        return getSettings().getMemberAddresses().size() == getSettings().getAnticipatedMemberCount();
+        return getSettings().getMemberAddresses().size() >= getSettings().getAnticipatedMemberCount();
     }
 
     public boolean checkNodesDiscovered() {
