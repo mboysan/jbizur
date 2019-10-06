@@ -7,7 +7,8 @@ import ee.ut.jbizur.network.io.AbstractServer;
 import ee.ut.jbizur.network.io.NetworkManager;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.ping.SignalEnd_NC;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -22,6 +23,8 @@ import java.util.concurrent.TimeUnit;
  * The message receiver wrapper for the communication protocols defined in {@link ee.ut.jbizur.network.ConnectionProtocol}.
  */
 public class BlockingServerImpl extends AbstractServer {
+
+    private static final Logger logger = LoggerFactory.getLogger(BlockingServerImpl.class);
 
     private ServerThread serverThread;
 
@@ -55,10 +58,10 @@ public class BlockingServerImpl extends AbstractServer {
         try {
             executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            Logger.error(e);
+            logger.error(e.getMessage(), e);
             Thread.currentThread().interrupt();
         }
-        Logger.info("Server shutdown: " + networkManager.toString());
+        logger.info("Server shutdown: {}", networkManager.toString());
     }
 
     private class ServerThread extends Thread {
@@ -69,7 +72,7 @@ public class BlockingServerImpl extends AbstractServer {
             try {
                 this.serverSocket = new ServerSocket(port);
             } catch (IOException e) {
-                Logger.error(e);
+                logger.error(e.getMessage(), e);
             }
         }
 
@@ -85,9 +88,9 @@ public class BlockingServerImpl extends AbstractServer {
                 }
             } catch (IOException e) {
                 if (e instanceof SocketException) {
-                    Logger.warn("Socket might be closed: " + e);
+                    logger.warn("Socket might be closed: {}", e.getMessage());
                 } else {
-                    Logger.error(e);
+                    logger.error(e.getMessage(), e);
                 }
             }
         }
@@ -96,7 +99,7 @@ public class BlockingServerImpl extends AbstractServer {
             try {
                 serverSocket.close();
             } catch (IOException e) {
-                Logger.error(e);
+                logger.error(e.getMessage(), e);
             }
         }
     }
@@ -127,7 +130,7 @@ public class BlockingServerImpl extends AbstractServer {
             } catch (EOFException e) {
 //                Logger.warn(e, "");
             } catch (IOException | ClassNotFoundException e) {
-                Logger.error(e, "");
+                logger.error(e.getMessage());
             }
         }
     }

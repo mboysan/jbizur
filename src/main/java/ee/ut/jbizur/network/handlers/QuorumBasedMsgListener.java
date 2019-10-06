@@ -4,7 +4,8 @@ import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.protocol.commands.ICommand;
 import ee.ut.jbizur.protocol.commands.nc.common.Ack_NC;
 import ee.ut.jbizur.protocol.commands.nc.common.Nack_NC;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -12,6 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 public class QuorumBasedMsgListener implements IMsgListener {
+    private static final Logger logger = LoggerFactory.getLogger(QuorumBasedMsgListener.class);
+
     private Predicate<ICommand> handler;
     private Predicate<ICommand> countdownHandler;
 
@@ -101,7 +104,7 @@ public class QuorumBasedMsgListener implements IMsgListener {
                 return true;
             }
         } catch (InterruptedException e) {
-            Logger.error(e);
+            logger.error(e.getMessage(), e);
             Thread.currentThread().interrupt();
         } finally {
             deregisterSelf(msgListeners);

@@ -9,7 +9,8 @@ import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.ping.*;
 import ee.ut.jbizur.util.IdUtils;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -22,6 +23,8 @@ import java.util.stream.Stream;
  * Each node is defined as a ee.ut.jbizur.role.
  */
 public abstract class Role {
+
+    private static final Logger logger = LoggerFactory.getLogger(Role.class);
 
     private final RoleSettings settings;
     protected NetworkManager networkManager;
@@ -67,7 +70,7 @@ public abstract class Role {
             pongForPingCommand((Ping_NC) command);
         }
         if (command instanceof SignalEnd_NC) {
-            Logger.info(logMsg("End signal received: " + command));
+            logger.info(logMsg("End signal received: " + command));
             shutdown();
         }
     }
@@ -96,7 +99,7 @@ public abstract class Role {
             // wait for termination
             Thread.sleep(5000);
         } catch (InterruptedException e) {
-            Logger.error(e);
+            logger.error(e.getMessage(), e);
         }
         shutdown();
     }

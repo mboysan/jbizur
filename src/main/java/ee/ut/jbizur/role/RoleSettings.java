@@ -7,12 +7,15 @@ import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.protocol.commands.ic.NodeAddressRegistered_IC;
 import ee.ut.jbizur.protocol.commands.ic.NodeAddressUnregistered_IC;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.UnknownHostException;
 import java.util.*;
 
 public class RoleSettings {
+
+    private static final Logger logger = LoggerFactory.getLogger(RoleSettings.class);
 
     private Role roleRef;
     private Set<Address> memberAddresses = Collections.synchronizedSortedSet(new TreeSet<>());
@@ -36,7 +39,7 @@ public class RoleSettings {
                     : TCPAddress.resolveTCPAddress(Conf.get().network.tcp.defaultAddress);
             setAddress(tcp);
         } catch (UnknownHostException e) {
-            Logger.error(e);
+            logger.error(e.getMessage(), e);
         }
         try {
             boolean isMulticastEnabled = Conf.get().network.multicast.enabled;
@@ -47,7 +50,7 @@ public class RoleSettings {
                 );
             }
         } catch (UnknownHostException e) {
-            Logger.error(e);
+            logger.error(e.getMessage(), e);
         }
         setAnticipatedMemberCount(Math.max(Conf.get().members.size(), Conf.get().node.member.expectedCount));
     }
@@ -108,7 +111,7 @@ public class RoleSettings {
             if (roleRef != null) {
                 roleRef.handleInternalCommand(new NodeAddressRegistered_IC());
             }
-            Logger.info(String.format("Address [%s] registered on role [%s]", toRegister, roleRef));
+            logger.info("Address {} registered on role {}", toRegister, roleRef);
         }
     }
 
@@ -117,7 +120,7 @@ public class RoleSettings {
             if (roleRef != null) {
                 roleRef.handleInternalCommand(new NodeAddressUnregistered_IC());
             }
-            Logger.info(String.format("Address [%s] unregistered from role [%s]", toUnregister, roleRef));
+            logger.info("Address {} unregistered on role {}", toUnregister, roleRef);
         }
     }
 

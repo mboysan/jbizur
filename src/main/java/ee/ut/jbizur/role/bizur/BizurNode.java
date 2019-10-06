@@ -16,7 +16,8 @@ import ee.ut.jbizur.protocol.commands.nc.bizur.*;
 import ee.ut.jbizur.protocol.commands.nc.common.Nack_NC;
 import ee.ut.jbizur.role.Role;
 import ee.ut.jbizur.role.RoleValidation;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -26,6 +27,9 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class BizurNode extends Role {
+
+    private static final Logger logger = LoggerFactory.getLogger(BizurNode.class);
+
     private boolean isReady;
     BucketContainer bucketContainer;
 
@@ -65,7 +69,7 @@ public class BizurNode extends Role {
                     Thread.sleep(multicastIntervalSec);
                 }
                 isReady = true;
-                Logger.info(logMsg("Node initialized and ready!"));
+                logger.info(logMsg("Node initialized and ready!"));
             } catch (Exception e) {
                 throw new CompletionException(e);
             }

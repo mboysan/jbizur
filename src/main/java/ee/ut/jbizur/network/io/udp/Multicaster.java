@@ -9,7 +9,8 @@ import ee.ut.jbizur.protocol.commands.nc.ping.Connect_NC;
 import ee.ut.jbizur.protocol.commands.nc.ping.SignalEnd_NC;
 import ee.ut.jbizur.role.RoleSettings;
 import ee.ut.jbizur.util.ByteUtils;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.*;
@@ -22,6 +23,8 @@ import java.util.concurrent.TimeUnit;
  * {@link ee.ut.jbizur.network.ConnectionProtocol#TCP}
  */
 public class Multicaster {
+
+    private static final Logger logger = LoggerFactory.getLogger(Multicaster.class);
 
     private volatile boolean isRunning = true;
 
@@ -79,14 +82,14 @@ public class Multicaster {
         try {
             schExecutor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            Logger.error(e);
+            logger.error(e.getMessage(), e);
             Thread.currentThread().interrupt();
         }
         schExecutor.shutdown();
         try {
             schExecutor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            Logger.error(e);
+            logger.error(e.getMessage(), e);
             Thread.currentThread().interrupt();
         }
     }
@@ -101,7 +104,7 @@ public class Multicaster {
                     = new DatagramPacket(msgWithLength, msgWithLength.length, group, multicastAddress.getMulticastPort());
             socket.send(packet);
         } catch (IOException e) {
-            Logger.error(e, "multicast _send error.");
+            logger.error("multicast _send error.", e);
         }
     }
 
@@ -128,7 +131,7 @@ public class Multicaster {
 
                     NetworkCommand received = commandMarshaller.unmarshall(msgRecv);
                     if (received instanceof SignalEnd_NC) {
-                        Logger.info("MulticastReceiver end!");
+                        logger.info("MulticastReceiver end!");
                         break;
                     }
                     schExecutor.execute(() -> networkManager.handleCmd(received));
@@ -136,9 +139,9 @@ public class Multicaster {
                 shutdown();
             } catch (IOException e) {
                 if (e instanceof SocketException) {
-                    Logger.warn("Socket might be closed: " + e);
+                    logger.warn("Socket might be closed", e);
                 } else {
-                    Logger.error(e, "multicast recv error");
+                    logger.error("multicast recv error", e);
                 }
             }
         }
@@ -148,7 +151,7 @@ public class Multicaster {
                 try {
                     socket.leaveGroup(multicastAddress.getMulticastGroupAddr());
                 } catch (IOException e) {
-                    Logger.error(e);
+                    logger.error(e.getMessage(), e);
                 }
                 socket.close();
             }

@@ -14,7 +14,8 @@ import ee.ut.jbizur.protocol.commands.ic.SendFail_IC;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.bizur.*;
 import ee.ut.jbizur.util.IdUtils;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -24,6 +25,8 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class BizurRun {
+
+    private static final Logger logger = LoggerFactory.getLogger(BizurRun.class);
 
     protected BizurNode node;
 
@@ -131,7 +134,7 @@ public class BizurRun {
                     break;
                 }
                 retry++;
-                Logger.warn(logMsg("retrying (count=" + retry + ") leader election on bucket=[" + localBucket + "]"));
+                logger.warn(logMsg("retrying (count=" + retry + ") leader election on bucket=[" + localBucket + "]"));
                 Thread.sleep(500);
             }
             if (retry >= maxRetry) {
@@ -160,7 +163,7 @@ public class BizurRun {
     protected void electLeaderForBucket(Bucket localBucket, int startIdx, boolean forceElection) {
         Address nextAddr = IdUtils.nextAddressInUnorderedSet(getSettings().getMemberAddresses(), startIdx);
         if (nextAddr.equals(getSettings().getAddress())) {
-            Logger.info(logMsg("initializing election process on bucket idx=" + localBucket.getIndex()));
+            logger.info(logMsg("initializing election process on bucket idx=" + localBucket.getIndex()));
             electLeaderForBucket(localBucket);
         } else {
             boolean willHandle;
@@ -170,9 +173,9 @@ public class BizurRun {
                 willHandle = pingAddress(nextAddr);
             }
             if (willHandle) {
-                Logger.info(logMsg("election process will be handled by: " + nextAddr + " for bucket idx=" + localBucket.getIndex()));
+                logger.info(logMsg("election process will be handled by: " + nextAddr + " for bucket idx=" + localBucket.getIndex()));
             } else {
-                Logger.warn(logMsg("address '" + nextAddr + "' unreachable, reinit election process for bucket idx=" + localBucket.getIndex() + " ..."));
+                logger.warn(logMsg("address '" + nextAddr + "' unreachable, reinit election process for bucket idx=" + localBucket.getIndex() + " ..."));
                 electLeaderForBucket(localBucket, startIdx + 1, forceElection);
             }
         }
@@ -376,7 +379,7 @@ public class BizurRun {
                 if(bucket != null){
                     res.addAll(bucket.getKeySetOp());
                 } else {
-                    Logger.warn(logMsg(String.format("bucket keys could not be iterated by leader. bucket=[%s]", bucket)));
+                    logger.warn(logMsg(String.format("bucket keys could not be iterated by leader. bucket=[%s]", bucket)));
                 }
             } finally {
                 bucketContainer.unlockBucket(bucketIdx);
@@ -405,7 +408,7 @@ public class BizurRun {
                             .setContextId(contextId)
             );
         } catch (OperationFailedError e) {
-            Logger.warn(e);
+            logger.warn(e.getMessage(), e);
             electLeaderForBucket(bucket, bucket.getIndex(), true);
             return get(key);
         }
@@ -435,7 +438,7 @@ public class BizurRun {
                             .setContextId(contextId)
             );
         } catch (OperationFailedError e) {
-            Logger.warn(e);
+            logger.warn(e.getMessage(), e);
             electLeaderForBucket(bucket, bucket.getIndex(), true);
             return set(key, val);
         }
@@ -465,7 +468,7 @@ public class BizurRun {
                             .setContextId(contextId)
             );
         } catch (OperationFailedError e) {
-            Logger.warn(e);
+            logger.warn(e.getMessage(), e);
             electLeaderForBucket(bucket, bucket.getIndex(), true);
             return delete(key);
         }
@@ -497,10 +500,10 @@ public class BizurRun {
                     keys = routeRequestAndGet(apiIterKeys);
                 }
                 if (keys == null) {
-                    Logger.warn(logMsg("Null keys received from leader: " + leaderAddress.toString()));
+                    logger.warn(logMsg("Null keys received from leader: " + leaderAddress.toString()));
                 }
             } catch (OperationFailedError e) {
-                Logger.warn(e, logMsg("Operation failed while retrieving keys from leader: " + leaderAddress.toString()));
+                logger.warn(logMsg("Operation failed while retrieving keys from leader: " + leaderAddress.toString()), e);
             }
             if (keys != null) {
                 keySet.addAll(keys);
@@ -542,7 +545,7 @@ public class BizurRun {
             }
         } catch (Exception e) {
             isSuccess = false;
-            Logger.error(e, logMsg(e + ""));
+            logger.error(logMsg(e + ""), e);
         }
 
         sendResponse(
