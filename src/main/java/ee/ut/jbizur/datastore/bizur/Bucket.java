@@ -1,8 +1,8 @@
 package ee.ut.jbizur.datastore.bizur;
 
-import ee.ut.jbizur.config.LogConf;
 import ee.ut.jbizur.network.address.Address;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,6 +16,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Bucket implements Comparable<Bucket> {
+    private static final Logger logger = LoggerFactory.getLogger(Bucket.class);
 
     private final Lock bucketLock = new ReentrantLock();
     private final ReadWriteLock mapLock = new ReentrantReadWriteLock();
@@ -44,8 +45,8 @@ public class Bucket implements Comparable<Bucket> {
     public String putOp(String key, String val){
         mapLock.writeLock().lock();
         try {
-            if (LogConf.isDebugEnabled()) {
-                Logger.debug(String.format("put key=[%s],val=[%s] in bucket=[%s]", key, val, this));
+            if (logger.isDebugEnabled()) {
+                logger.debug("put key={},val={} in bucket={}", key, val, this);
             }
             return bucketMap.put(key, val);
         } finally {
@@ -65,8 +66,8 @@ public class Bucket implements Comparable<Bucket> {
     public String removeOp(String key){
         mapLock.writeLock().lock();
         try {
-            if (LogConf.isDebugEnabled()) {
-                Logger.debug(String.format("remove key=[%s] from bucket=[%s]", key, this));
+            if (logger.isDebugEnabled()) {
+                logger.debug("remove key={} from bucket={}", key, this);
             }
             return bucketMap.remove(key);
         } finally {
@@ -90,9 +91,8 @@ public class Bucket implements Comparable<Bucket> {
     public Bucket setBucketMap(Map map) {
         mapLock.writeLock().lock();
         try {
-            if (LogConf.isDebugEnabled()) {
-                Logger.debug(String.format("replacing bucketMap=[%s] with map=[%s] in bucket=[%s]",
-                        bucketMap, map, this));
+            if (logger.isDebugEnabled()) {
+                logger.debug("replacing bucketMap={} with map={} in bucket={}", bucketMap, map, this);
             }
             this.bucketMap.clear();
             this.bucketMap.putAll(map);

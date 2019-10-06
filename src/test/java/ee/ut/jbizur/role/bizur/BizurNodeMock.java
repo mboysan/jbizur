@@ -5,11 +5,14 @@ import ee.ut.jbizur.datastore.bizur.BucketContainer;
 import ee.ut.jbizur.network.io.NetworkManagerMock;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.common.Nack_NC;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class BizurNodeMock extends BizurNode {
+
+    private static final Logger logger = LoggerFactory.getLogger(BizurNodeMock.class);
 
     public boolean isDead = false;
     public AtomicInteger hashIndex = new AtomicInteger(-1);
@@ -38,12 +41,12 @@ public class BizurNodeMock extends BizurNode {
 
     public void kill() {
         isDead = true;
-        Logger.info(logMsg("NODE KILLED"));
+        logger.info(logMsg("NODE KILLED"));
     }
 
     public void revive() {
         isDead = false;
-        Logger.info(logMsg("NODE REVIVED"));
+        logger.info(logMsg("NODE REVIVED"));
     }
 
     @Override

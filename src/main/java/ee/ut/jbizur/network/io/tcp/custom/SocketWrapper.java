@@ -3,13 +3,16 @@ package ee.ut.jbizur.network.io.tcp.custom;
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.Socket;
 import java.util.Stack;
 
 public abstract class SocketWrapper {
+
+    private static final Logger logger = LoggerFactory.getLogger(SocketWrapper.class);
 
     /**
      * The marshaller to marshall the command to _send.
@@ -119,7 +122,7 @@ public abstract class SocketWrapper {
             try {
                 closeable.close();
             } catch (IOException e) {
-                Logger.error(e);
+                logger.error(e.getMessage(), e);
             }
         }
     }

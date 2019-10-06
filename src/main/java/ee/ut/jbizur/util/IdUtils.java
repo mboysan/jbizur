@@ -1,15 +1,19 @@
 package ee.ut.jbizur.util;
 
 import ee.ut.jbizur.network.address.Address;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public final class IdUtils {
+
+    private static final Logger logger = LoggerFactory.getLogger(IdUtils.class);
+
     private static final long seed = System.currentTimeMillis();
     private static final Random RANDOM = new Random(seed);
     static {
-        Logger.info("seed: " + seed);
+        logger.info("seed: {}", seed);
     }
 
     public static int generateId() {

@@ -8,7 +8,8 @@ import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.role.Role;
 import ee.ut.jbizur.role.bizur.BizurClientMock;
 import ee.ut.jbizur.role.bizur.BizurNodeMock;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,6 +22,9 @@ import java.util.concurrent.TimeUnit;
 import static ee.ut.jbizur.network.io.NetworkManagerMock.getRole;
 
 public class ClientMock extends AbstractClient {
+
+    private static final Logger logger = LoggerFactory.getLogger(ClientMock.class);
+
     private final ExecutorService executor = Executors.newCachedThreadPool();
     private final List<Future<?>> tasks = new ArrayList<>();
 
@@ -76,7 +80,7 @@ public class ClientMock extends AbstractClient {
         try {
             executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            Logger.warn(e);
+            logger.warn(e.getMessage(), e);
         }
     }
 }

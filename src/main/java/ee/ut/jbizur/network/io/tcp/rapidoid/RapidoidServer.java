@@ -8,15 +8,19 @@ import ee.ut.jbizur.network.io.NetworkManager;
 import ee.ut.jbizur.protocol.ByteSerializer;
 import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import org.pmw.tinylog.Logger;
 import org.rapidoid.net.Server;
 import org.rapidoid.net.TCP;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class RapidoidServer extends AbstractServer {
+
+    private static final Logger logger = LoggerFactory.getLogger(RapidoidServer.class);
+
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     private Server rapidoidServer;
@@ -51,7 +55,7 @@ public class RapidoidServer extends AbstractServer {
         try {
             executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            Logger.error(e);
+            logger.error(e.getMessage(), e);
             Thread.currentThread().interrupt();
         }
         if (rapidoidServer.isActive()) {

@@ -8,7 +8,8 @@ import ee.ut.jbizur.network.io.NetworkManager;
 import ee.ut.jbizur.protocol.commands.ic.SendFail_IC;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.ping.SignalEnd_NC;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -22,6 +23,8 @@ import java.util.concurrent.TimeUnit;
  * The message sender wrapper for the communication protocols defined in {@link ee.ut.jbizur.network.ConnectionProtocol}.
  */
 public class BlockingClientImpl extends AbstractClient {
+
+    private static final Logger logger = LoggerFactory.getLogger(BlockingClientImpl.class);
 
     private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     private final Map<String, SendSocket> socketMap = new ConcurrentHashMap<>();
@@ -46,7 +49,7 @@ public class BlockingClientImpl extends AbstractClient {
                 try {
                     senderSocket.send(message);
                 } catch (IOException e) {
-                    Logger.error("Send err, msg (1): " + message + ", " + e, e);
+                    logger.error("Send err, msg (1): {}", message, e);
                     networkManager.handleCmd(new SendFail_IC(message));
                 }
                 shutdown();
@@ -55,13 +58,13 @@ public class BlockingClientImpl extends AbstractClient {
                     try {
                         senderSocket.send(message);
                     } catch (IOException e) {
-                        Logger.error("Send err, msg (2): " + message + ", " + e, e);
+                        logger.error("Send err, msg (2): {}", message, e);
                         networkManager.handleCmd(new SendFail_IC(message));
                     }
                 });
             }
         } catch (IOException e) {
-            Logger.error("Client could not connect to server.", e);
+            logger.error("Client could not connect to server.", e);
             networkManager.handleCmd(new SendFail_IC(message));
         }
     }
@@ -93,11 +96,11 @@ public class BlockingClientImpl extends AbstractClient {
         try {
             executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            Logger.error(e);
+            logger.error(e.getMessage(), e);
             Thread.currentThread().interrupt();
         }
         disconnectAll();
-        Logger.info("Client shutdown: " + networkManager.toString());
+        logger.info("Client shutdown: {}", networkManager.toString());
     }
 
     protected void disconnect(String tcpAddressStr, SendSocket senderSocket) throws IOException {
@@ -112,7 +115,7 @@ public class BlockingClientImpl extends AbstractClient {
             try {
                 disconnect(tcpAddressStr, socket);
             } catch (IOException e) {
-                Logger.error(e);
+                logger.error(e.getMessage(), e);
             }
         });
         socketMap.clear();
