@@ -10,7 +10,6 @@ public class Conf {
     private static JbizurConfig instance;
     static {
         setConfigFromResources("jbizur.conf");
-        LogConf.configureLogger();
     }
 
     public synchronized static void setConfigFromResources(String resourceName) {
@@ -21,7 +20,6 @@ public class Conf {
         ConfigFactory.invalidateCaches();
         Config config = ConfigFactory.parseFile(file);
         instance = new JbizurConfig(config);
-        LogConf.configureLogger();
     }
 
     public static JbizurConfig get() {

@@ -4,7 +4,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 /**
- * Address used for process discovery. Used internally by {@link GlobalConfig} and is not exposed to nodes.
+ * Address used for node discovery.
  */
 public class MulticastAddress {
     /**

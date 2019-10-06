@@ -3,12 +3,16 @@ package ee.ut.jbizur.network.io;
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 
 public abstract class AbstractServer {
+
+    private static final Logger logger = LoggerFactory.getLogger(AbstractServer.class);
+
     protected volatile boolean isRunning = true;
 
     protected final NetworkManager networkManager;
@@ -27,7 +31,7 @@ public abstract class AbstractServer {
             try {
                 serverSocket.close();
             } catch (IOException e) {
-                Logger.error(e, "");
+                logger.error(e.getMessage());
             }
             return address;
         }
@@ -39,7 +43,7 @@ public abstract class AbstractServer {
         try {
             serverSocket = new ServerSocket(port);
         } catch (IOException e) {
-            Logger.warn("Could not create ServerSocket on port=" + port + ", retrying with port=0... [" + e + "]");
+            logger.warn("Could not create ServerSocket on port={}, retrying with port=0... [{}]", port, e.getMessage());
             serverSocket = createServerSocket(0);
         }
         return serverSocket;

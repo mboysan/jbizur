@@ -2,12 +2,15 @@ package ee.ut.jbizur.protocol;
 
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A simple marshaller used to marshall/unmarshall commands.
  */
 public class CommandMarshaller {
+
+    private static final Logger logger = LoggerFactory.getLogger(CommandMarshaller.class);
 
     private ISerializer serializer;
 
@@ -15,7 +18,7 @@ public class CommandMarshaller {
         try {
             serializer = ((Class<? extends ISerializer>) Class.forName(Conf.get().network.serializer)).newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
-            Logger.warn(e, "could not create serializer from properties file, defaulting to " + ByteSerializer.class.getSimpleName());
+            logger.warn("could not create serializer from properties file, defaulting to {}", ByteSerializer.class.getSimpleName(), e);
             serializer = new ByteSerializer();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();

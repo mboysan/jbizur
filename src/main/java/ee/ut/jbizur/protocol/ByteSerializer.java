@@ -1,6 +1,7 @@
 package ee.ut.jbizur.protocol;
 
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.Base64;
@@ -9,6 +10,8 @@ import java.util.Base64;
  * Taken from <a href="https://stackoverflow.com/a/134918">source</a>.
  */
 public class ByteSerializer implements ISerializer {
+
+    private static final Logger logger = LoggerFactory.getLogger(ByteSerializer.class);
 
     @Override
     public String serializeToString(Serializable serializable) {
@@ -31,7 +34,7 @@ public class ByteSerializer implements ISerializer {
             oos.writeObject(serializable);
             oos.close();
         } catch (IOException e) {
-            Logger.error(e);
+            logger.error(e.getMessage(), e);
         }
         return baos.toByteArray();
     }
@@ -45,7 +48,7 @@ public class ByteSerializer implements ISerializer {
             o = ois.readObject();
             ois.close();
         } catch (IOException | ClassNotFoundException e) {
-            Logger.error(e);
+            logger.error(e.getMessage(), e);
         }
         return o;
     }

@@ -1,7 +1,6 @@
 package ee.ut.jbizur.network.io;
 
 import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.config.LogConf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.handlers.MsgListeners;
 import ee.ut.jbizur.network.io.udp.Multicaster;
@@ -9,11 +8,14 @@ import ee.ut.jbizur.protocol.commands.ICommand;
 import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.role.Role;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 
 public class NetworkManager {
+
+    private static final Logger logger = LoggerFactory.getLogger(NetworkManager.class);
 
     protected Role role;
 
@@ -97,8 +99,8 @@ public class NetworkManager {
     }
 
     public void sendMessage(NetworkCommand message) {
-        if (LogConf.isDebugEnabled()) {
-            Logger.debug("OUT " + role.logMsg(message.toString()));
+        if (logger.isDebugEnabled()) {
+            logger.debug("OUT {}", role.logMsg(message.toString()));
         }
         if (role.getSettings().getAddress().equals(message.getReceiverAddress())) {
             handleCmd(message);
@@ -109,13 +111,13 @@ public class NetworkManager {
 
     public void handleCmd(ICommand cmd) {
         if (cmd instanceof InternalCommand) {
-            if (LogConf.isDebugEnabled()) {
-                Logger.debug("IC_IN " + role.logMsg(cmd.toString()));
+            if (logger.isDebugEnabled()) {
+                logger.debug("IC_IN {}", role.logMsg(cmd.toString()));
             }
             role.handleInternalCommand((InternalCommand) cmd);
         } else if (cmd instanceof NetworkCommand) {
-            if (LogConf.isDebugEnabled()) {
-                Logger.debug("NC_IN " + role.logMsg(cmd.toString()));
+            if (logger.isDebugEnabled()) {
+                logger.debug("NC_IN {}", role.logMsg(cmd.toString()));
             }
             if (!msgListeners.tryHandle((NetworkCommand) cmd)) {
                 role.handleNetworkCommand((NetworkCommand) cmd);

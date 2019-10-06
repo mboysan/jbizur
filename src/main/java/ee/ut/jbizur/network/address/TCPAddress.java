@@ -1,7 +1,8 @@
 package ee.ut.jbizur.network.address;
 
 import ee.ut.jbizur.network.io.tcp.custom.BlockingServerImpl;
-import org.pmw.tinylog.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -14,6 +15,8 @@ import java.util.concurrent.TimeUnit;
  * Defines a TCP address
  */
 public class TCPAddress extends Address {
+
+    private static final Logger logger = LoggerFactory.getLogger(TCPAddress.class);
 
     public static final String SEP = ":";
 
@@ -107,7 +110,7 @@ public class TCPAddress extends Address {
                 }
                 TimeUnit.MILLISECONDS.sleep(500);
             } catch (SocketException | UnknownHostException | InterruptedException e) {
-                Logger.error(e);
+                logger.error(e.getMessage(), e);
                 if (e instanceof InterruptedException) {
                     Thread.currentThread().interrupt();
                 }
@@ -124,16 +127,18 @@ public class TCPAddress extends Address {
                     }
                 }
             } catch (IOException e) {
-                Logger.error(e);
+                logger.error(e.getMessage(), e);
             }
         } catch (MalformedURLException e) {
-            Logger.error(e);
+            logger.error(e.getMessage(), e);
         }
         try {
-            Logger.warn("Could not resolve ip address, using localhost: 127.0.0.1");
+            logger.warn("Could not resolve ip address, using localhost: 127.0.0.1");
             return InetAddress.getByName("127.0.0.1");
         } catch (UnknownHostException e) {
-            Logger.debug(e);
+            if (logger.isDebugEnabled()) {
+                logger.debug(e.getMessage(), e);
+            }
         }
         return null;
     }
