@@ -33,6 +33,7 @@ public class NetworkManagerIT implements ResourceCloser {
                 {"NMIT.buffered-rapidoid.conf"},
                 {"NMIT.custom.conf"},
                 {"NMIT.rapidoid.conf"},
+                {"NMIT.vm.conf"},
         };
     }
 

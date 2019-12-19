@@ -12,6 +12,7 @@ import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -117,6 +118,11 @@ public abstract class AbstractServer implements AutoCloseable {
         if (serverClass.equals(Multicaster.class)) {
             return new Multicaster(name, (MulticastAddress) serverAddress);
         }
-        throw new UnsupportedOperationException("server cannot be created, class="+ serverClass);
+        try {
+            // try instantiating
+            return serverClass.getConstructor(String.class, Address.class).newInstance(name, serverAddress);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            throw new UnsupportedOperationException("server cannot be created, class="+ serverClass, e);
+        }
     }
 }

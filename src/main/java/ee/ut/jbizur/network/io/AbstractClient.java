@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -77,6 +78,11 @@ public abstract class AbstractClient implements AutoCloseable {
         if (clientClass.equals(BlockingClientImpl.class)) {
             return new BlockingClientImpl(name, (TCPAddress) address);
         }
-        throw new UnsupportedOperationException("client cannot be created, class=" + clientClass);
+        try {
+            // try instantiating
+            return clientClass.getConstructor(String.class, Address.class).newInstance(name, address);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            throw new UnsupportedOperationException("client cannot be created, class=" + clientClass, e);
+        }
     }
 }
