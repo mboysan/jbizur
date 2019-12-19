@@ -46,12 +46,12 @@ public class BizurSettings extends RoleSettings {
     }
 
     @Override
-    protected synchronized void registerAddress(Address toRegister){
-        super.registerAddress(toRegister);
+    protected synchronized boolean registerAddress(Address toRegister){
+        return super.registerAddress(toRegister);
     }
 
     @Override
-    protected synchronized void unregisterAddress(Address toUnregister) {
-        super.unregisterAddress(toUnregister);
+    protected synchronized boolean unregisterAddress(Address toUnregister) {
+        return super.unregisterAddress(toUnregister);
     }
 }

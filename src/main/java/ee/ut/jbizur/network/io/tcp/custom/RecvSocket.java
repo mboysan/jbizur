@@ -2,6 +2,7 @@ package ee.ut.jbizur.network.io.tcp.custom;
 
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 
+import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;

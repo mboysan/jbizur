@@ -1,10 +1,8 @@
 package ee.ut.jbizur.network.io.tcp.custom;
 
 import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.network.io.AbstractServer;
-import ee.ut.jbizur.network.io.NetworkManager;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.ping.SignalEnd_NC;
 import org.slf4j.Logger;
@@ -27,33 +25,33 @@ public class BlockingServerImpl extends AbstractServer {
     private static final Logger logger = LoggerFactory.getLogger(BlockingServerImpl.class);
 
     private ServerThread serverThread;
-
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
-    public BlockingServerImpl(NetworkManager networkManager) {
-        super(networkManager);
-        if (!super.keepAlive) {
-            throw new UnsupportedOperationException("non keepalive connection type not supported");
-        }
+    public BlockingServerImpl(String name, TCPAddress tcpAddress) {
+        super(name, tcpAddress);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void startRecv(Address address) {
-        if (!(address instanceof TCPAddress)) {
-            throw new IllegalArgumentException("address is not a TCP address: " + address);
-        }
-        TCPAddress tcpAddress = (TCPAddress) address;
-        serverThread = new ServerThread(tcpAddress.getPortNumber());
+    public TCPAddress getServerAddress() {
+        return (TCPAddress) super.getServerAddress();
+    }
+
+    @Override
+    public String toString() {
+        return "RapidoidServer{} " + super.toString();
+    }
+
+    @Override
+    public void start() {
+        serverThread = new ServerThread(getServerAddress().getPortNumber());
         serverThread.start();
+        super.start();
     }
 
     @Override
-    public void shutdown() {
-        this.isRunning = false;
-        serverThread.shutdown();
+    public void close() {
+        super.close();
+        serverThread.close();
         executor.shutdown();
         try {
             executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
@@ -61,14 +59,13 @@ public class BlockingServerImpl extends AbstractServer {
             logger.error(e.getMessage(), e);
             Thread.currentThread().interrupt();
         }
-        logger.info("Server shutdown: {}", networkManager.toString());
     }
 
-    private class ServerThread extends Thread {
+    private class ServerThread extends Thread implements AutoCloseable {
         private ServerSocket serverSocket;
 
         ServerThread(int port) {
-            super("server-thread-" + networkManager.getId());
+            super("server-thread-" + port);
             try {
                 this.serverSocket = new ServerSocket(port);
             } catch (IOException e) {
@@ -79,9 +76,8 @@ public class BlockingServerImpl extends AbstractServer {
         @Override
         public void run() {
             try {
-                while (isRunning) {
+                while (isRunning()) {
                     Socket socket = serverSocket.accept();
-
                     RecvSocket recvSocket = new RecvSocket(socket, true);
                     SocketHandler socketHandler = new SocketHandler(recvSocket);
                     executor.execute(socketHandler);
@@ -95,7 +91,8 @@ public class BlockingServerImpl extends AbstractServer {
             }
         }
 
-        void shutdown() {
+        @Override
+        public void close() {
             try {
                 serverSocket.close();
             } catch (IOException e) {
@@ -115,7 +112,7 @@ public class BlockingServerImpl extends AbstractServer {
         public void run() {
             do {
                 handleRead();
-            } while (isRunning);
+            } while (isRunning());
             recvSocket.close();
         }
 
@@ -123,9 +120,9 @@ public class BlockingServerImpl extends AbstractServer {
             try {
                 NetworkCommand command = recvSocket.recv();
                 if (command instanceof SignalEnd_NC) {
-                    networkManager.handleCmd(command);
+                    recv(command);
                 } else {
-                    executor.execute(() -> networkManager.handleCmd(command));
+                    recvAsync(command);
                 }
             } catch (EOFException e) {
 //                Logger.warn(e, "");

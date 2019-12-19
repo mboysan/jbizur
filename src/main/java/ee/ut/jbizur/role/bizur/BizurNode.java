@@ -5,26 +5,21 @@ import ee.ut.jbizur.datastore.bizur.BucketContainer;
 import ee.ut.jbizur.exceptions.OperationFailedError;
 import ee.ut.jbizur.exceptions.RoleIsNotReadyError;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.handlers.CallbackState;
-import ee.ut.jbizur.network.handlers.QuorumState;
-import ee.ut.jbizur.protocol.commands.ICommand;
 import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
 import ee.ut.jbizur.protocol.commands.ic.NodeDead_IC;
 import ee.ut.jbizur.protocol.commands.ic.SendFail_IC;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.bizur.*;
-import ee.ut.jbizur.protocol.commands.nc.common.Nack_NC;
 import ee.ut.jbizur.role.Role;
 import ee.ut.jbizur.role.RoleValidation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 public class BizurNode extends Role {
 
@@ -33,7 +28,7 @@ public class BizurNode extends Role {
     private boolean isReady;
     BucketContainer bucketContainer;
 
-    BizurNode(BizurSettings settings) {
+    BizurNode(BizurSettings settings) throws IOException {
         super(settings);
         this.isReady = false;
         initBuckets();
@@ -81,27 +76,17 @@ public class BizurNode extends Role {
      * Message Routing
      * ***************************************************************************/
 
-    public <T> T routeRequestAndGet(NetworkCommand command) throws OperationFailedError {
-        AtomicReference<Object> respRef = new AtomicReference<>();
-        Predicate<ICommand> cdHandler = (cmd) -> {
-            if (cmd instanceof Nack_NC) {
-                respRef.set(new SendFail_IC((Nack_NC) cmd));
-                return true;
-            } else if (cmd instanceof ClientResponse_NC) {
-                respRef.set(cmd);
-                return true;
-            } else if (cmd instanceof LeaderResponse_NC) {
-                respRef.set(((LeaderResponse_NC) cmd).getPayload());
-                return true;
-            }
-            return false;
-        };
+    <T> T route(NetworkCommand command) throws OperationFailedError {
         for (int i = 0; i < command.getRetryCount() + 1; i++) {
-            if(sendMessage(command, null, cdHandler).awaitResponses()) {
-                T retVal = (T) respRef.get();
-                if (!(retVal instanceof SendFail_IC)) {
-                    return retVal;
+            try {
+                NetworkCommand cmd = sendRecv(command);
+                if (cmd instanceof ClientResponse_NC) {
+                    return (T) cmd;
+                } else if (cmd instanceof LeaderResponse_NC) {
+                    return (T) cmd.getPayload();
                 }
+            } catch (Exception e) {
+                logger.warn("rout error count={}", i);
             }
         }
         throw new OperationFailedError(logMsg("Routing failed for command: " + command));
@@ -164,8 +149,8 @@ public class BizurNode extends Role {
      * ***************************************************************************/
 
     @Override
-    public void handleNetworkCommand(NetworkCommand command) {
-        super.handleNetworkCommand(command);
+    public void handle(NetworkCommand command) {
+        super.handle(command);
 
         if (command instanceof LeaderElectionRequest_NC) {
             handleLeaderElection((LeaderElectionRequest_NC) command);
@@ -212,46 +197,28 @@ public class BizurNode extends Role {
                 response = bcRun.iterateKeys((ClientApiIterKeys_NC) command);
             }
             if (response != null) {
-                sendMessage(response);
+                send(response);
             }
         }
     }
 
     @Override
-    public void handleInternalCommand(InternalCommand command) {
-        if(command instanceof SendFail_IC) {
-            new BizurRun(this).handleSendFailureWithoutRetry((SendFail_IC) command);
+    protected void handle(InternalCommand ic) {
+        if(ic instanceof SendFail_IC) {
+            new BizurRun(this).handleSendFailureWithoutRetry((SendFail_IC) ic);
         }
-        if(command instanceof NodeDead_IC) {
-            handleNodeFailure(((NodeDead_IC) command).getNodeAddress());
+        if(ic instanceof NodeDead_IC) {
+            handleNodeFailure(((NodeDead_IC) ic).getNodeAddress());
         }
     }
-
 
     @Override
     public String logMsg(String msg) {
         return super.logMsg(msg);
     }
-    @Override
-    protected void sendMessage(NetworkCommand message) {
-        super.sendMessage(message);
-    }
 
     @Override
-    protected CallbackState sendMessage(NetworkCommand command, Predicate<ICommand> handler, Predicate<ICommand> countdownHandler) {
-        return super.sendMessage(command, handler, countdownHandler);
-    }
-
-    @Override
-    protected QuorumState sendMessageToQuorum(Supplier<NetworkCommand> cmdSupplier, Integer contextId, Integer msgId, Predicate<ICommand> handler, Predicate<ICommand> countdownHandler) {
-        return super.sendMessageToQuorum(cmdSupplier, contextId, msgId, handler, countdownHandler);
-    }
-    @Override
-    protected boolean pingAddress(Address address) {
-        return super.pingAddress(address);
-    }
-
-    void handleCmd(ICommand cmd) {
-        networkManager.handleCmd(cmd);
+    protected boolean ping(Address address) {
+        return super.ping(address);
     }
 }

@@ -5,6 +5,7 @@ import ee.ut.jbizur.config.JbizurConfig;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
+import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
 import ee.ut.jbizur.protocol.commands.ic.NodeAddressRegistered_IC;
 import ee.ut.jbizur.protocol.commands.ic.NodeAddressUnregistered_IC;
 import org.slf4j.Logger;
@@ -12,12 +13,12 @@ import org.slf4j.LoggerFactory;
 
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.function.Consumer;
 
 public class RoleSettings {
 
     private static final Logger logger = LoggerFactory.getLogger(RoleSettings.class);
 
-    private Role roleRef;
     private Set<Address> memberAddresses = Collections.synchronizedSortedSet(new TreeSet<>());
 
     private String roleId;
@@ -25,6 +26,7 @@ public class RoleSettings {
     private MulticastAddress multicastAddress;
     private boolean isMultiCastEnabled;
     private int anticipatedMemberCount;
+    private Consumer<InternalCommand> internalCommandConsumer;
 
     public RoleSettings() {
         defaults();
@@ -53,10 +55,6 @@ public class RoleSettings {
             logger.error(e.getMessage(), e);
         }
         setAnticipatedMemberCount(Math.max(Conf.get().members.size(), Conf.get().node.member.expectedCount));
-    }
-
-    public synchronized void registerRoleRef(Role roleRef) {
-        this.roleRef = roleRef;
     }
 
     public String getRoleId() {
@@ -106,22 +104,31 @@ public class RoleSettings {
      * Adds address to the set of address. If address already exist returns without doing anything.
      * @param toRegister address to register
      */
-    protected synchronized void registerAddress(Address toRegister){
+    protected synchronized boolean registerAddress(Address toRegister){
         if (memberAddresses.add(toRegister)) {
-            if (roleRef != null) {
-                roleRef.handleInternalCommand(new NodeAddressRegistered_IC());
+            if (internalCommandConsumer != null) {
+                internalCommandConsumer.accept(new NodeAddressRegistered_IC());
             }
-            logger.info("Address {} registered on role {}", toRegister, roleRef);
+            logger.info("Address {} registered on role {}", toRegister, getRoleId());
+            return true;
         }
+        return false;
     }
 
-    protected synchronized void unregisterAddress(Address toUnregister) {
+    protected synchronized boolean unregisterAddress(Address toUnregister) {
         if (memberAddresses.remove(toUnregister)) {
-            if (roleRef != null) {
-                roleRef.handleInternalCommand(new NodeAddressUnregistered_IC());
+            if (internalCommandConsumer != null) {
+                internalCommandConsumer.accept(new NodeAddressUnregistered_IC());
             }
-            logger.info("Address {} unregistered on role {}", toUnregister, roleRef);
+            logger.info("Address {} unregistered on role {}", toUnregister, getRoleId());
+            return true;
         }
+        return false;
+    }
+
+    public synchronized RoleSettings setInternalCommandConsumer(Consumer<InternalCommand> internalCommandConsumer) {
+        this.internalCommandConsumer = internalCommandConsumer;
+        return this;
     }
 
     /**

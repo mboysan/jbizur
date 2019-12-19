@@ -1,48 +1,68 @@
 package ee.ut.jbizur.role;
 
+import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
+import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.network.handlers.*;
 import ee.ut.jbizur.network.io.NetworkManager;
-import ee.ut.jbizur.network.io.tcp.custom.BlockingServerImpl;
-import ee.ut.jbizur.protocol.commands.ICommand;
 import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.ping.*;
 import ee.ut.jbizur.util.IdUtils;
+import ee.ut.jbizur.util.NetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Set;
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Each node is defined as a ee.ut.jbizur.role.
  */
-public abstract class Role {
+public abstract class Role implements AutoCloseable {
 
     private static final Logger logger = LoggerFactory.getLogger(Role.class);
 
     private final RoleSettings settings;
     protected NetworkManager networkManager;
 
-    protected Role(RoleSettings settings) {
+    protected Role(RoleSettings settings) throws IOException {
         this.settings = settings;
+        this.settings.setInternalCommandConsumer(this::handle);
         initRole();
     }
 
-    protected void initRole() {
-        this.networkManager = new NetworkManager(this).start();
+    protected void initRole() throws IOException {
+        Address address = settings.getAddress();
+        if (address instanceof TCPAddress) {
+            if (((TCPAddress) address).getPortNumber() == 0) {
+                ((TCPAddress) address).setPortNumber(NetUtil.findOpenPort());
+            }
+        }
+        String nmName = "nm-" + settings.getRoleId();
+        this.networkManager = new NetworkManager(nmName, address, this::handle, this::handle).start();
+
+        if (settings.isMultiCastEnabled()) {
+            networkManager.multicastAtFixedRate(new Connect_NC()
+                    .setSenderId(settings.getRoleId())
+                    .setSenderAddress(settings.getAddress())
+                    .setNodeType("member"));
+        }
     }
 
-    public boolean isAddressesAlreadyRegistered() {
+    protected boolean isAddressesAlreadyRegistered() {
         return getSettings().getMemberAddresses().size() >= getSettings().getAnticipatedMemberCount();
     }
 
-    public boolean checkNodesDiscovered() {
+    protected boolean checkNodesDiscovered() {
         return RoleValidation.checkStateAndWarn(
                 isAddressesAlreadyRegistered(),
                 logMsg("Searching for other nodes in the system..."));
@@ -50,133 +70,100 @@ public abstract class Role {
 
     /**
      * Handles the provided ee.ut.jbizur.network message. Each ee.ut.jbizur.role implements its own message handling mechanism.
-     * @param command the ee.ut.jbizur.network message to handle.
+     * @param nc the ee.ut.jbizur.network message to handle.
      */
-    public void handleNetworkCommand(NetworkCommand command){
-        if(command instanceof Connect_NC){
+    protected void handle(NetworkCommand nc){
+        if(nc instanceof Connect_NC){
             NetworkCommand connectOK = new ConnectOK_NC()
                     .setSenderId(getSettings().getRoleId())
                     .setSenderAddress(getSettings().getAddress())
-                    .setReceiverAddress(command.getSenderAddress())
+                    .setReceiverAddress(nc.getSenderAddress())
                     .setNodeType("member");
-            sendMessage(connectOK);
+            send(connectOK);
         }
-        if(command instanceof ConnectOK_NC){
-            if (command.getNodeType().equals("member")) {
-                settings.registerAddress(command.getSenderAddress());
+        if(nc instanceof ConnectOK_NC){
+            if (nc.getNodeType().equals("member")) {
+                settings.registerAddress(nc.getSenderAddress());
             }
         }
-        if (command instanceof Ping_NC) {
-            pongForPingCommand((Ping_NC) command);
+        if (nc instanceof Ping_NC) {
+            // send pong
+            send(new Pong_NC().ofRequest(nc));
         }
-        if (command instanceof SignalEnd_NC) {
-            logger.info(logMsg("End signal received: " + command));
-            shutdown();
+        if (nc instanceof SignalEnd_NC) {
+            logger.info(logMsg("End signal received: " + nc));
+            close();
         }
     }
 
-    public abstract void handleInternalCommand(InternalCommand command);
+    protected abstract void handle(InternalCommand ic);
 
     protected void handleNodeFailure(Address failedNodeAddress) {
         settings.unregisterAddress(failedNodeAddress);
     }
 
-    protected boolean pingAddress(Address address) {
-        Predicate<ICommand> cdHandler = cmd -> cmd instanceof Pong_NC;
-        return sendMessage(new Ping_NC(), null, cdHandler).awaitResponses();
+    public BooleanSupplier receive(int correlationId, Consumer<NetworkCommand> commandConsumer) {
+        CallbackListener cl = new CallbackListener(commandConsumer);
+        networkManager.subscribe(correlationId, cl);
+        return () -> cl.await(Conf.get().network.responseTimeoutSec, TimeUnit.SECONDS);
     }
 
-    protected void pongForPingCommand(Ping_NC pingNc) {
-        sendMessage(new Pong_NC().ofRequest(pingNc));
+    public void send(NetworkCommand command) {
+        Objects.requireNonNull(command);
+        networkManager.send(command);
+    }
+
+    public NetworkCommand sendRecv(NetworkCommand command) {
+        AtomicReference<NetworkCommand> response = new AtomicReference<>();
+        BooleanSupplier isComplete = receive(IdUtils.generateId(), response::set);
+        send(command);
+        return isComplete.getAsBoolean() ? response.get() : null;
+    }
+
+
+    public BooleanSupplier subscribe(int correlationId, Predicate<NetworkCommand> cmdPredicate) {
+        Objects.requireNonNull(cmdPredicate);
+        QuorumListener qc = new QuorumListener(
+                getSettings().getProcessCount(),
+                RoleSettings.calcQuorumSize(getSettings().getProcessCount()),
+                cmdPredicate
+        );
+        networkManager.subscribe(correlationId, qc);
+        return () -> qc.await(Conf.get().network.responseTimeoutSec, TimeUnit.SECONDS)  // wait for responses
+                && qc.isMajorityAcked();    // return majority response
+    }
+
+    public void publish(Supplier<NetworkCommand> commandSupplier) {
+        Objects.requireNonNull(commandSupplier);
+        networkManager.publish(commandSupplier, getSettings().getMemberAddresses());
+    }
+
+
+    protected boolean ping(Address address) {
+        NetworkCommand resp = sendRecv(new Ping_NC().setReceiverAddress(address));
+        return resp instanceof Pong_NC;
     }
 
     /**
      * Sends {@link SignalEnd_NC} command to all the processes.
      */
     public void signalEndToAll() {
-        sendMessageToAll(SignalEnd_NC::new, null, null);
         try {
+            publish(SignalEnd_NC::new);
             // wait for termination
             Thread.sleep(5000);
         } catch (InterruptedException e) {
             logger.error(e.getMessage(), e);
+        } finally {
+            close();
         }
-        shutdown();
-    }
-
-    /**
-     * Sends the ee.ut.jbizur.network message to another process. Basically passes the message to the message sender service.
-     * @param message the ee.ut.jbizur.network message to _send.
-     */
-    protected void sendMessage(NetworkCommand message) {
-        message.setSenderId(getSettings().getRoleId())
-                .setSenderAddress(getSettings().getAddress());
-        networkManager.sendMessage(message);
-    }
-
-    protected void sendMessageToAddresses(
-            Supplier<NetworkCommand> cmdSupplier,
-            final Integer contextId,
-            final Integer msgId,
-            Set<Address> addresses
-    ) {
-        addresses.forEach(recvAddr -> {
-            NetworkCommand cmd = cmdSupplier.get()
-                    .setContextId(contextId)
-                    .setMsgId(msgId)
-                    .setSenderId(getSettings().getRoleId())
-                    .setSenderAddress(getSettings().getAddress())
-                    .setReceiverAddress(recvAddr);
-            sendMessage(cmd);
-        });
-    }
-
-    protected void sendMessageToAll(Supplier<NetworkCommand> cmdSupplier, final Integer contextId, final Integer msgId) {
-        sendMessageToAddresses(cmdSupplier, contextId, msgId, getSettings().getMemberAddresses());
-    }
-
-    protected QuorumState sendMessageToQuorum(
-            Supplier<NetworkCommand> cmdSupplier,
-            final Integer contextId,
-            final Integer msgId,
-            Predicate<ICommand> handler,
-            Predicate<ICommand> countdownHandler
-    ) {
-        IMsgListener msgListener = new QuorumBasedMsgListener(
-                getSettings().getProcessCount(),
-                RoleSettings.calcQuorumSize(getSettings().getProcessCount()),
-                msgId,
-                networkManager.getMsgListeners()
-        ).setHandler(handler).setCountdownHandler(countdownHandler);
-        sendMessageToAll(cmdSupplier, contextId, msgId);
-        return msgListener.getState();
-    }
-
-    protected CallbackState sendMessage(NetworkCommand command, Predicate<ICommand> handler, Predicate<ICommand> countdownHandler) {
-        int msgId = command.getMsgId() == null ? IdUtils.generateId() : command.getMsgId();
-        command.setMsgId(msgId);
-        IMsgListener msgListener = new CallbackMsgListener(msgId, networkManager.getMsgListeners())
-                .setHandler(handler)
-                .setCountdownHandler(countdownHandler);
-        sendMessageToAddresses(
-                () -> command,
-                command.getContextId(),
-                msgId,
-                Stream.of(command.getReceiverAddress()).collect(Collectors.toSet()));
-        return msgListener.getState();
-    }
-
-    /**
-     * @param modifiedAddr address modified by the {@link BlockingServerImpl} if applicable.
-     */
-    public void setAddress(Address modifiedAddr){
-        getSettings().setAddress(modifiedAddr);
     }
 
     public abstract CompletableFuture start();
 
-    public void shutdown() {
-        networkManager.shutdown();
+    @Override
+    public void close() {
+        networkManager.close();
     }
 
     public RoleSettings getSettings() {

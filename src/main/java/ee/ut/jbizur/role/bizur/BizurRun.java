@@ -7,20 +7,20 @@ import ee.ut.jbizur.datastore.bizur.BucketView;
 import ee.ut.jbizur.exceptions.LeaderResolutionFailedError;
 import ee.ut.jbizur.exceptions.OperationFailedError;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.handlers.CallbackState;
-import ee.ut.jbizur.network.handlers.QuorumState;
 import ee.ut.jbizur.protocol.commands.ICommand;
 import ee.ut.jbizur.protocol.commands.ic.SendFail_IC;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.bizur.*;
+import ee.ut.jbizur.protocol.commands.nc.common.Ack_NC;
 import ee.ut.jbizur.util.IdUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -52,30 +52,38 @@ public class BizurRun {
     protected String logMsg(String msg) {
         return node.logMsg(msg);
     }
+
     protected BizurSettings getSettings() {
         return node.getSettings();
     }
-    protected void sendResponse(NetworkCommand command) {
-        node.sendMessage(command);
+
+    protected boolean ping(Address address) {
+        return node.ping(address);
     }
 
-    protected CallbackState sendMsgWithCallback(NetworkCommand command, Predicate<ICommand> countdownHandler) {
-        return node.sendMessage(command, null, countdownHandler);
+    protected <T> T route(NetworkCommand command) {
+        return node.route(command);
     }
 
-    private QuorumState sendMsgToAll(Supplier<NetworkCommand> commandTemplate) {
-        return sendMsgToAll(commandTemplate, null, null);
+    private boolean publishAndWaitMajority(Supplier<NetworkCommand> cmdSupplier) {
+        return publishAndWaitMajority(cmdSupplier, (c) -> {});
     }
 
-    private QuorumState sendMsgToAll(Supplier<NetworkCommand> commandTemplate, Predicate<ICommand> handler, Predicate<ICommand> countdownHandler) {
-        return node.sendMessageToQuorum(commandTemplate, contextId, IdUtils.generateId(), handler, countdownHandler);
+    private boolean publishAndWaitMajority(Supplier<NetworkCommand> cmdSupplier, Consumer<NetworkCommand> cmdConsumer) {
+        BooleanSupplier isMajorityAcked = node.subscribe(contextId, (cmd) -> {
+            cmdConsumer.accept(cmd);
+            return cmd instanceof Ack_NC;
+        });
+        node.publish(cmdSupplier);
+        return isMajorityAcked.getAsBoolean();
     }
 
-    protected boolean pingAddress(Address address) {
-        return node.pingAddress(address);
+    private void send(NetworkCommand command) {
+        node.send(command);
     }
-    protected <T> T routeRequestAndGet(NetworkCommand command) {
-        return node.routeRequestAndGet(command);
+
+    private NetworkCommand sendRecv(NetworkCommand request) {
+        return node.sendRecv(request);
     }
 
     /* ***************************************************************************
@@ -91,7 +99,7 @@ public class BizurRun {
                         .setBucketIndex(bucketIndex)
                         .setElectId(electId);
 
-        if (sendMsgToAll(pleaseVote).awaitMajority()) {
+        if (publishAndWaitMajority(pleaseVote)) {
             /* following is done to guarantee that in case the leader discards the PleaseVote request,
                the bucket leader is set properly for the first time. */
             localBucket.setVotedElectId(electId);
@@ -114,12 +122,12 @@ public class BizurRun {
             localBucket.updateLeader(source.equals(getSettings().getAddress()));
 
             vote = new AckVote_NC().ofRequest(pleaseVoteNc);
-        } else if(electId == localBucket.getVotedElectId() && source.equals(localBucket.getLeaderAddress())) {
+        } else if (electId == localBucket.getVotedElectId() && source.equals(localBucket.getLeaderAddress())) {
             vote = new AckVote_NC().ofRequest(pleaseVoteNc);
         } else {
             vote = new NackVote_NC().ofRequest(pleaseVoteNc);
         }
-        sendResponse(vote);
+        send(vote);
     }
 
     protected boolean initLeaderPerBucketElectionFlow() throws InterruptedException {
@@ -170,7 +178,7 @@ public class BizurRun {
             if (forceElection) {
                 willHandle = requestLeaderElectionForBucket(nextAddr, localBucket.getIndex());
             } else {
-                willHandle = pingAddress(nextAddr);
+                willHandle = ping(nextAddr);
             }
             if (willHandle) {
                 logger.info(logMsg("election process will be handled by: " + nextAddr + " for bucket idx=" + localBucket.getIndex()));
@@ -210,7 +218,7 @@ public class BizurRun {
                 () -> new ReplicaWrite_NC()
                         .setBucketView(bucketViewToSend);
 
-        if (sendMsgToAll(replicaWrite).awaitMajority()) {
+        if (publishAndWaitMajority(replicaWrite)) {
             return true;
         }
         localBucket.updateLeader(false);
@@ -222,13 +230,13 @@ public class BizurRun {
         Bucket localBucket = bucketContainer.getBucket(recvBucketView.getIndex());
 
         NetworkCommand response;
-        if(recvBucketView.getVerElectId() < localBucket.getVotedElectId()){
+        if (recvBucketView.getVerElectId() < localBucket.getVotedElectId()) {
             response = new NackWrite_NC().ofRequest(replicaWriteNc);
         } else {
             localBucket.replaceBucketForReplicationWith(recvBucketView);
             response = new AckWrite_NC().ofRequest(replicaWriteNc);
         }
-        sendResponse(response);
+        send(response);
     }
 
 
@@ -240,7 +248,7 @@ public class BizurRun {
     private Bucket read(int index) {
         Bucket localBucket = bucketContainer.getBucket(index);
         int electId = localBucket.getElectId();
-        if(!ensureRecovery(electId, index)){
+        if (!ensureRecovery(electId, index)) {
             return null;
         }
 
@@ -249,7 +257,7 @@ public class BizurRun {
                         .setIndex(index)
                         .setElectId(electId);
 
-        if (sendMsgToAll(replicaRead).awaitMajority()) {
+        if (publishAndWaitMajority(replicaRead)) {
             return localBucket;
         }
 
@@ -257,14 +265,14 @@ public class BizurRun {
         return null;
     }
 
-    void replicaRead(ReplicaRead_NC replicaReadNc){
+    void replicaRead(ReplicaRead_NC replicaReadNc) {
         int index = replicaReadNc.getIndex();
         int electId = replicaReadNc.getElectId();
         Address source = replicaReadNc.getSenderAddress();
         Bucket localBucket = bucketContainer.getBucket(index);
 
         NetworkCommand resp;
-        if(electId < localBucket.getVotedElectId()){
+        if (electId < localBucket.getVotedElectId()) {
             resp = new NackRead_NC().ofRequest(replicaReadNc);
         } else {
             localBucket.setVotedElectId(electId);
@@ -274,7 +282,7 @@ public class BizurRun {
                     .setBucketView(localBucket.createView())
                     .ofRequest(replicaReadNc);
         }
-        sendResponse(resp);
+        send(resp);
     }
 
     /* ***************************************************************************
@@ -283,12 +291,12 @@ public class BizurRun {
 
     private boolean ensureRecovery(int electId, int index) {
         Bucket localBucket = bucketContainer.getBucket(index);
-        if(electId == localBucket.getVerElectId()) {
+        if (electId == localBucket.getVerElectId()) {
             return true;
         }
 
         AtomicReference<BucketView> maxVerBucketView = new AtomicReference<>(null);
-        Predicate<ICommand> handler = (cmd) -> {
+        Consumer<NetworkCommand> handler = (cmd) -> {
             if (cmd instanceof AckRead_NC) {
                 BucketView bucketView = ((AckRead_NC) cmd).getBucketView();
                 synchronized (maxVerBucketView) {
@@ -298,9 +306,7 @@ public class BizurRun {
                         }
                     }
                 }
-                return true;
             }
-            return false;
         };
 
         Supplier<NetworkCommand> replicaRead =
@@ -309,7 +315,7 @@ public class BizurRun {
                         .setElectId(electId);
 
         final boolean isSuccess;
-        if (sendMsgToAll(replicaRead, handler, null).awaitMajority()) {
+        if (publishAndWaitMajority(replicaRead, handler)) {
             Bucket maxVerBucket = maxVerBucketView.get().createBucket();
             maxVerBucket.setVerElectId(electId);
             maxVerBucket.setVerCounter(0);
@@ -331,7 +337,7 @@ public class BizurRun {
         bucketContainer.lockBucket(index);
         try {
             Bucket bucket = read(index);
-            if(bucket != null){
+            if (bucket != null) {
                 return bucket.getOp(key);
             }
             return null;
@@ -340,7 +346,7 @@ public class BizurRun {
         }
     }
 
-    private boolean _set(String key, String value){
+    private boolean _set(String key, String value) {
         int index = bucketContainer.hashKey(key);
         bucketContainer.lockBucket(index);
         try {
@@ -360,7 +366,7 @@ public class BizurRun {
         bucketContainer.lockBucket(index);
         try {
             Bucket bucket = read(index);
-            if(bucket != null){
+            if (bucket != null) {
                 bucket.removeOp(key);
                 return write(bucket);
             }
@@ -376,7 +382,7 @@ public class BizurRun {
             bucketContainer.lockBucket(bucketIdx);
             try {
                 Bucket bucket = read(bucketIdx);
-                if(bucket != null){
+                if (bucket != null) {
                     res.addAll(bucket.getKeySetOp());
                 } else {
                     logger.warn(logMsg(String.format("bucket keys could not be iterated by leader. bucket=[%s]", bucket)));
@@ -401,10 +407,11 @@ public class BizurRun {
             return _get(key);
         }
         try {
-            return routeRequestAndGet(
+            return route(
                     new ApiGet_NC()
                             .setKey(key)
                             .setReceiverAddress(lead)
+                            .setCorrelationId(contextId)
                             .setContextId(contextId)
             );
         } catch (OperationFailedError e) {
@@ -413,12 +420,14 @@ public class BizurRun {
             return get(key);
         }
     }
+
     void getByLeader(ApiGet_NC getNc) {
         String val = _get(getNc.getKey());
-        sendResponse(new LeaderResponse_NC()
+        send(new LeaderResponse_NC()
                 .setRequest("ApiGet_NC-[key=" + getNc.getKey() + "]")
                 .setPayload(val)
                 .ofRequest(getNc)
+                .setCorrelationId(contextId)
                 .setContextId(contextId)
         );
     }
@@ -426,15 +435,16 @@ public class BizurRun {
     boolean set(String key, String val) {
         Bucket bucket = bucketContainer.getBucket(key);
         Address lead = resolveLeader(bucket);
-        if(bucket.isLeader()){
+        if (bucket.isLeader()) {
             return _set(key, val);
         }
         try {
-            return routeRequestAndGet(
+            return route(
                     new ApiSet_NC()
                             .setKey(key)
                             .setVal(val)
                             .setReceiverAddress(lead)
+                            .setCorrelationId(contextId)
                             .setContextId(contextId)
             );
         } catch (OperationFailedError e) {
@@ -443,13 +453,15 @@ public class BizurRun {
             return set(key, val);
         }
     }
+
     void setByLeader(ApiSet_NC setNc) {
         boolean isSuccess = _set(setNc.getKey(), setNc.getVal());
-        sendResponse(
+        send(
                 new LeaderResponse_NC()
                         .setRequest("ApiSet_NC-[key=" + setNc.getKey() + ", val=" + setNc.getVal() + "]")
                         .setPayload(isSuccess)
                         .ofRequest(setNc)
+                        .setCorrelationId(contextId)
                         .setContextId(contextId)
         );
     }
@@ -457,14 +469,15 @@ public class BizurRun {
     boolean delete(String key) {
         Bucket bucket = bucketContainer.getBucket(key);
         Address lead = resolveLeader(bucket);
-        if(bucket.isLeader()){
+        if (bucket.isLeader()) {
             return _delete(key);
         }
         try {
-            return routeRequestAndGet(
+            return route(
                     new ApiDelete_NC()
                             .setKey(key)
                             .setReceiverAddress(lead)
+                            .setCorrelationId(contextId)
                             .setContextId(contextId)
             );
         } catch (OperationFailedError e) {
@@ -473,13 +486,15 @@ public class BizurRun {
             return delete(key);
         }
     }
+
     void deleteByLeader(ApiDelete_NC deleteNc) {
         boolean isDeleted = _delete(deleteNc.getKey());
-        sendResponse(
+        send(
                 new LeaderResponse_NC()
                         .setRequest("ApiDelete_NC-[key=" + deleteNc.getKey() + "]")
                         .setPayload(isDeleted)
                         .ofRequest(deleteNc)
+                        .setCorrelationId(contextId)
                         .setContextId(contextId)
         );
     }
@@ -490,6 +505,7 @@ public class BizurRun {
         bucketLeaders.forEach(leaderAddress -> {
             NetworkCommand apiIterKeys = new ApiIterKeys_NC()
                     .setReceiverAddress(leaderAddress)
+                    .setCorrelationId(contextId)
                     .setContextId(contextId);
             Set<String> keys = null;
             try {
@@ -497,7 +513,7 @@ public class BizurRun {
                     // this is the leader so get keys from leader without routing
                     keys = _iterateKeys();
                 } else {
-                    keys = routeRequestAndGet(apiIterKeys);
+                    keys = route(apiIterKeys);
                 }
                 if (keys == null) {
                     logger.warn(logMsg("Null keys received from leader: " + leaderAddress.toString()));
@@ -511,13 +527,15 @@ public class BizurRun {
         });
         return keySet;
     }
+
     void iterateKeysByLeader(ApiIterKeys_NC iterKeysNc) {
         Set<String> keys = _iterateKeys();
-        sendResponse(
+        send(
                 new LeaderResponse_NC()
                         .setRequest("ApiIterKeys_NC")
                         .setPayload(keys)
                         .ofRequest(iterKeysNc)
+                        .setCorrelationId(contextId)
                         .setContextId(contextId)
         );
     }
@@ -548,38 +566,31 @@ public class BizurRun {
             logger.error(logMsg(e + ""), e);
         }
 
-        sendResponse(
-                new LeaderElectionResponse_NC()
-                        .setBucketIndex(ler.getBucketIndex())
-                        .setSuccess(isSuccess)
-                        .ofRequest(ler)
-                        .setContextId(contextId)
+        send(new LeaderElectionResponse_NC()
+                .setBucketIndex(ler.getBucketIndex())
+                .setSuccess(isSuccess)
+                .ofRequest(ler)
+                .setCorrelationId(contextId)
+                .setContextId(contextId)
         );
     }
 
     private boolean requestLeaderElectionForBucket(Address address, int bucketIndex) {
-
-        AtomicBoolean isSuccess = new AtomicBoolean(false);
-        Predicate<ICommand> cdHandler = (cmd) -> {
-            if (cmd instanceof LeaderElectionResponse_NC) {
-                LeaderElectionResponse_NC ler = (LeaderElectionResponse_NC) cmd;
-                isSuccess.set(ler.getBucketIndex() == bucketIndex && ler.isSuccess());
-                return true;
-            }
-            return false;
-        };
-        NetworkCommand ler = new LeaderElectionRequest_NC()
+        NetworkCommand request = new LeaderElectionRequest_NC()
                 .setBucketIndex(bucketIndex)
                 .setReceiverAddress(address)
+                .setCorrelationId(contextId)
                 .setContextId(contextId);
-        if (sendMsgWithCallback(ler, cdHandler).awaitResponses()) {
-            return isSuccess.get();
+
+        NetworkCommand resp = sendRecv(request);
+        if (resp instanceof LeaderElectionResponse_NC) {
+            LeaderElectionResponse_NC ler = (LeaderElectionResponse_NC) resp;
+            return ler.getBucketIndex() == bucketIndex && ler.isSuccess();
         }
         return false;
     }
 
     void handleSendFailureWithoutRetry(SendFail_IC sendFailIc) {
-        node.handleCmd(sendFailIc.getNackNC());
-//        pinger.registerUnreachableAddress(failedCommand.getReceiverAddress());
+        node.handle(sendFailIc.getNackNC());
     }
 }

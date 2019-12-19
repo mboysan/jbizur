@@ -1,144 +1,147 @@
 package ee.ut.jbizur.network.io;
 
+import ee.ut.jbizur.common.ResourceCloser;
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.handlers.MsgListeners;
+import ee.ut.jbizur.network.address.MulticastAddress;
+import ee.ut.jbizur.network.handlers.BaseListener;
 import ee.ut.jbizur.network.io.udp.Multicaster;
-import ee.ut.jbizur.protocol.commands.ICommand;
 import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
+import ee.ut.jbizur.protocol.commands.ic.SendFail_IC;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import ee.ut.jbizur.role.Role;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
+import java.net.UnknownHostException;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
-public class NetworkManager {
+public class NetworkManager implements AutoCloseable, ResourceCloser {
 
     private static final Logger logger = LoggerFactory.getLogger(NetworkManager.class);
 
-    protected Role role;
+    private volatile boolean isRunning = false;
 
-    AbstractClient client;
-    AbstractServer server;
-    Multicaster multicaster;
-    private final MsgListeners msgListeners = new MsgListeners();
+    private final Map<Address, ClientPool> clientPools = new ConcurrentHashMap<>();
+    private AbstractServer server;
+    private Multicaster multicaster;
 
-    public NetworkManager(Role role) {
-        this.role = role;
+    final String name;
+    final Address serverAddress;
+    final Consumer<InternalCommand> internalCommandConsumer;
+    final Consumer<NetworkCommand> networkCommandConsumer;
+
+    public NetworkManager(
+            String name,
+            Address serverAddress,
+            Consumer<InternalCommand> internalCommandConsumer,
+            Consumer<NetworkCommand> networkCommandConsumer) {
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(serverAddress);
+        Objects.requireNonNull(internalCommandConsumer);
+
+        this.name = name;
+        this.serverAddress = serverAddress;
+        this.internalCommandConsumer = internalCommandConsumer;
+        this.networkCommandConsumer = networkCommandConsumer;
     }
 
-    public NetworkManager start() {
-        if (role == null) {
-            throw new IllegalArgumentException("role instance is null");
-        }
+    public NetworkManager start() throws UnknownHostException {
+        Objects.requireNonNull(serverAddress);
+        Objects.requireNonNull(networkCommandConsumer);
 
-        this.client = createClient();
         this.server = createServer();
+        server.add(0, new BaseListener(networkCommandConsumer));
+        server.start();
+
         this.multicaster = createMulticaster();
-
-        Address modifiedAddress = server.initAndGetAddress(role.getSettings().getAddress());
-        role.setAddress(modifiedAddress);
-        server.startRecv(modifiedAddress);
-
         if (multicaster != null) {
-            multicaster.initMulticast();
+            multicaster.start();
         }
+
+        isRunning = true;
         return this;
     }
 
-    public void shutdown() {
-        if (multicaster != null) {
-            multicaster.shutdown();
-        }
-        server.shutdown();
-        client.shutdown();
+    @Override
+    public void close() {
+        isRunning = false;
+        closeResources(logger, multicaster, server);
+        closeResources(logger, clientPools.values());
     }
 
-    private Multicaster createMulticaster() {
-        if (role.getSettings().isMultiCastEnabled()) {
-            return new Multicaster(this, role.getSettings());
+    protected Multicaster createMulticaster() throws UnknownHostException {
+        if (Conf.get().network.multicast.enabled) {
+            MulticastAddress multicastAddress = new MulticastAddress(Conf.get().network.multicast.address);
+            return new Multicaster("multicaster-" + name, multicastAddress);
         }
         return null;
     }
 
-    protected AbstractClient createClient() {
-        try {
-            Class<? extends AbstractClient> clientClass = (Class<? extends AbstractClient>) Class.forName(Conf.get().network.client);
-            return clientClass.getConstructor(NetworkManager.class).newInstance(this);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        throw new IllegalArgumentException("client could not be created");
-    }
-
     protected AbstractServer createServer() {
         try {
-            Class<? extends AbstractServer> serverClass = (Class<? extends AbstractServer>) Class.forName(Conf.get().network.server);
-            return serverClass.getConstructor(NetworkManager.class).newInstance(this);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException e) {
-            e.printStackTrace();
+            return AbstractServer.create(
+                    (Class<? extends AbstractServer>) Class.forName(Conf.get().network.server),
+                    "server-" + name,
+                    serverAddress
+            );
+        } catch (ClassNotFoundException e) {
+            logger.error(e.getMessage(), e);
         }
         throw new IllegalArgumentException("server could not be initiated");
     }
 
-    public AbstractClient getClient() {
-        return client;
-    }
-
-    public AbstractServer getServer() {
-        return server;
-    }
-
-    public Multicaster getMulticaster() {
-        return multicaster;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void sendMessage(NetworkCommand message) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("OUT {}", role.logMsg(message.toString()));
-        }
-        if (role.getSettings().getAddress().equals(message.getReceiverAddress())) {
-            handleCmd(message);
-        } else {
-            getClient().send(message);
+    private void validateAction() {
+        if (!isRunning) {
+            throw new IllegalStateException("Network manager is not running");
         }
     }
 
-    public void handleCmd(ICommand cmd) {
-        if (cmd instanceof InternalCommand) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("IC_IN {}", role.logMsg(cmd.toString()));
-            }
-            role.handleInternalCommand((InternalCommand) cmd);
-        } else if (cmd instanceof NetworkCommand) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("NC_IN {}", role.logMsg(cmd.toString()));
-            }
-            if (!msgListeners.tryHandle((NetworkCommand) cmd)) {
-                role.handleNetworkCommand((NetworkCommand) cmd);
-            }
-        } else {
-            throw new IllegalArgumentException("unrecognized cmd type: " + cmd.getClass());
+    public void multicastAtFixedRate(NetworkCommand command) {
+        validateAction();
+        Objects.requireNonNull(multicaster);
+        multicaster.multicastAtFixedRate(command);
+    }
+
+    public void subscribe(int correlationId, Predicate<NetworkCommand> listener) {
+        validateAction();
+        Objects.requireNonNull(listener);
+        server.add(correlationId, listener);
+    }
+
+    public void publish(Supplier<NetworkCommand> commandSupplier, Set<Address> toAddresses) {
+        toAddresses.forEach(address -> {
+            NetworkCommand cmd = commandSupplier.get();
+            cmd.setReceiverAddress(address);
+            send(cmd);
+        });
+    }
+
+    public void send(NetworkCommand message) {
+        ClientPool clientPool = clientPools.computeIfAbsent(message.getReceiverAddress(), ClientPool::new);
+        AbstractClient client = clientPool.checkOut();
+        try {
+            client.send(message);
+        } catch (Exception e) {
+            logger.error("[{}] error sending command={}", toString(), message);
+            internalCommandConsumer.accept(new SendFail_IC(message));
+        } finally {
+            clientPool.checkIn(client);
         }
-    }
-
-    public MsgListeners getMsgListeners() {
-        return msgListeners;
-    }
-
-    public String getId() {
-        return role.getSettings().getRoleId();
     }
 
     @Override
     public String toString() {
         return "NetworkManager{" +
-                "role=" + role +
+                "isRunning=" + isRunning +
+                ", name='" + name + '\'' +
+                ", serverAddress=" + serverAddress +
                 '}';
     }
 }
