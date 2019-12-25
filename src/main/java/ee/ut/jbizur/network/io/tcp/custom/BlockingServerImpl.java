@@ -38,7 +38,7 @@ public class BlockingServerImpl extends AbstractServer {
 
     @Override
     public String toString() {
-        return "RapidoidServer{} " + super.toString();
+        return "BlockingServerImpl{}";
     }
 
     @Override

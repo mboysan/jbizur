@@ -115,7 +115,7 @@ public abstract class Role implements AutoCloseable {
 
     public NetworkCommand sendRecv(NetworkCommand command) {
         AtomicReference<NetworkCommand> response = new AtomicReference<>();
-        BooleanSupplier isComplete = receive(IdUtils.generateId(), response::set);
+        BooleanSupplier isComplete = receive(command.getCorrelationId(), response::set);
         send(command);
         return isComplete.getAsBoolean() ? response.get() : null;
     }
@@ -140,7 +140,11 @@ public abstract class Role implements AutoCloseable {
 
 
     protected boolean ping(Address address) {
-        NetworkCommand resp = sendRecv(new Ping_NC().setReceiverAddress(address));
+        NetworkCommand resp = sendRecv(
+                new Ping_NC()
+                        .setCorrelationId(IdUtils.generateId())
+                        .setSenderAddress(getSettings().getAddress())
+                        .setReceiverAddress(address));
         return resp instanceof Pong_NC;
     }
 

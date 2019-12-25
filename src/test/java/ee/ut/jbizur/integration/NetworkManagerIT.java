@@ -6,6 +6,7 @@ import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.network.io.NetworkManager;
 import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.util.IdUtils;
 import ee.ut.jbizur.util.NetUtil;
 import org.junit.After;
 import org.junit.Assert;
@@ -68,12 +69,12 @@ public class NetworkManagerIT implements ResourceCloser {
     @Test
     public void testSendSimpleP2P() throws InterruptedException {
         NetworkCommand ncSend = new NetworkCommand()
-                .setMsgId(1)
+                .setCorrelationId(1)
                 .setReceiverAddress(nmW2.addr);
         nmW1.nm.send(ncSend);
 
         NetworkCommand ncRecv = nmW2.ncq.take();
-        Assert.assertEquals(ncSend.getMsgId(), ncRecv.getMsgId());
+        Assert.assertEquals(ncSend.getCorrelationId(), ncRecv.getCorrelationId());
     }
 
     @Test
@@ -82,7 +83,9 @@ public class NetworkManagerIT implements ResourceCloser {
 
         int totalSend = 500;
         for (int i = 0; i < totalSend; i++) {
-            Supplier<NetworkCommand> ncSupplier = () -> new NetworkCommand().setReceiverAddress(recvAddr);
+            Supplier<NetworkCommand> ncSupplier = () -> new NetworkCommand()
+                    .setCorrelationId(IdUtils.generateId())
+                    .setReceiverAddress(recvAddr);
             nmW1.nm.send(ncSupplier.get());
             nmW2.nm.send(ncSupplier.get());
         }
@@ -99,7 +102,9 @@ public class NetworkManagerIT implements ResourceCloser {
         MultiThreadExecutor mte = new MultiThreadExecutor();
         int totalSend = 500;
         for (int i = 0; i < totalSend; i++) {
-            Supplier<NetworkCommand> ncSupplier = () -> new NetworkCommand().setReceiverAddress(recvAddr);
+            Supplier<NetworkCommand> ncSupplier = () -> new NetworkCommand()
+                    .setCorrelationId(IdUtils.generateId())
+                    .setReceiverAddress(recvAddr);
             mte.execute(() -> nmW1.nm.send(ncSupplier.get()));
             mte.execute(() -> nmW2.nm.send(ncSupplier.get()));
         }

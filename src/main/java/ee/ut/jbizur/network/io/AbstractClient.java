@@ -38,9 +38,7 @@ public abstract class AbstractClient implements AutoCloseable {
     public abstract void send(NetworkCommand command) throws Exception;
 
     protected Future<Void> submit(Runnable r) {
-//        return (Future<Void>) executor.submit(r);
-        r.run();
-        return null;
+        return (Future<Void>) executor.submit(r);
     }
 
     public String getName() {

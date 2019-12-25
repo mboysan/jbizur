@@ -9,6 +9,7 @@ import ee.ut.jbizur.network.io.tcp.custom.BlockingServerImpl;
 import ee.ut.jbizur.network.io.tcp.rapidoid.RapidoidServer;
 import ee.ut.jbizur.network.io.udp.Multicaster;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.util.LambdaUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +19,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+
+import static ee.ut.jbizur.util.LambdaUtils.runnable;
 
 public abstract class AbstractServer implements AutoCloseable {
 
@@ -61,7 +64,7 @@ public abstract class AbstractServer implements AutoCloseable {
         if (logger.isDebugEnabled()) {
             logger.debug("IN [{}]: {}", toString(), command);
         }
-        submit(() -> listeners.handle(command));
+        submit(runnable(() -> listeners.handle(command)));
     }
 
     protected void submit(Runnable r) {

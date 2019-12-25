@@ -64,11 +64,14 @@ public class ListenersTest {
         listeners.handle(new NetworkCommand().setCorrelationId(0));
 
         Assert.assertEquals(3, handleCount.get());
-        Assert.assertEquals(1, listeners.getListeners().size());    // never removed
+        Assert.assertEquals(1, listeners.getListeners().size());    // base listener still exists
+        Assert.assertTrue(listeners.getListeners().get(0) instanceof BaseListener);
     }
 
     @Test
     public void testCallbackListener() {
+        listeners.add(0, new BaseListener((c) -> {}));  // always add the base listener
+
         AtomicInteger handleCount = new AtomicInteger(0);
         Consumer<NetworkCommand> consumer = (c) -> {
             handleCount.incrementAndGet();
@@ -81,11 +84,14 @@ public class ListenersTest {
         listeners.handle(new NetworkCommand().setCorrelationId(1));
 
         Assert.assertEquals(1, handleCount.get());
-        Assert.assertEquals(0, listeners.getListeners().size());
+        Assert.assertEquals(1, listeners.getListeners().size());    // base listener still exists
+        Assert.assertTrue(listeners.getListeners().get(0) instanceof BaseListener);
     }
 
     @Test
     public void testQuorumListenerOnAcks() throws ExecutionException, InterruptedException {
+        listeners.add(0, new BaseListener((c) -> {}));  // always add the base listener
+
         int totalSize = 3;
         int quorumSize = 2;
 
@@ -99,12 +105,15 @@ public class ListenersTest {
         Assert.assertTrue(qc.await());
         Assert.assertTrue(qc.isMajorityAcked());
         Assert.assertTrue("counter=" + counter.get(), counter.get() >= quorumSize);
-        Assert.assertEquals(0, listeners.getListeners().size());
+        Assert.assertEquals(1, listeners.getListeners().size());    // base listener still exists
+        Assert.assertTrue(listeners.getListeners().get(0) instanceof BaseListener);
         mte.endExecution();
     }
 
     @Test
     public void testQuorumListenerOnNAcks() throws ExecutionException, InterruptedException {
+        listeners.add(0, new BaseListener((c) -> {}));  // always add the base listener
+
         int totalSize = 3;
         int quorumSize = 2;
         AtomicInteger counter = new AtomicInteger(0);
@@ -117,12 +126,15 @@ public class ListenersTest {
         Assert.assertTrue(qc.await());
         Assert.assertFalse(qc.isMajorityAcked());
         Assert.assertEquals(totalSize, counter.get());
-        Assert.assertEquals(0, listeners.getListeners().size());
+        Assert.assertEquals(1, listeners.getListeners().size());    // base listener still exists
+        Assert.assertTrue(listeners.getListeners().get(0) instanceof BaseListener);
         mte.endExecution();
     }
 
     @Test
     public void testQuorumListenerOnAckAndNacksTogether() throws ExecutionException, InterruptedException {
+        listeners.add(0, new BaseListener((c) -> {}));  // always add the base listener
+
         int totalSize = 3;
         int quorumSize = 2;
         AtomicInteger counter = new AtomicInteger(0);
@@ -134,7 +146,8 @@ public class ListenersTest {
         Assert.assertTrue(qc.await());
         Assert.assertTrue(qc.isMajorityAcked());
         Assert.assertTrue("counter=" + counter.get(), counter.get() >= quorumSize);
-        Assert.assertEquals(0, listeners.getListeners().size());
+        Assert.assertEquals(1, listeners.getListeners().size());    // base listener still exists
+        Assert.assertTrue(listeners.getListeners().get(0) instanceof BaseListener);
         mte.endExecution();
     }
 

@@ -21,16 +21,13 @@ public class Listeners {
     public void handle(NetworkCommand command) {
         Objects.requireNonNull(command, "command must not be null");
         Integer correlationId = command.getCorrelationId();
-        Predicate<NetworkCommand> listener;
-        if (correlationId == null || correlationId <= 0) {
-            listener = listeners.get(0);
-        } else {
-            listener = listeners.get(correlationId);
+        Predicate<NetworkCommand> listener = listeners.get(correlationId);
+        if (listener == null) {
+            listener = listeners.get(0);    // get base listener
         }
-        if (listener != null) {
-            if (listener.test(command)) {
-                listeners.remove(correlationId);
-            }
+        Objects.requireNonNull(listener);
+        if (listener.test(command)) {
+            listeners.remove(correlationId);
         }
     }
 
