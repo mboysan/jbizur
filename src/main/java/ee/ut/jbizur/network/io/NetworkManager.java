@@ -117,8 +117,9 @@ public class NetworkManager implements AutoCloseable, ResourceCloser {
 
     public void publish(Supplier<NetworkCommand> commandSupplier, Set<Address> toAddresses) {
         toAddresses.forEach(address -> {
-            NetworkCommand cmd = commandSupplier.get();
-            cmd.setReceiverAddress(address);
+            NetworkCommand cmd = commandSupplier.get()
+                    .setReceiverAddress(address)
+                    .setSenderAddress(serverAddress);
             send(cmd);
         });
     }
@@ -127,7 +128,7 @@ public class NetworkManager implements AutoCloseable, ResourceCloser {
         ClientPool clientPool = clientPools.computeIfAbsent(message.getReceiverAddress(), ClientPool::new);
         AbstractClient client = clientPool.checkOut();
         try {
-            client.send(message);
+            client.send(message.setSenderAddress(serverAddress));
         } catch (Exception e) {
             logger.error("[{}] error sending command={}", toString(), message);
             internalCommandConsumer.accept(new SendFail_IC(message));

@@ -80,11 +80,10 @@ public class BizurNode extends Role {
         for (int i = 0; i < command.getRetryCount() + 1; i++) {
             try {
                 NetworkCommand cmd = sendRecv(command);
-                if (cmd instanceof ClientResponse_NC) {
-                    return (T) cmd;
-                } else if (cmd instanceof LeaderResponse_NC) {
+                if (cmd instanceof LeaderResponse_NC) {
                     return (T) cmd.getPayload();
                 }
+                return (T) cmd;
             } catch (Exception e) {
                 logger.warn("rout error count={}", i);
             }
@@ -97,7 +96,7 @@ public class BizurNode extends Role {
     }
 
     private void pleaseVote(PleaseVote_NC pleaseVoteNc) {
-        new BizurRun(this, pleaseVoteNc.getContextId()).pleaseVote(pleaseVoteNc);
+        new BizurRun(this, pleaseVoteNc.getCorrelationId()).pleaseVote(pleaseVoteNc);
     }
 
     private void replicaWrite(ReplicaWrite_NC replicaWriteNc){
@@ -113,7 +112,7 @@ public class BizurNode extends Role {
         return new BizurRun(this).get(key);
     }
     private void getByLeader(ApiGet_NC getNc) {
-        new BizurRun(this, getNc.getContextId()).getByLeader(getNc);
+        new BizurRun(this, getNc.getCorrelationId()).getByLeader(getNc);
     }
 
     public boolean set(String key, String val) throws RoleIsNotReadyError {
@@ -121,7 +120,7 @@ public class BizurNode extends Role {
         return new BizurRun(this).set(key,val);
     }
     private void setByLeader(ApiSet_NC setNc) {
-        new BizurRun(this, setNc.getContextId()).setByLeader(setNc);
+        new BizurRun(this, setNc.getCorrelationId()).setByLeader(setNc);
     }
 
     public boolean delete(String key) throws RoleIsNotReadyError {
@@ -129,7 +128,7 @@ public class BizurNode extends Role {
         return new BizurRun(this).delete(key);
     }
     private void deleteByLeader(ApiDelete_NC deleteNc) {
-        new BizurRun(this, deleteNc.getContextId()).deleteByLeader(deleteNc);
+        new BizurRun(this, deleteNc.getCorrelationId()).deleteByLeader(deleteNc);
     }
 
     public Set<String> iterateKeys() throws RoleIsNotReadyError {
@@ -137,11 +136,11 @@ public class BizurNode extends Role {
         return new BizurRun(this).iterateKeys();
     }
     private void iterateKeysByLeader(ApiIterKeys_NC iterKeysNc) {
-        new BizurRun(this, iterKeysNc.getContextId()).iterateKeysByLeader(iterKeysNc);
+        new BizurRun(this, iterKeysNc.getCorrelationId()).iterateKeysByLeader(iterKeysNc);
     }
 
     private void handleLeaderElection(LeaderElectionRequest_NC ler) {
-        new BizurRun(this, ler.getContextId()).handleLeaderElection(ler);
+        new BizurRun(this, ler.getCorrelationId()).handleLeaderElection(ler);
     }
 
     /* ***************************************************************************

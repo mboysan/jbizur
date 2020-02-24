@@ -12,6 +12,11 @@ public class MockUtils {
             public String resolveAddressId() {
                 return id;
             }
+
+            @Override
+            public String toString() {
+                return "MockAddress{id=" + id + "}";
+            }
         };
     }
 

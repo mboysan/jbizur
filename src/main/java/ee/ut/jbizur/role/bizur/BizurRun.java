@@ -78,6 +78,12 @@ public class BizurRun {
         return isMajorityAcked.getAsBoolean();
     }
 
+    private boolean publishAndWaitMajority(int contextId, Supplier<NetworkCommand> cmdSupplier, Predicate<NetworkCommand> handler) {
+        BooleanSupplier isMajorityAcked = node.subscribe(contextId, handler);
+        node.publish(cmdSupplier);
+        return isMajorityAcked.getAsBoolean();
+    }
+
     private void send(NetworkCommand command) {
         node.send(command);
     }
@@ -97,9 +103,13 @@ public class BizurRun {
         Supplier<NetworkCommand> pleaseVote =
                 () -> new PleaseVote_NC()
                         .setBucketIndex(bucketIndex)
-                        .setElectId(electId);
+                        .setElectId(electId)
+                        .setCorrelationId(contextId);
 
-        if (publishAndWaitMajority(pleaseVote)) {
+//        int handlerId = IdUtils.generateId();
+        int handlerId = contextId;
+//        if (publishAndWaitMajority(pleaseVote)) {
+        if (publishAndWaitMajority(handlerId, pleaseVote, (cmd) -> cmd instanceof Ack_NC)) {
             /* following is done to guarantee that in case the leader discards the PleaseVote request,
                the bucket leader is set properly for the first time. */
             localBucket.setVotedElectId(electId);
@@ -136,9 +146,8 @@ public class BizurRun {
             int retry = 0;
             int maxRetry = Conf.get().consensus.bizur.bucketElectRetryCount;
             while (retry < maxRetry) {
-                if (localBucket.getLeaderAddress() == null) {
-                    electLeaderForBucket(localBucket, localBucket.getIndex(), false);
-                } else {
+                electLeaderForBucket(localBucket, localBucket.getIndex(), false);
+                if (localBucket.getLeaderAddress() != null) {
                     break;
                 }
                 retry++;
