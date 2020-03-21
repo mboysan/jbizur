@@ -22,7 +22,7 @@ public class Listeners {
         Objects.requireNonNull(command, "command must not be null");
         Integer correlationId = command.getCorrelationId();
         Predicate<NetworkCommand> listener = listeners.get(correlationId);
-        if (listener == null) {
+        if (listener == null || command.isRequest()) {
             listener = listeners.get(0);    // get base listener
         }
         Objects.requireNonNull(listener);

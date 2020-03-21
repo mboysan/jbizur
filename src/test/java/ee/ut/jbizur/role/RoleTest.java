@@ -13,8 +13,8 @@ import org.junit.Test;
 import utils.MockUtils;
 import utils.MultiThreadExecutor;
 
-import java.util.Collections;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BooleanSupplier;
@@ -28,18 +28,28 @@ public class RoleTest {
 
     private Role role1;
     private Role role2;
+    private Role role3;
 
     @Before
     public void setUp() throws Exception {
         Address role1Addr = MockUtils.mockAddress("role1");
         Address role2Addr = MockUtils.mockAddress("role2");
+        Address role3Addr = MockUtils.mockAddress("role3");
+        Set<Address> memberAddresses = new HashSet<>(){{
+            add(role1Addr);
+            add(role2Addr);
+            add(role3Addr);
+        }};
 
         RoleSettings rs1 = new RoleSettings()
                 .setAddress(role1Addr)
-                .setMemberAddresses(new HashSet<>(Collections.singletonList(role2Addr)));
+                .setMemberAddresses(memberAddresses);
         RoleSettings rs2 = new RoleSettings()
                 .setAddress(role2Addr)
-                .setMemberAddresses(new HashSet<>(Collections.singletonList(role1Addr)));
+                .setMemberAddresses(memberAddresses);
+        RoleSettings rs3 = new RoleSettings()
+                .setAddress(role3Addr)
+                .setMemberAddresses(memberAddresses);
 
         role1 = new Role(rs1) {
             @Override
@@ -60,12 +70,23 @@ public class RoleTest {
                 return null;
             }
         };
+
+        role3 = new Role(rs3) {
+            @Override
+            protected void handle(InternalCommand ic) {
+            }
+            @Override
+            public CompletableFuture<Void> start() {
+                return null;
+            }
+        };
     }
 
     @After
     public void tearDown() throws Exception {
         role1.close();
         role2.close();
+        role3.close();
     }
 
     @Test

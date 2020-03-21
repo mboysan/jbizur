@@ -26,12 +26,12 @@ public class InVMClient extends AbstractClient {
     }
 
     @Override
-    public void send(NetworkCommand command) throws Exception {
+    public void send(NetworkCommand command) {
         if (command instanceof SignalEnd_NC) {
             InVMServer.receive(command);
         } else {
-//            InVMServer.receiveAsync(command);
-            InVMServer.receive(command);
+            InVMServer.receiveAsync(command);
+//            InVMServer.receive(command);
         }
     }
 }

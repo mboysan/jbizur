@@ -3,6 +3,9 @@ package ee.ut.jbizur.protocol.commands.nc.bizur;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 
 public class PleaseVote_NC extends NetworkCommand {
+
+    {setRequest(true);}
+
     private int bucketIndex;
     private int electId;
 

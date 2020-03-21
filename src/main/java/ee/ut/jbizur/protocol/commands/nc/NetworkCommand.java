@@ -60,6 +60,8 @@ public class NetworkCommand implements ICommand, Serializable {
      */
     private String nodeType;
 
+    private boolean isRequest = false;
+
     public NetworkCommand() {
         reset();
     }
@@ -207,6 +209,15 @@ public class NetworkCommand implements ICommand, Serializable {
         return this;
     }
 
+    public boolean isRequest() {
+        return isRequest;
+    }
+
+    public NetworkCommand setRequest(boolean request) {
+        isRequest = request;
+        return this;
+    }
+
     public NetworkCommand ofRequest(NetworkCommand requestCmd) {
         return this
                 .setMsgId(requestCmd.getMsgId())
@@ -218,7 +229,8 @@ public class NetworkCommand implements ICommand, Serializable {
     @Override
     public String toString() {
         return "NetworkCommand{" +
-                "correlationId=" + correlationId +
+                "isRequest=" + isRequest +
+                ", correlationId=" + correlationId +
                 ", contextId=" + contextId +
                 ", msgId=" + msgId +
                 ", senderId='" + senderId + '\'' +

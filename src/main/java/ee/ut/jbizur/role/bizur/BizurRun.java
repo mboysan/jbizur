@@ -7,7 +7,6 @@ import ee.ut.jbizur.datastore.bizur.BucketView;
 import ee.ut.jbizur.exceptions.LeaderResolutionFailedError;
 import ee.ut.jbizur.exceptions.OperationFailedError;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.protocol.commands.ICommand;
 import ee.ut.jbizur.protocol.commands.ic.SendFail_IC;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.bizur.*;
@@ -20,7 +19,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -65,21 +63,8 @@ public class BizurRun {
         return node.route(command);
     }
 
-    private boolean publishAndWaitMajority(Supplier<NetworkCommand> cmdSupplier) {
-        return publishAndWaitMajority(cmdSupplier, (c) -> {});
-    }
-
-    private boolean publishAndWaitMajority(Supplier<NetworkCommand> cmdSupplier, Consumer<NetworkCommand> cmdConsumer) {
-        BooleanSupplier isMajorityAcked = node.subscribe(contextId, (cmd) -> {
-            cmdConsumer.accept(cmd);
-            return cmd instanceof Ack_NC;
-        });
-        node.publish(cmdSupplier);
-        return isMajorityAcked.getAsBoolean();
-    }
-
-    private boolean publishAndWaitMajority(int contextId, Supplier<NetworkCommand> cmdSupplier, Predicate<NetworkCommand> handler) {
-        BooleanSupplier isMajorityAcked = node.subscribe(contextId, handler);
+    private boolean publishAndWaitMajority(int correlationId, Supplier<NetworkCommand> cmdSupplier, Predicate<NetworkCommand> handler) {
+        BooleanSupplier isMajorityAcked = node.subscribe(correlationId, handler);
         node.publish(cmdSupplier);
         return isMajorityAcked.getAsBoolean();
     }
@@ -100,16 +85,16 @@ public class BizurRun {
         Bucket localBucket = bucketContainer.getBucket(bucketIndex);
         int electId = localBucket.incrementAndGetElectId();
 
+        int correlationId = IdUtils.generateId();
         Supplier<NetworkCommand> pleaseVote =
                 () -> new PleaseVote_NC()
                         .setBucketIndex(bucketIndex)
                         .setElectId(electId)
-                        .setCorrelationId(contextId);
+                        .setContextId(contextId)
+                        .setCorrelationId(correlationId);
 
-//        int handlerId = IdUtils.generateId();
-        int handlerId = contextId;
 //        if (publishAndWaitMajority(pleaseVote)) {
-        if (publishAndWaitMajority(handlerId, pleaseVote, (cmd) -> cmd instanceof Ack_NC)) {
+        if (publishAndWaitMajority(correlationId, pleaseVote, (cmd) -> cmd instanceof Ack_NC)) {
             /* following is done to guarantee that in case the leader discards the PleaseVote request,
                the bucket leader is set properly for the first time. */
             localBucket.setVotedElectId(electId);
@@ -223,11 +208,15 @@ public class BizurRun {
         bucketToWrite.incrementAndGetVerCounter();
         BucketView bucketViewToSend = bucketToWrite.createView();
 
+        int correlationId = IdUtils.generateId();
         Supplier<NetworkCommand> replicaWrite =
                 () -> new ReplicaWrite_NC()
-                        .setBucketView(bucketViewToSend);
+                        .setBucketView(bucketViewToSend)
+                        .setContextId(contextId)
+                        .setCorrelationId(correlationId)
+                        .setRequest(true);
 
-        if (publishAndWaitMajority(replicaWrite)) {
+        if (publishAndWaitMajority(correlationId, replicaWrite, (r) -> r instanceof AckWrite_NC)) {
             return true;
         }
         localBucket.updateLeader(false);
@@ -261,12 +250,16 @@ public class BizurRun {
             return null;
         }
 
+        int correlationId = IdUtils.generateId();
         Supplier<NetworkCommand> replicaRead =
                 () -> new ReplicaRead_NC()
                         .setIndex(index)
-                        .setElectId(electId);
+                        .setElectId(electId)
+                        .setContextId(contextId)
+                        .setCorrelationId(correlationId)
+                        .setRequest(true);
 
-        if (publishAndWaitMajority(replicaRead)) {
+        if (publishAndWaitMajority(correlationId, replicaRead, (r) -> r instanceof AckRead_NC)) {
             return localBucket;
         }
 
@@ -305,7 +298,7 @@ public class BizurRun {
         }
 
         AtomicReference<BucketView> maxVerBucketView = new AtomicReference<>(null);
-        Consumer<NetworkCommand> handler = (cmd) -> {
+        Predicate<NetworkCommand> handler = (cmd) -> {
             if (cmd instanceof AckRead_NC) {
                 BucketView bucketView = ((AckRead_NC) cmd).getBucketView();
                 synchronized (maxVerBucketView) {
@@ -315,16 +308,22 @@ public class BizurRun {
                         }
                     }
                 }
+                return true;
             }
+            return false;
         };
 
+        int correlationId = IdUtils.generateId();
         Supplier<NetworkCommand> replicaRead =
                 () -> new ReplicaRead_NC()
                         .setIndex(index)
-                        .setElectId(electId);
+                        .setElectId(electId)
+                        .setContextId(contextId)
+                        .setCorrelationId(correlationId)
+                        .setRequest(true);
 
         final boolean isSuccess;
-        if (publishAndWaitMajority(replicaRead, handler)) {
+        if (publishAndWaitMajority(correlationId, replicaRead, handler)) {
             Bucket maxVerBucket = maxVerBucketView.get().createBucket();
             maxVerBucket.setVerElectId(electId);
             maxVerBucket.setVerCounter(0);
@@ -420,7 +419,7 @@ public class BizurRun {
                     new ApiGet_NC()
                             .setKey(key)
                             .setReceiverAddress(lead)
-                            .setCorrelationId(contextId)
+                            .setCorrelationId(IdUtils.generateId())
                             .setContextId(contextId)
             );
         } catch (OperationFailedError e) {
@@ -436,8 +435,6 @@ public class BizurRun {
                 .setRequest("ApiGet_NC-[key=" + getNc.getKey() + "]")
                 .setPayload(val)
                 .ofRequest(getNc)
-                .setCorrelationId(contextId)
-                .setContextId(contextId)
         );
     }
 
@@ -453,7 +450,7 @@ public class BizurRun {
                             .setKey(key)
                             .setVal(val)
                             .setReceiverAddress(lead)
-                            .setCorrelationId(contextId)
+                            .setCorrelationId(IdUtils.generateId())
                             .setContextId(contextId)
             );
         } catch (OperationFailedError e) {
@@ -470,8 +467,6 @@ public class BizurRun {
                         .setRequest("ApiSet_NC-[key=" + setNc.getKey() + ", val=" + setNc.getVal() + "]")
                         .setPayload(isSuccess)
                         .ofRequest(setNc)
-                        .setCorrelationId(contextId)
-                        .setContextId(contextId)
         );
     }
 
@@ -486,7 +481,7 @@ public class BizurRun {
                     new ApiDelete_NC()
                             .setKey(key)
                             .setReceiverAddress(lead)
-                            .setCorrelationId(contextId)
+                            .setCorrelationId(IdUtils.generateId())
                             .setContextId(contextId)
             );
         } catch (OperationFailedError e) {
@@ -503,8 +498,6 @@ public class BizurRun {
                         .setRequest("ApiDelete_NC-[key=" + deleteNc.getKey() + "]")
                         .setPayload(isDeleted)
                         .ofRequest(deleteNc)
-                        .setCorrelationId(contextId)
-                        .setContextId(contextId)
         );
     }
 
@@ -512,16 +505,16 @@ public class BizurRun {
         Set<String> keySet = new HashSet<>();
         Set<Address> bucketLeaders = bucketContainer.collectAddressesWithBucketLeaders();
         bucketLeaders.forEach(leaderAddress -> {
-            NetworkCommand apiIterKeys = new ApiIterKeys_NC()
-                    .setReceiverAddress(leaderAddress)
-                    .setCorrelationId(contextId)
-                    .setContextId(contextId);
             Set<String> keys = null;
             try {
                 if (leaderAddress.equals(getSettings().getAddress())) {
                     // this is the leader so get keys from leader without routing
                     keys = _iterateKeys();
                 } else {
+                    NetworkCommand apiIterKeys = new ApiIterKeys_NC()
+                            .setReceiverAddress(leaderAddress)
+                            .setCorrelationId(IdUtils.generateId())
+                            .setContextId(contextId);
                     keys = route(apiIterKeys);
                 }
                 if (keys == null) {
@@ -544,8 +537,6 @@ public class BizurRun {
                         .setRequest("ApiIterKeys_NC")
                         .setPayload(keys)
                         .ofRequest(iterKeysNc)
-                        .setCorrelationId(contextId)
-                        .setContextId(contextId)
         );
     }
 
@@ -579,8 +570,6 @@ public class BizurRun {
                 .setBucketIndex(ler.getBucketIndex())
                 .setSuccess(isSuccess)
                 .ofRequest(ler)
-                .setCorrelationId(contextId)
-                .setContextId(contextId)
         );
     }
 
@@ -588,8 +577,9 @@ public class BizurRun {
         NetworkCommand request = new LeaderElectionRequest_NC()
                 .setBucketIndex(bucketIndex)
                 .setReceiverAddress(address)
-                .setCorrelationId(contextId)
-                .setContextId(contextId);
+                .setCorrelationId(IdUtils.generateId())
+                .setContextId(contextId)
+                .setRequest(true);
 
         NetworkCommand resp = sendRecv(request);
         if (resp instanceof LeaderElectionResponse_NC) {
