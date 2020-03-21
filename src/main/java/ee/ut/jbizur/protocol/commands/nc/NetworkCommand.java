@@ -171,12 +171,11 @@ public class NetworkCommand implements ICommand, Serializable {
         return this;
     }
 
-    @Deprecated
+
     public Integer getContextId() {
         return contextId;
     }
 
-    @Deprecated
     public NetworkCommand setContextId(Integer contextId) {
         this.contextId = contextId;
         return this;
