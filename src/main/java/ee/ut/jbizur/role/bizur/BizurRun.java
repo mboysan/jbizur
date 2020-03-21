@@ -213,8 +213,7 @@ public class BizurRun {
                 () -> new ReplicaWrite_NC()
                         .setBucketView(bucketViewToSend)
                         .setContextId(contextId)
-                        .setCorrelationId(correlationId)
-                        .setRequest(true);
+                        .setCorrelationId(correlationId);
 
         if (publishAndWaitMajority(correlationId, replicaWrite, (r) -> r instanceof AckWrite_NC)) {
             return true;
@@ -256,8 +255,7 @@ public class BizurRun {
                         .setIndex(index)
                         .setElectId(electId)
                         .setContextId(contextId)
-                        .setCorrelationId(correlationId)
-                        .setRequest(true);
+                        .setCorrelationId(correlationId);
 
         if (publishAndWaitMajority(correlationId, replicaRead, (r) -> r instanceof AckRead_NC)) {
             return localBucket;
@@ -319,8 +317,7 @@ public class BizurRun {
                         .setIndex(index)
                         .setElectId(electId)
                         .setContextId(contextId)
-                        .setCorrelationId(correlationId)
-                        .setRequest(true);
+                        .setCorrelationId(correlationId);
 
         final boolean isSuccess;
         if (publishAndWaitMajority(correlationId, replicaRead, handler)) {
@@ -578,8 +575,7 @@ public class BizurRun {
                 .setBucketIndex(bucketIndex)
                 .setReceiverAddress(address)
                 .setCorrelationId(IdUtils.generateId())
-                .setContextId(contextId)
-                .setRequest(true);
+                .setContextId(contextId);
 
         NetworkCommand resp = sendRecv(request);
         if (resp instanceof LeaderElectionResponse_NC) {

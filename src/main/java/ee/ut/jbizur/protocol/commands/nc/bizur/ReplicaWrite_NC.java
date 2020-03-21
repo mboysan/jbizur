@@ -4,6 +4,9 @@ import ee.ut.jbizur.datastore.bizur.BucketView;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 
 public class ReplicaWrite_NC extends NetworkCommand {
+
+    {setRequest(true);}
+
     private BucketView bucketView;
 
     public BucketView getBucketView() {
