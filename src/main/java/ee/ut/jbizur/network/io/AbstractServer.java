@@ -54,7 +54,7 @@ public abstract class AbstractServer implements AutoCloseable {
     protected void recv(NetworkCommand command) {
         validateAction();
         if (logger.isDebugEnabled()) {
-            logger.debug("IN [{}] (sync): {}", toString(), command);
+            logger.debug("IN (sync) [{}]: {}", toString(), command);
         }
         listeners.handle(command);
     }

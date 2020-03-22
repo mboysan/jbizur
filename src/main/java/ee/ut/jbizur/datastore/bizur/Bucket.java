@@ -196,6 +196,7 @@ public class Bucket implements Comparable<Bucket> {
      * ***************************************************************************/
 
     public BucketView createView(){
+        // TODO: read lock on bucketMap?
         return new BucketView()
                 .setBucketMap(new HashMap<>(bucketMap))
                 .setIndex(getIndex())

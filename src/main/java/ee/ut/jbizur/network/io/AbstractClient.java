@@ -35,7 +35,15 @@ public abstract class AbstractClient implements AutoCloseable {
     protected abstract void connect() throws IOException;
     protected abstract boolean isConnected();
     protected abstract boolean isValid();
-    public abstract void send(NetworkCommand command) throws Exception;
+
+    public void send(NetworkCommand command) throws Exception {
+        Objects.requireNonNull(command);
+        if (logger.isDebugEnabled()) {
+            logger.debug("OUT [{}]: {}", toString(), command);
+        }
+        send0(command);
+    }
+    protected abstract void send0(NetworkCommand command) throws Exception;
 
     protected Future<Void> submit(Runnable r) {
         return (Future<Void>) executor.submit(r);

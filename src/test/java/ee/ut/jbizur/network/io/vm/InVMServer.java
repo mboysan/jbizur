@@ -29,4 +29,9 @@ public class InVMServer extends AbstractServer {
     public static void receiveAsync(NetworkCommand cmd) {
         servers.get(cmd.getReceiverAddress()).recvAsync(cmd);
     }
+
+    @Override
+    public String toString() {
+        return "InVMServer{} " + super.toString();
+    }
 }

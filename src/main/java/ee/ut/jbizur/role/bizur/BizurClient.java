@@ -8,6 +8,7 @@ import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.bizur.*;
 import ee.ut.jbizur.protocol.commands.nc.ping.ConnectOK_NC;
 import ee.ut.jbizur.protocol.commands.nc.ping.SignalEnd_NC;
+import ee.ut.jbizur.util.IdUtils;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -61,6 +62,7 @@ public class BizurClient extends BizurNode {
                     .setSenderId(getSettings().getRoleId())
                     .setReceiverAddress(getLeaderAddress(key))
                     .setSenderAddress(getSettings().getAddress())
+                    .setCorrelationId(IdUtils.generateId())
         );
         updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
         return (String) response.getPayload();
@@ -74,8 +76,9 @@ public class BizurClient extends BizurNode {
                         .setKey(key)
                         .setVal(val)
                         .setSenderId(getSettings().getRoleId())
-                        .setReceiverAddress(getRandomAddress())
+                        .setReceiverAddress(getLeaderAddress(key))
                         .setSenderAddress(getSettings().getAddress())
+                        .setCorrelationId(IdUtils.generateId())
         );
         updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
         return (boolean) response.getPayload();
@@ -88,8 +91,9 @@ public class BizurClient extends BizurNode {
                 new ClientApiDelete_NC()
                         .setKey(key)
                         .setSenderId(getSettings().getRoleId())
-                        .setReceiverAddress(getRandomAddress())
+                        .setReceiverAddress(getLeaderAddress(key))
                         .setSenderAddress(getSettings().getAddress())
+                        .setCorrelationId(IdUtils.generateId())
         );
         updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
         return (boolean) response.getPayload();
@@ -103,6 +107,7 @@ public class BizurClient extends BizurNode {
                         .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(getRandomAddress())
                         .setSenderAddress(getSettings().getAddress())
+                        .setCorrelationId(IdUtils.generateId())
         );
         return (Set<String>) response.getPayload();
     }

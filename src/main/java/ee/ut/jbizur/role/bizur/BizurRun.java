@@ -390,7 +390,7 @@ public class BizurRun {
                 if (bucket != null) {
                     res.addAll(bucket.getKeySetOp());
                 } else {
-                    logger.warn(logMsg(String.format("bucket keys could not be iterated by leader. bucket=[%s]", bucket)));
+                    logger.warn(logMsg(String.format("bucket keys could not be iterated by leader. bucketIdx=[%s]", bucketIdx)));
                 }
             } finally {
                 bucketContainer.unlockBucket(bucketIdx);
@@ -522,6 +522,8 @@ public class BizurRun {
             }
             if (keys != null) {
                 keySet.addAll(keys);
+            } else {
+                System.out.println();
             }
         });
         return keySet;

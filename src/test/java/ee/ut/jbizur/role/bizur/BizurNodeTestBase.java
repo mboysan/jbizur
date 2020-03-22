@@ -38,9 +38,8 @@ public class BizurNodeTestBase {
     }
 
     private void createNodes() throws IOException {
-        int nodeCount = Conf.get().members.size();
-        Address[] addresses = new Address[nodeCount];
-        String[] members = new String[nodeCount];
+        Address[] addresses = new Address[NODE_COUNT];
+        String[] members = new String[NODE_COUNT];
         for (int i = 0; i < members.length; i++) {
             members[i] = Conf.get().members.get(i).id;
             addresses[i] = MockUtils.mockAddress(members[i]);

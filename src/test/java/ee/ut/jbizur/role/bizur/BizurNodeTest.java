@@ -18,8 +18,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-import static org.junit.Assert.*;
-
 public class BizurNodeTest implements ResourceCloser {
     static {
         Conf.setConfigFromResources("BizurUT.conf");
@@ -64,7 +62,7 @@ public class BizurNodeTest implements ResourceCloser {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         closeResources(member1, member2, member3);
         closeResources(client1);
     }
@@ -80,20 +78,4 @@ public class BizurNodeTest implements ResourceCloser {
         Assert.assertTrue(pong instanceof Pong_NC);
         Assert.assertEquals(ping.getCorrelationId(), pong.getCorrelationId());
     }
-
-    @Test
-    public void testLeaderPerBucketElectionFlow() throws InterruptedException {
-//        int numBuckets = member1.bucketContainer.getNumBuckets();
-//        for (int i = 0; i < numBuckets; i++) {
-//            member1.initLeaderPerBucketElectionFlow()
-//        }
-//        member1.set("testKey0", "testVal0");
-        System.out.println("");
-        Assert.assertTrue(member1.initLeaderPerBucketElectionFlow());
-        for (Address addr : member1.bucketContainer.collectAddressesWithBucketLeaders()) {
-            System.out.println(addr);
-        }
-    }
-
-
 }

@@ -49,8 +49,7 @@ public class BlockingClientImpl extends AbstractClient {
      * Initializes the message sender. It then creates the appropriate handler to _send the message.
      */
     @Override
-    public void send(NetworkCommand command) throws Exception {
-        Objects.requireNonNull(command);
+    protected void send0(NetworkCommand command) throws Exception {
         if (!getDestAddress().equals(command.getReceiverAddress())) {
             throw new IllegalArgumentException("invalid destination="
                     + command.getReceiverAddress() + ", expected=" + getDestAddress());
