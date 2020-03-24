@@ -195,14 +195,18 @@ public class Bucket implements Comparable<Bucket> {
      * BucketView
      * ***************************************************************************/
 
-    public BucketView createView(){
-        // TODO: read lock on bucketMap?
-        return new BucketView()
-                .setBucketMap(new HashMap<>(bucketMap))
-                .setIndex(getIndex())
-                .setVerElectId(getVerElectId())
-                .setVerCounter(getVerCounter())
-                .setLeaderAddress(getLeaderAddress());
+    public BucketView createView() {
+        mapLock.readLock().lock();
+        try {
+            return new BucketView()
+                    .setBucketMap(new HashMap<>(bucketMap))
+                    .setIndex(getIndex())
+                    .setVerElectId(getVerElectId())
+                    .setVerCounter(getVerCounter())
+                    .setLeaderAddress(getLeaderAddress());
+        } finally {
+            mapLock.readLock().unlock();
+        }
     }
 
     public Bucket replaceBucketForReplicationWith(BucketView bucketView) {

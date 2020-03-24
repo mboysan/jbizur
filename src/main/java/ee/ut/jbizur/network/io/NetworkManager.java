@@ -57,11 +57,13 @@ public class NetworkManager implements AutoCloseable, ResourceCloser {
         Objects.requireNonNull(networkCommandConsumer);
 
         this.server = createServer();
-        server.add(0, new BaseListener(networkCommandConsumer));
+        BaseListener baseListener = new BaseListener(networkCommandConsumer);
+        server.add(0, baseListener);
         server.start();
 
         this.multicaster = createMulticaster();
         if (multicaster != null) {
+            multicaster.add(0, baseListener);
             multicaster.start();
         }
 
@@ -101,6 +103,12 @@ public class NetworkManager implements AutoCloseable, ResourceCloser {
         if (!isRunning) {
             throw new IllegalStateException("Network manager is not running");
         }
+    }
+
+    public void multicast(NetworkCommand command) {
+        validateAction();
+        Objects.requireNonNull(multicaster);
+        multicaster.multicast(command);
     }
 
     public void multicastAtFixedRate(NetworkCommand command) {

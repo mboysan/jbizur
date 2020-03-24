@@ -6,6 +6,7 @@ import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.network.io.NetworkManager;
 import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.nc.ping.Connect_NC;
 import ee.ut.jbizur.util.IdUtils;
 import ee.ut.jbizur.util.NetUtil;
 import org.junit.After;
@@ -30,6 +31,7 @@ public class NetworkManagerIT implements ResourceCloser {
     @Parameterized.Parameters(name = "conf={0}")
     public static Object[][] conf() {
         return new Object[][]{
+                {"NMIT.multicast.conf"},
                 {"NMIT.buffered-custom.conf"},
                 {"NMIT.buffered-rapidoid.conf"},
                 {"NMIT.custom.conf"},
@@ -115,14 +117,41 @@ public class NetworkManagerIT implements ResourceCloser {
         }
     }
 
+    @Test
+    public void testMulticastConcurrent() throws InterruptedException, ExecutionException {
+        if (!Conf.get().network.multicast.enabled) {
+            return; // skip test if multicast disabled
+        }
+        MultiThreadExecutor mte = new MultiThreadExecutor();
+        int totalSend = 50;
+        for (int i = 0; i < totalSend; i++) {
+            mte.execute(() -> {
+                nmW1.nm.multicast(
+                        new Connect_NC()
+                                .setSenderId(nmW1.name)
+                                .setSenderAddress(nmW1.addr)
+                                .setNodeType("member")
+                );
+            });
+        }
+        mte.endExecution();
+        for (int i = 0; i < totalSend; i++) {
+            nmW1.ncq.take();
+            nmW2.ncq.take();
+            nmW3.ncq.take();
+        }
+    }
+
     private static class NMWrapper {
         final NetworkManager nm;
 
+        final String name;
         final TCPAddress addr;
         final LinkedBlockingDeque<NetworkCommand> ncq = new LinkedBlockingDeque<>();
         final LinkedBlockingDeque<InternalCommand> icq = new LinkedBlockingDeque<>();
 
         NMWrapper(String name) throws IOException {
+            this.name = name;
             addr = new TCPAddress("localhost", NetUtil.findOpenPort());
             this.nm = new NetworkManager(name, addr, (ic) -> icq.offer(ic), (nc) -> ncq.offer(nc));
         }
