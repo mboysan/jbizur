@@ -5,7 +5,7 @@ import ee.ut.jbizur.datastore.bizur.Bucket;
 import ee.ut.jbizur.datastore.bizur.BucketContainer;
 import ee.ut.jbizur.datastore.bizur.BucketView;
 import ee.ut.jbizur.exceptions.LeaderResolutionFailedError;
-import ee.ut.jbizur.exceptions.OperationFailedError;
+import ee.ut.jbizur.exceptions.RoutingFailedException;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.protocol.commands.ic.SendFail_IC;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
@@ -15,6 +15,7 @@ import ee.ut.jbizur.util.IdUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -56,10 +57,15 @@ public class BizurRun {
     }
 
     protected boolean ping(Address address) {
-        return node.ping(address);
+        try {
+            return node.ping(address);
+        } catch (IOException e) {
+            logger.error(logMsg(e.getMessage()), e);
+        }
+        return false;
     }
 
-    protected <T> T route(NetworkCommand command) {
+    protected <T> T route(NetworkCommand command) throws RoutingFailedException {
         return node.route(command);
     }
 
@@ -70,11 +76,20 @@ public class BizurRun {
     }
 
     private void send(NetworkCommand command) {
-        node.send(command);
+        try {
+            node.send(command);
+        } catch (IOException e) {
+            logger.error(logMsg(e.getMessage()), e);
+        }
     }
 
     private NetworkCommand sendRecv(NetworkCommand request) {
-        return node.sendRecv(request);
+        try {
+            return node.sendRecv(request);
+        } catch (IOException e) {
+            logger.error(logMsg(e.getMessage()), e);
+        }
+        return null;
     }
 
     /* ***************************************************************************
@@ -93,10 +108,10 @@ public class BizurRun {
                         .setContextId(contextId)
                         .setCorrelationId(correlationId);
 
-//        if (publishAndWaitMajority(pleaseVote)) {
         if (publishAndWaitMajority(correlationId, pleaseVote, (cmd) -> cmd instanceof Ack_NC)) {
-            /* following is done to guarantee that in case the leader discards the PleaseVote request,
+            /* Note1: following is done to guarantee that in case the leader discards the PleaseVote request,
                the bucket leader is set properly for the first time. */
+            localBucket.setElectId(electId);    // see Note2 below
             localBucket.setVotedElectId(electId);
             localBucket.setLeaderAddress(getSettings().getAddress());
 
@@ -112,6 +127,10 @@ public class BizurRun {
 
         NetworkCommand vote;
         if (electId > localBucket.getVotedElectId()) {
+            /* Note2: even though the algorithm does not specify to update the electId, we need to do it
+               because the replica needs to keep track of the latest election Id of the bucket. */
+            localBucket.setElectId(electId);    // TODO: investigate if this introduces additional issues.
+
             localBucket.setVotedElectId(electId);
             localBucket.setLeaderAddress(source);
             localBucket.updateLeader(source.equals(getSettings().getAddress()));
@@ -419,7 +438,7 @@ public class BizurRun {
                             .setCorrelationId(IdUtils.generateId())
                             .setContextId(contextId)
             );
-        } catch (OperationFailedError e) {
+        } catch (RoutingFailedException e) {
             logger.warn(e.getMessage(), e);
             electLeaderForBucket(bucket, bucket.getIndex(), true);
             return get(key);
@@ -450,7 +469,7 @@ public class BizurRun {
                             .setCorrelationId(IdUtils.generateId())
                             .setContextId(contextId)
             );
-        } catch (OperationFailedError e) {
+        } catch (RoutingFailedException e) {
             logger.warn(e.getMessage(), e);
             electLeaderForBucket(bucket, bucket.getIndex(), true);
             return set(key, val);
@@ -481,7 +500,7 @@ public class BizurRun {
                             .setCorrelationId(IdUtils.generateId())
                             .setContextId(contextId)
             );
-        } catch (OperationFailedError e) {
+        } catch (RoutingFailedException e) {
             logger.warn(e.getMessage(), e);
             electLeaderForBucket(bucket, bucket.getIndex(), true);
             return delete(key);
@@ -517,7 +536,7 @@ public class BizurRun {
                 if (keys == null) {
                     logger.warn(logMsg("Null keys received from leader: " + leaderAddress.toString()));
                 }
-            } catch (OperationFailedError e) {
+            } catch (RoutingFailedException e) {
                 logger.warn(logMsg("Operation failed while retrieving keys from leader: " + leaderAddress.toString()), e);
             }
             if (keys != null) {

@@ -6,6 +6,7 @@ import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.ping.Ping_NC;
 import ee.ut.jbizur.protocol.commands.nc.ping.Pong_NC;
+import ee.ut.jbizur.util.LambdaUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -13,12 +14,14 @@ import org.junit.Test;
 import utils.MockUtils;
 import utils.MultiThreadExecutor;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BooleanSupplier;
 
+import static ee.ut.jbizur.util.LambdaUtils.runnable;
 import static org.junit.Assert.assertTrue;
 
 public class RoleTest {
@@ -120,19 +123,17 @@ public class RoleTest {
         MultiThreadExecutor mte = new MultiThreadExecutor();
         for (int i = 0; i < 100; i++) {
             int corrId = i;
-            mte.execute(() -> {
-                testReqResp(corrId);
-            });
+            mte.execute(runnable(() -> testReqResp(corrId)));
         }
         mte.endExecution();
     }
 
     @Test
-    public void testReqResp() {
+    public void testReqResp() throws IOException {
         testReqResp(1);
     }
 
-    private void testReqResp(int corrId) {
+    private void testReqResp(int corrId) throws IOException {
         NetworkCommand ping = new Ping_NC()
                 .setCorrelationId(corrId)
                 .setSenderAddress(role1.getSettings().getAddress())
@@ -146,13 +147,13 @@ public class RoleTest {
     public void testPingMultiThreaded() throws ExecutionException, InterruptedException {
         MultiThreadExecutor mte = new MultiThreadExecutor();
         for (int i = 0; i < 100; i++) {
-            mte.execute(this::testPing);
+            mte.execute(runnable(this::testPing));
         }
         mte.endExecution();
     }
 
     @Test
-    public void testPing() {
+    public void testPing() throws IOException {
         Assert.assertTrue(role1.ping(role2.getSettings().getAddress()));
     }
 }

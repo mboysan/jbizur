@@ -7,12 +7,11 @@ import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.network.handlers.BaseListener;
 import ee.ut.jbizur.network.io.udp.Multicaster;
 import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
-import ee.ut.jbizur.protocol.commands.ic.SendFail_IC;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.InvocationTargetException;
+import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.Objects;
@@ -128,18 +127,22 @@ public class NetworkManager implements AutoCloseable, ResourceCloser {
             NetworkCommand cmd = commandSupplier.get()
                     .setReceiverAddress(address)
                     .setSenderAddress(serverAddress);
-            send(cmd);
+            try {
+                send(cmd);
+            } catch (IOException e) {
+                logger.error("[{}] error publishing command={} to address={}", toString(), cmd, address);
+            }
         });
     }
 
-    public void send(NetworkCommand message) {
+    public void send(NetworkCommand message) throws IOException {
         ClientPool clientPool = clientPools.computeIfAbsent(message.getReceiverAddress(), ClientPool::new);
         AbstractClient client = clientPool.checkOut();
         try {
             client.send(message.setSenderAddress(serverAddress));
         } catch (Exception e) {
-            logger.error("[{}] error sending command={}", toString(), message);
-            internalCommandConsumer.accept(new SendFail_IC(message));
+            logger.error("[{}] error sending command={}", toString(), message, e);
+            throw new IOException(e);
         } finally {
             clientPool.checkIn(client);
         }

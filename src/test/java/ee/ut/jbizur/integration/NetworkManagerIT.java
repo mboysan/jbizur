@@ -25,6 +25,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.function.Supplier;
 
+import static ee.ut.jbizur.util.LambdaUtils.runnable;
+
 @RunWith(Parameterized.class)
 public class NetworkManagerIT implements ResourceCloser {
 
@@ -69,7 +71,7 @@ public class NetworkManagerIT implements ResourceCloser {
     }
 
     @Test
-    public void testSendSimpleP2P() throws InterruptedException {
+    public void testSendSimpleP2P() throws InterruptedException, IOException {
         NetworkCommand ncSend = new NetworkCommand()
                 .setCorrelationId(1)
                 .setReceiverAddress(nmW2.addr);
@@ -80,7 +82,7 @@ public class NetworkManagerIT implements ResourceCloser {
     }
 
     @Test
-    public void testMultiSend() throws InterruptedException {
+    public void testMultiSend() throws InterruptedException, IOException {
         TCPAddress recvAddr = nmW3.addr;
 
         int totalSend = 500;
@@ -107,8 +109,8 @@ public class NetworkManagerIT implements ResourceCloser {
             Supplier<NetworkCommand> ncSupplier = () -> new NetworkCommand()
                     .setCorrelationId(IdUtils.generateId())
                     .setReceiverAddress(recvAddr);
-            mte.execute(() -> nmW1.nm.send(ncSupplier.get()));
-            mte.execute(() -> nmW2.nm.send(ncSupplier.get()));
+            mte.execute(runnable(() -> nmW1.nm.send(ncSupplier.get())));
+            mte.execute(runnable(() -> nmW2.nm.send(ncSupplier.get())));
         }
         mte.endExecution();
 

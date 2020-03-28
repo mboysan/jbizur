@@ -2,8 +2,8 @@ package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.datastore.bizur.BucketContainer;
-import ee.ut.jbizur.exceptions.OperationFailedError;
 import ee.ut.jbizur.exceptions.RoleIsNotReadyError;
+import ee.ut.jbizur.exceptions.RoutingFailedException;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
 import ee.ut.jbizur.protocol.commands.ic.NodeDead_IC;
@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -76,7 +75,7 @@ public class BizurNode extends Role {
      * Message Routing
      * ***************************************************************************/
 
-    <T> T route(NetworkCommand command) throws OperationFailedError {
+    <T> T route(NetworkCommand command) throws RoutingFailedException {
         for (int i = 0; i < command.getRetryCount() + 1; i++) {
             try {
                 NetworkCommand cmd = sendRecv(command);
@@ -88,7 +87,7 @@ public class BizurNode extends Role {
                 logger.warn("rout error count={}", i);
             }
         }
-        throw new OperationFailedError(logMsg("Routing failed for command: " + command));
+        throw new RoutingFailedException(logMsg("Routing failed for command: " + command));
     }
 
     protected boolean initLeaderPerBucketElectionFlow() throws InterruptedException {
@@ -196,7 +195,11 @@ public class BizurNode extends Role {
                 response = bcRun.iterateKeys((ClientApiIterKeys_NC) command);
             }
             if (response != null) {
-                send(response);
+                try {
+                    send(response);
+                } catch (IOException e) {
+                    logger.error(logMsg(e.getMessage()), e);
+                }
             }
         }
     }
@@ -217,7 +220,7 @@ public class BizurNode extends Role {
     }
 
     @Override
-    protected boolean ping(Address address) {
+    protected boolean ping(Address address) throws IOException {
         return super.ping(address);
     }
 }

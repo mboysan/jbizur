@@ -2,6 +2,7 @@ package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.common.ResourceCloser;
 import ee.ut.jbizur.config.Conf;
+import ee.ut.jbizur.exceptions.RoutingFailedException;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.ping.Ping_NC;
@@ -68,7 +69,7 @@ public class BizurNodeTest implements ResourceCloser {
     }
 
     @Test
-    public void testRoute() {
+    public void testRoute() throws RoutingFailedException {
         NetworkCommand ping = new Ping_NC()
                 .setCorrelationId(1)
                 .setSenderAddress(member1.getSettings().getAddress())

@@ -3,7 +3,8 @@ package ee.ut.jbizur.role;
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
-import ee.ut.jbizur.network.handlers.*;
+import ee.ut.jbizur.network.handlers.CallbackListener;
+import ee.ut.jbizur.network.handlers.QuorumListener;
 import ee.ut.jbizur.network.io.NetworkManager;
 import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
@@ -14,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -79,7 +79,11 @@ public abstract class Role implements AutoCloseable {
                     .setSenderAddress(getSettings().getAddress())
                     .setReceiverAddress(nc.getSenderAddress())
                     .setNodeType("member");
-            send(connectOK);
+            try {
+                send(connectOK);
+            } catch (IOException e) {
+                logger.error(logMsg(e.getMessage()), e);
+            }
         }
         if(nc instanceof ConnectOK_NC){
             if (nc.getNodeType().equals("member")) {
@@ -88,7 +92,11 @@ public abstract class Role implements AutoCloseable {
         }
         if (nc instanceof Ping_NC) {
             // send pong
-            send(new Pong_NC().ofRequest(nc));
+            try {
+                send(new Pong_NC().ofRequest(nc));
+            } catch (IOException e) {
+                logger.error(logMsg(e.getMessage()), e);
+            }
         }
         if (nc instanceof SignalEnd_NC) {
             logger.info(logMsg("End signal received: " + nc));
@@ -108,12 +116,12 @@ public abstract class Role implements AutoCloseable {
         return () -> cl.await(Conf.get().network.responseTimeoutSec, TimeUnit.SECONDS);
     }
 
-    public void send(NetworkCommand command) {
+    public void send(NetworkCommand command) throws IOException {
         Objects.requireNonNull(command);
         networkManager.send(command);
     }
 
-    public NetworkCommand sendRecv(NetworkCommand command) {
+    public NetworkCommand sendRecv(NetworkCommand command) throws IOException {
         AtomicReference<NetworkCommand> response = new AtomicReference<>();
         BooleanSupplier isComplete = receive(command.getCorrelationId(), response::set);
         send(command);
@@ -139,7 +147,7 @@ public abstract class Role implements AutoCloseable {
     }
 
 
-    protected boolean ping(Address address) {
+    protected boolean ping(Address address) throws IOException {
         NetworkCommand resp = sendRecv(
                 new Ping_NC()
                         .setCorrelationId(IdUtils.generateId())
