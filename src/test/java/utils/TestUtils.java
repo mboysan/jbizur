@@ -14,7 +14,6 @@ public class TestUtils {
         long seed = System.currentTimeMillis();
         logger.error("Seed for random: {}", seed);
         System.out.println("Seed for random: " + seed);
-        System.err.println("Seed for random: " + seed);
         RANDOM = new Random(seed);
     }
 

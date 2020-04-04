@@ -2,21 +2,25 @@ package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.address.MockAddress;
 import org.junit.Assert;
 import org.junit.Test;
+import utils.MockUtils;
 import utils.MultiThreadExecutor;
 
-import java.net.UnknownHostException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.io.IOException;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import static utils.TestUtils.getRandom;
 
-public class BizurClientTest extends BizurNodeTestBase {
+public class BizurClientFunctionalTest extends BizurNodeTestBase {
 
+    static {
+        Conf.setConfig("BizurUT.conf");
+    }
+
+    private static final int CLIENT_COUNT = Conf.get().clients.size();
     private BizurClient[] bizurClients;
 
     @Override
@@ -28,20 +32,20 @@ public class BizurClientTest extends BizurNodeTestBase {
 
     /**
      * Initializes the Bizur Clients.
-     * @throws InterruptedException in case of initialization errors.
      */
-    private void createClients() throws InterruptedException, UnknownHostException {
-        int clientCount = Conf.get().clients.size();
-        String[] clients = new String[clientCount];
+    private void createClients() throws IOException {
+        String[] clients = new String[CLIENT_COUNT];
+        Address[] clientAddresses = new Address[CLIENT_COUNT];
         for (int i = 0; i < clients.length; i++) {
             clients[i] = "client-" + i;
+            clientAddresses[i] = MockUtils.mockAddress(clients[i]);
         }
-        bizurClients = new BizurClient[clientCount];
+        bizurClients = new BizurClient[CLIENT_COUNT];
         for (int i = 0; i < bizurClients.length; i++) {
-            bizurClients[i] = BizurMockBuilder.mockBuilder()
+            bizurClients[i] = BizurBuilder.builder()
                     .withMemberId(clients[i])
                     .withMulticastEnabled(false)
-                    .withAddress(new MockAddress(clients[i]))
+                    .withAddress(clientAddresses[i])
                     .withMemberAddresses(getMemberAddresses())
                     .buildClient();
         }
@@ -56,11 +60,11 @@ public class BizurClientTest extends BizurNodeTestBase {
     }
 
     private void startClients() {
-        CompletableFuture[] futures = new CompletableFuture[bizurClients.length];
-        for (int i = 0; i < bizurClients.length; i++) {
-            futures[i] = bizurClients[i].start();
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        for (BizurClient bizurClient : bizurClients) {
+            futures.add(bizurClient.start());
         }
-        for (CompletableFuture future : futures) {
+        for (CompletableFuture<Void> future : futures) {
             future.join();
         }
     }
@@ -137,6 +141,31 @@ public class BizurClientTest extends BizurNodeTestBase {
             });
         }
         executor.endExecution();
+    }
+
+    /**
+     * Tests the iterate keys procedure. Inserts key/val pairs to the bucket. And while inserting,
+     * iterates over the inserted keys and compares with the expected values.
+     */
+    @Test
+    public void iterateKeysTest() throws ExecutionException, InterruptedException {
+        int keyCount = 50;
+        for (int i = 0; i < keyCount; i++) {
+            String testKey = "tkey" + i;
+            String expVal = "tval" + i;
+
+            Assert.assertTrue(getRandomClient().set(testKey, expVal));
+            putExpectedKeyValue(testKey, expVal);
+
+            Set<String> actKeys = getRandomClient().iterateKeys();
+            Assert.assertEquals(getExpectedKeySet().size(), actKeys.size());
+            for (String expKey : getExpectedKeySet()) {
+                Assert.assertEquals(getExpectedValue(expKey), getRandomClient().get(expKey));
+            }
+            for (String actKey : actKeys) {
+                Assert.assertEquals(getExpectedValue(actKey), getRandomClient().get(actKey));
+            }
+        }
     }
 
     /**

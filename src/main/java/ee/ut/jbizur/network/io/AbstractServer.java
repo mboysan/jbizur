@@ -2,53 +2,130 @@ package ee.ut.jbizur.network.io;
 
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
+import ee.ut.jbizur.network.address.MulticastAddress;
 import ee.ut.jbizur.network.address.TCPAddress;
+import ee.ut.jbizur.network.handlers.Listeners;
+import ee.ut.jbizur.network.io.tcp.custom.BlockingServerImpl;
+import ee.ut.jbizur.network.io.tcp.rapidoid.RapidoidServer;
+import ee.ut.jbizur.network.io.udp.Multicaster;
+import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.util.LambdaUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.ServerSocket;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
-public abstract class AbstractServer {
+import static ee.ut.jbizur.util.LambdaUtils.runnable;
+
+public abstract class AbstractServer implements AutoCloseable {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractServer.class);
 
-    protected volatile boolean isRunning = true;
+    private volatile boolean isRunning = true;
 
-    protected final NetworkManager networkManager;
-    protected final boolean keepAlive;
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
-    public AbstractServer(NetworkManager networkManager) {
-        this.networkManager = networkManager;
-        this.keepAlive = Conf.get().network.tcp.keepalive;
+    private final String name;
+    private final Address serverAddress;
+    private final Listeners listeners = new Listeners();
+
+    public AbstractServer(String name, Address serverAddress) {
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(serverAddress);
+
+        this.name = name;
+        this.serverAddress = serverAddress;
     }
 
-    protected Address initAndGetAddress(Address address) {
-        if (address instanceof TCPAddress) {
-            TCPAddress tcpAddress = (TCPAddress) address;
-            ServerSocket serverSocket = createServerSocket(tcpAddress.getPortNumber());
-            tcpAddress.setIp(tcpAddress.getIp()).setPortNumber(serverSocket.getLocalPort());
-            try {
-                serverSocket.close();
-            } catch (IOException e) {
-                logger.error(e.getMessage());
-            }
-            return address;
+    public void start() {
+        logger.info("starting {}", toString());
+        isRunning = true;
+    }
+
+    public void add(int correlationId, Predicate<NetworkCommand> listener) {
+        listeners.add(correlationId, listener);
+    }
+
+    protected void recv(NetworkCommand command) {
+        validateAction();
+        if (logger.isDebugEnabled()) {
+            logger.debug("IN (sync) [{}]: {}", toString(), command);
         }
-        return address; //unmodified
+        listeners.handle(command);
     }
 
-    private ServerSocket createServerSocket(int port) {
-        ServerSocket serverSocket;
+    protected void recvAsync(NetworkCommand command) {
+        validateAction();
+        if (logger.isDebugEnabled()) {
+            logger.debug("IN [{}]: {}", toString(), command);
+        }
+        submit(runnable(() -> listeners.handle(command)));
+    }
+
+    protected void submit(Runnable r) {
+        executor.submit(r);
+    }
+
+    protected void validateAction() {
+        if (!isRunning) {
+            throw new IllegalStateException("server not running");
+        }
+    }
+
+    @Override
+    public void close() {
+        logger.info("closing {}", toString());
+        isRunning = false;
+        executor.shutdown();
         try {
-            serverSocket = new ServerSocket(port);
-        } catch (IOException e) {
-            logger.warn("Could not create ServerSocket on port={}, retrying with port=0... [{}]", port, e.getMessage());
-            serverSocket = createServerSocket(0);
+            executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            logger.error(e.getMessage(), e);
+            Thread.currentThread().interrupt();
         }
-        return serverSocket;
     }
 
-    public abstract void startRecv(Address address);
-    public abstract void shutdown();
+    public boolean isRunning() {
+        return isRunning;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public Address getServerAddress() {
+        return serverAddress;
+    }
+
+    @Override
+    public String toString() {
+        return "Server{" +
+                "isRunning=" + isRunning +
+                ", name='" + name + '\'' +
+                ", serverAddress=" + serverAddress +
+                '}';
+    }
+
+    public static AbstractServer create(Class<? extends AbstractServer> serverClass, String name, Address serverAddress) {
+        if (serverClass.equals(BlockingServerImpl.class)) {
+            return new BlockingServerImpl(name, (TCPAddress) serverAddress);
+        }
+        if (serverClass.equals(RapidoidServer.class)) {
+            return new RapidoidServer(name, (TCPAddress) serverAddress);
+        }
+        if (serverClass.equals(Multicaster.class)) {
+            return new Multicaster(name, (MulticastAddress) serverAddress);
+        }
+        try {
+            // try instantiating
+            return serverClass.getConstructor(String.class, Address.class).newInstance(name, serverAddress);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            throw new UnsupportedOperationException("server cannot be created, class="+ serverClass, e);
+        }
+    }
 }

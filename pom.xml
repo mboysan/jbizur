@@ -16,6 +16,8 @@
                 <version>3.8.1</version>
                 <configuration>
                     <release>13</release>
+                    <source>13</source>
+                    <target>13</target>
                 </configuration>
             </plugin>
             <plugin>
@@ -37,26 +39,46 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0-M3</version>
+                <version>3.0.0-M4</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/*IT.java</exclude>
+                        <exclude>**/*IntegrationTest.java</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
+                        <id>default-test</id>
                         <phase>test</phase>
                         <goals>
                             <goal>test</goal>
                         </goals>
-                        <!--<configuration>
-                            <skip>false</skip>
-                            <includes>
-                                <include>**/*Test*.java</include>
-                            </includes>
-                        </configuration>-->
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>3.0.0-M4</version>
+                <executions>
+                    <execution>
+                        <id>integration-tests</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>verify</id>
+                        <goals>
+                            <goal>verify</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
             <plugin>
                 <groupId>com.github.timvlaer</groupId>
                 <artifactId>tscfg-maven-plugin</artifactId>
-                <version>0.6.0</version>
+                <version>0.8.2</version>
                 <configuration>
                     <templateFile>src/main/resources/jbizur_template.conf</templateFile>
                     <packageName>ee.ut.jbizur.config</packageName>
@@ -78,20 +100,12 @@
         </plugins>
     </build>
 
-    <repositories>
-        <repository>
-            <id>project-common</id>
-            <name>Project Common</name>
-            <url>https://github.com/mboysan/jbizur/raw/repository/</url>
-        </repository>
-    </repositories>
-
     <dependencies>
         <!-- Logging -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
-            <version>1.7.28</version>
+            <version>1.7.30</version>
         </dependency>
 
         <!-- for hocon config -->
@@ -110,15 +124,10 @@
         <dependency>
             <groupId>org.codehaus.jettison</groupId>
             <artifactId>jettison</artifactId>
-            <version>1.4.0</version>
+            <version>1.4.1</version>
         </dependency>
 
         <!-- Transport layer -->
-        <dependency>
-            <groupId>org.open-mpi</groupId>
-            <artifactId>open-mpi</artifactId>
-            <version>3.0.0</version>
-        </dependency>
         <dependency>
             <groupId>org.rapidoid</groupId>
             <artifactId>rapidoid-net</artifactId>
@@ -127,7 +136,7 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <version>4.1.42.Final</version>
+            <version>4.1.48.Final</version>
         </dependency>
 
         <!-- TESTING -->
@@ -135,7 +144,14 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
+            <version>4.13</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.mockito/mockito-all -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
+            <version>1.10.19</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

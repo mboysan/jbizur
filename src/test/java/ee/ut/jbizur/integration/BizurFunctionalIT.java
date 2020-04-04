@@ -1,55 +1,97 @@
-package ee.ut.jbizur.clientservertest;
+package ee.ut.jbizur.integration;
 
 import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.network.address.MulticastAddress;
+import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.TCPAddress;
 import ee.ut.jbizur.role.bizur.BizurBuilder;
 import ee.ut.jbizur.role.bizur.BizurClient;
 import ee.ut.jbizur.role.bizur.BizurNode;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import utils.MultiThreadExecutor;
 
+import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
-@Ignore
-public class BizurSingleJvmIntegrationTest {
-    static {
-        Conf.setConfigFromResources("jbizur_integ_test.conf");
+@RunWith(Parameterized.class)
+public class BizurFunctionalIT {
+    private static final Logger logger = LoggerFactory.getLogger(BizurFunctionalIT.class);
+
+    @Parameterized.Parameters(name = "conf={0}")
+    public static Object[][] conf() {
+        return new Object[][]{
+                {"BizurIT.functional.conf"},
+                {"BizurIT.discovery.conf"},
+        };
     }
 
-    protected static final int MEMBER_COUNT = Conf.get().members.size();
+    @Parameterized.Parameter
+    public String confName;
+
+    private int memberCount;
+    private Set<Address> memberAddresses;
 
     protected BizurNode[] nodes;
     protected BizurClient client;
 
     @Before
     public void setUp() throws Exception {
+        initConfiguration();
         initNodes();
         initClient();
         startNodes();
         startClient();
     }
 
-    protected void initNodes() throws UnknownHostException, InterruptedException {
-        nodes = new BizurNode[MEMBER_COUNT];
-        for (int i = 0; i < nodes.length; i++) {
+    private void initConfiguration() {
+        // set the configuration
+        Conf.setConfig(confName);
 
-            nodes[i] = BizurBuilder.builder()
-                    .withMemberId(String.format(Conf.get().node.member.idFormat, i))
-                    .withAddress(TCPAddress.resolveTCPAddress(Conf.get().members.get(i).tcpAddress))
-                    .withMulticastAddress(MulticastAddress.resolveMulticastAddress(Conf.get().network.multicast.address))
-                    .build();
+        memberCount = Conf.get().members.size();
+        memberAddresses = Conf.get().members.stream()
+                .map(members$Elm -> {
+                    try {
+                        return TCPAddress.resolveTCPAddress(members$Elm.tcpAddress);
+                    } catch (UnknownHostException e) {
+                        logger.error(e.getMessage(), e);
+                    }
+                    return null;
+                })
+                .collect(Collectors.toSet());
+    }
+
+    protected void initNodes() throws IOException {
+        nodes = new BizurNode[memberCount];
+        for (int i = 0; i < Conf.get().members.size(); i++) {
+            BizurBuilder builder = BizurBuilder.builder()
+                    .withMemberId(Conf.get().members.get(i).id)
+                    .withAddress(TCPAddress.resolveTCPAddress(Conf.get().members.get(i).tcpAddress));
+            if (!Conf.get().network.multicast.enabled) {
+                // member discovery is disabled so take addresses from the static set.
+                builder.withMemberAddresses(memberAddresses);
+            }
+            nodes[i] = builder.build();
         }
     }
 
-    protected void initClient() throws UnknownHostException, InterruptedException {
-        client = BizurBuilder.builder()
+    protected void initClient() throws IOException {
+        BizurBuilder builder = BizurBuilder.builder()
                 .withMemberId(Conf.get().clients.get(0).id)
-                .withAddress(TCPAddress.resolveTCPAddress(Conf.get().clients.get(0).tcpAddress))
-                .withMulticastAddress(MulticastAddress.resolveMulticastAddress(Conf.get().network.multicast.address))
-                .buildClient();
+                .withAddress(TCPAddress.resolveTCPAddress(Conf.get().clients.get(0).tcpAddress));
+        if (!Conf.get().network.multicast.enabled) {
+            // member discovery is disabled so take addresses from the static set.
+            builder.withMemberAddresses(memberAddresses);
+        }
+        client = builder.buildClient();
     }
 
     protected void startNodes() {
@@ -67,9 +109,11 @@ public class BizurSingleJvmIntegrationTest {
     }
 
     @After
-    public void tearDown() throws InterruptedException {
-        client.signalEndToAll();
-        Thread.sleep(5000);
+    public void tearDown() {
+        client.close();
+        for (BizurNode node : nodes) {
+            node.close();
+        }
     }
 
     /**

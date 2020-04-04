@@ -1,13 +1,13 @@
 package ee.ut.jbizur.protocol;
 
 import ee.ut.jbizur.datastore.bizur.BucketView;
-import ee.ut.jbizur.network.address.MockAddress;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.bizur.AckRead_NC;
 import ee.ut.jbizur.protocol.commands.nc.common.Nack_NC;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import utils.MockUtils;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -33,8 +33,8 @@ public class CommandMarshallerTest {
 
         expectedNC = new AckRead_NC()
                 .setBucketView(bucketView)
-                .setSenderAddress(new MockAddress("sender-address"))
-                .setReceiverAddress(new MockAddress("receiver-address"))
+                .setSenderAddress(MockUtils.mockAddress("sender-address"))
+                .setReceiverAddress(MockUtils.mockAddress("receiver-address"))
                 .setMsgId(12345)
                 .setSenderId("senderId")
                 .setRetryCount(5)

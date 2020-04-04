@@ -1,5 +1,6 @@
 package ee.ut.jbizur.network.io.tcp.custom;
 
+import ee.ut.jbizur.common.ResourceCloser;
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.protocol.CommandMarshaller;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
@@ -10,7 +11,7 @@ import java.io.*;
 import java.net.Socket;
 import java.util.Stack;
 
-public abstract class SocketWrapper {
+public abstract class SocketWrapper implements AutoCloseable, ResourceCloser {
 
     private static final Logger logger = LoggerFactory.getLogger(SocketWrapper.class);
 
@@ -26,7 +27,7 @@ public abstract class SocketWrapper {
     protected final String serializationType = Conf.get().network.sendRecvAs;
     protected final boolean isBufferedIO = Conf.get().network.bufferedIO;
 
-    protected final Stack<Closeable> closeables = new Stack<>();
+    protected final Stack<AutoCloseable> closeables = new Stack<>();
 
     public SocketWrapper(Socket socket, boolean keepAlive) throws IOException {
         this.socket = socket;
@@ -42,6 +43,7 @@ public abstract class SocketWrapper {
         }
         this.outputStream = resolveOutStream(sockOut);
         closeables.push(outputStream);
+        outputStream.flush();   // inputStream will block otherwise
 
         InputStream sockIn = socket.getInputStream();
         closeables.push(sockIn);
@@ -105,7 +107,7 @@ public abstract class SocketWrapper {
         return (NetworkCommand) oIn.readObject();
     }
 
-    protected NetworkCommand recvAsBytes(DataInputStream dIn) throws IOException, ClassNotFoundException {
+    protected NetworkCommand recvAsBytes(DataInputStream dIn) throws IOException {
         int size = dIn.readInt();
         byte[] msg = new byte[size];
         final int read = dIn.read(msg);
@@ -116,15 +118,13 @@ public abstract class SocketWrapper {
         }
     }
 
-    synchronized void close() {
-        while(!closeables.isEmpty()) {
-            Closeable closeable = closeables.pop();
-            try {
-                closeable.close();
-            } catch (IOException e) {
-                logger.error(e.getMessage(), e);
-            }
-        }
+    public boolean isConnected() {
+        return socket.isConnected();
+    }
+
+    @Override
+    public void close() {
+        closeResources(logger, closeables);
     }
 
 }

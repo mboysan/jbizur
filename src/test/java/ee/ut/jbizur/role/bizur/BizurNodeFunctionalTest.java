@@ -1,6 +1,5 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.Conf;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -8,6 +7,7 @@ import utils.MultiThreadExecutor;
 
 import java.util.Set;
 
+@Ignore
 public class BizurNodeFunctionalTest extends BizurNodeTestBase {
 
     /**
@@ -15,7 +15,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueSetGetTest() {
-        int testCount = Conf.get().tests.functional.keyValueSetGetTest;
+        int testCount = 50;
         for (int i = 0; i < testCount; i++) {
             String expKey = "tkey" + i;
             String expVal = "tval" + i;
@@ -34,7 +34,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueSetGetMultiThreadTest() throws Throwable {
-        int testCount = Conf.get().tests.functional.keyValueSetGetMultiThreadTest;
+        int testCount = 50;
         MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
             int finalI = i;
@@ -59,7 +59,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueDeleteTest() {
-        int testCount = Conf.get().tests.functional.keyValueDeleteTest;
+        int testCount = 50;
         for (int i = 0; i < testCount; i++) {
             String expKey = "tkey" + i;
             String expVal = "tval" + i;
@@ -83,7 +83,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueDeleteMultiThreadTest() throws Throwable {
-        int testCount = Conf.get().tests.functional.keyValueDeleteMultiThreadTest;
+        int testCount = 50;
         MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
             int finalI = i;
@@ -108,7 +108,7 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void iterateKeysTest() {
-        int keyCount = Conf.get().tests.functional.iterateKeysTest;
+        int keyCount = 50;
         for (int i = 0; i < keyCount; i++) {
             String key = "tkey" + i;
             String val = "tval" + i;

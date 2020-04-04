@@ -6,7 +6,10 @@ import java.net.UnknownHostException;
 /**
  * Address used for node discovery.
  */
-public class MulticastAddress {
+public class MulticastAddress extends Address {
+
+    private static final String SEP = ":";
+
     /**
      * Multicast group address
      */
@@ -42,5 +45,10 @@ public class MulticastAddress {
     public static MulticastAddress resolveMulticastAddress(String multaddrStr) throws UnknownHostException {
         String[] arr = multaddrStr.split(":");
         return new MulticastAddress(arr[0], Integer.parseInt(arr[1]));
+    }
+
+    @Override
+    public String resolveAddressId() {
+        return multicastGroupAddr + SEP + multicastPort;
     }
 }

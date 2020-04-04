@@ -34,12 +34,10 @@ class BizurRunForClient extends BizurRun {
         return (ClientResponse_NC) new ClientResponse_NC()
                 .setAssumedLeaderAddress(resolveLeader(bucketKey))
                 .setRequest(req.toString())
-                .setContextId(getContextId())
+                .setPayload(payload)
                 .setSenderId(getSettings().getRoleId())
                 .setSenderAddress(getSettings().getAddress())
-                .setReceiverAddress(req.getSenderAddress())
-                .setMsgId(req.getMsgId())
-                .setPayload(payload);
+                .ofRequest(req);
     }
 
     private Address resolveLeader(String key) {

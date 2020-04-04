@@ -18,7 +18,7 @@ public class TCPAddress extends Address {
 
     private static final Logger logger = LoggerFactory.getLogger(TCPAddress.class);
 
-    public static final String SEP = ":";
+    private static final String SEP = ":";
 
     /**
      * Ip address

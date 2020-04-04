@@ -15,8 +15,13 @@ public class NetworkCommand implements ICommand, Serializable {
      */
     private Integer msgId;
     /**
+     * Id to correlate with a certain context.
+     */
+    private Integer correlationId;
+    /**
      * Id that is related to a specific context (i.e. a batch of operations).
      */
+    @Deprecated
     private Integer contextId;
     /**
      * Id of the sender process
@@ -54,6 +59,8 @@ public class NetworkCommand implements ICommand, Serializable {
      * a "member" or "client".
      */
     private String nodeType;
+
+    private boolean isRequest = false;
 
     public NetworkCommand() {
         reset();
@@ -155,6 +162,16 @@ public class NetworkCommand implements ICommand, Serializable {
         return this;
     }
 
+    public Integer getCorrelationId() {
+        return correlationId;
+    }
+
+    public NetworkCommand setCorrelationId(Integer correlationId) {
+        this.correlationId = correlationId;
+        return this;
+    }
+
+
     public Integer getContextId() {
         return contextId;
     }
@@ -191,9 +208,19 @@ public class NetworkCommand implements ICommand, Serializable {
         return this;
     }
 
+    public boolean isRequest() {
+        return isRequest;
+    }
+
+    public NetworkCommand setRequest(boolean request) {
+        isRequest = request;
+        return this;
+    }
+
     public NetworkCommand ofRequest(NetworkCommand requestCmd) {
         return this
                 .setMsgId(requestCmd.getMsgId())
+                .setCorrelationId(requestCmd.getCorrelationId())
                 .setContextId(requestCmd.getContextId())
                 .setReceiverAddress(requestCmd.getSenderAddress());
     }
@@ -201,7 +228,9 @@ public class NetworkCommand implements ICommand, Serializable {
     @Override
     public String toString() {
         return "NetworkCommand{" +
-                "contextId=" + contextId +
+                "isRequest=" + isRequest +
+                ", correlationId=" + correlationId +
+                ", contextId=" + contextId +
                 ", msgId=" + msgId +
                 ", senderId='" + senderId + '\'' +
                 ", senderAddr=" + senderAddr +

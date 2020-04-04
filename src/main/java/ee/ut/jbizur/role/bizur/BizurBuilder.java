@@ -5,6 +5,8 @@ import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.network.address.MulticastAddress;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.Set;
 
 public class BizurBuilder {
@@ -63,16 +65,12 @@ public class BizurBuilder {
         return this.settings;
     }
 
-    public BizurNode build() throws InterruptedException {
-        BizurNode bizurNode = new BizurNode(settings);
-        settings.registerRoleRef(bizurNode);
-        return bizurNode;
+    public BizurNode build() throws IOException {
+        return new BizurNode(settings);
     }
 
-    public BizurClient buildClient() throws InterruptedException {
-        BizurClient bizurClient = new BizurClient(settings);
-        settings.registerRoleRef(bizurClient);
-        return bizurClient;
+    public BizurClient buildClient() throws IOException {
+        return new BizurClient(settings);
     }
 
 }

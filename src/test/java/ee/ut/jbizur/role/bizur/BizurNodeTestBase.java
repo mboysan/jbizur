@@ -2,14 +2,13 @@ package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.config.Conf;
 import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.address.MockAddress;
-import ee.ut.jbizur.network.io.NetworkManagerMock;
 import ee.ut.jbizur.util.IdUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import utils.MockUtils;
 
-import java.net.UnknownHostException;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -21,7 +20,7 @@ import static utils.TestUtils.getRandom;
 
 public class BizurNodeTestBase {
     static {
-        Conf.setConfigFromResources("jbizur_func_test.conf");
+        Conf.setConfig("BizurUT.conf");
     }
 
     private static final int NODE_COUNT = Conf.get().members.size();
@@ -32,25 +31,23 @@ public class BizurNodeTestBase {
 
     @Before
     public void setUp() throws Exception {
-        NetworkManagerMock.clearRoles();
         createNodes();
         startRoles();
         this.expKeyVals = new ConcurrentHashMap<>();
         this.leaderDefinedBucketIndexes = ConcurrentHashMap.newKeySet();
     }
 
-    private void createNodes() throws UnknownHostException, InterruptedException {
-        int nodeCount = Conf.get().members.size();
-        Address[] addresses = new MockAddress[nodeCount];
-        String[] members = new String[nodeCount];
+    private void createNodes() throws IOException {
+        Address[] addresses = new Address[NODE_COUNT];
+        String[] members = new String[NODE_COUNT];
         for (int i = 0; i < members.length; i++) {
             members[i] = Conf.get().members.get(i).id;
-            addresses[i] = new MockAddress(members[i]);
+            addresses[i] = MockUtils.mockAddress(members[i]);
         }
 
         bizurNodes = new BizurNode[NODE_COUNT];
         for (int i = 0; i < bizurNodes.length; i++) {
-            bizurNodes[i] = BizurMockBuilder.mockBuilder()
+            bizurNodes[i] = BizurBuilder.builder()
                     .withMemberId(members[i])
                     .withMulticastEnabled(false)
                     .withAddress(addresses[i])
@@ -60,21 +57,21 @@ public class BizurNodeTestBase {
     }
 
     private void startRoles() {
-        CompletableFuture[] futures = new CompletableFuture[bizurNodes.length];
+        CompletableFuture<Void>[] futures = new CompletableFuture[bizurNodes.length];
         for (int i = 0; i < bizurNodes.length; i++) {
             futures[i] = bizurNodes[i].start();
         }
-        for (CompletableFuture future : futures) {
+        for (CompletableFuture<Void> future : futures) {
             future.join();
         }
     }
 
-    BizurNodeMock getRandomNode() {
+    BizurNode getRandomNode() {
         return getNode(-1);
     }
 
-    BizurNodeMock getNode(int inx) {
-        return (BizurNodeMock) bizurNodes[inx == -1 ? getRandom().nextInt(bizurNodes.length) : inx];
+    BizurNode getNode(int inx) {
+        return bizurNodes[inx == -1 ? getRandom().nextInt(bizurNodes.length) : inx];
     }
 
     protected int hashKey(String s) {
@@ -158,8 +155,7 @@ public class BizurNodeTestBase {
 
     public void tearDown() {
         for (BizurNode bizurNode : bizurNodes) {
-            bizurNode.shutdown();
+            bizurNode.close();
         }
-        NetworkManagerMock.clearRoles();
     }
 }

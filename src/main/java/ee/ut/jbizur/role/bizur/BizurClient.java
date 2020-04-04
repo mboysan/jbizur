@@ -1,5 +1,6 @@
 package ee.ut.jbizur.role.bizur;
 
+import ee.ut.jbizur.exceptions.RoutingFailedException;
 import ee.ut.jbizur.network.address.Address;
 import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
 import ee.ut.jbizur.protocol.commands.ic.NodeAddressRegistered_IC;
@@ -8,16 +9,22 @@ import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.bizur.*;
 import ee.ut.jbizur.protocol.commands.nc.ping.ConnectOK_NC;
 import ee.ut.jbizur.protocol.commands.nc.ping.SignalEnd_NC;
+import ee.ut.jbizur.util.IdUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class BizurClient extends BizurNode {
 
+    private static final Logger logger = LoggerFactory.getLogger(BizurClient.class);
+
     private Address[] addresses;
     private final Object addressesLock = new Object();
 
-    protected BizurClient(BizurSettings bizurSettings) {
+    protected BizurClient(BizurSettings bizurSettings) throws IOException {
         super(bizurSettings);
         if (isAddressesAlreadyRegistered()) {
             arrangeAddresses();
@@ -30,79 +37,111 @@ public class BizurClient extends BizurNode {
     }
 
     @Override
-    public void handleInternalCommand(InternalCommand command) {
-        super.handleInternalCommand(command);
-        if (command instanceof NodeAddressRegistered_IC) {
+    protected void handle(InternalCommand ic) {
+        super.handle(ic);
+        if (ic instanceof NodeAddressRegistered_IC) {
             arrangeAddresses();
         }
-        if (command instanceof NodeAddressUnregistered_IC) {
+        if (ic instanceof NodeAddressUnregistered_IC) {
             arrangeAddresses();
         }
     }
 
     @Override
-    public void handleNetworkCommand(NetworkCommand command) {
+    public void handle(NetworkCommand command) {
         if(command instanceof ConnectOK_NC){
             getSettings().registerAddress(command.getSenderAddress());
         }
         if (command instanceof SignalEnd_NC) {
-            super.handleNetworkCommand(command);
+            super.handle(command);
         }
     }
 
     @Override
     public String get(String key) {
         checkReady();
-        ClientResponse_NC response = routeRequestAndGet(
-                new ClientApiGet_NC()
-                    .setKey(key)
-                    .setSenderId(getSettings().getRoleId())
-                    .setReceiverAddress(getLeaderAddress(key))
-                    .setSenderAddress(getSettings().getAddress())
-        );
-        updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
-        return (String) response.getPayload();
+        ClientResponse_NC response = null;
+        try {
+            response = route(
+                    new ClientApiGet_NC()
+                        .setKey(key)
+                        .setSenderId(getSettings().getRoleId())
+                        .setReceiverAddress(getLeaderAddress(key))
+                        .setSenderAddress(getSettings().getAddress())
+                        .setCorrelationId(IdUtils.generateId())
+            );
+            updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
+            return (String) response.getPayload();
+        } catch (RoutingFailedException e) {
+            // TODO: handle re-routing to another node
+            logger.error(e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public boolean set(String key, String val) {
         checkReady();
-        ClientResponse_NC response = routeRequestAndGet(
-                new ClientApiSet_NC()
-                        .setKey(key)
-                        .setVal(val)
-                        .setSenderId(getSettings().getRoleId())
-                        .setReceiverAddress(getRandomAddress())
-                        .setSenderAddress(getSettings().getAddress())
-        );
-        updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
-        return (boolean) response.getPayload();
+        ClientResponse_NC response = null;
+        try {
+            response = route(
+                    new ClientApiSet_NC()
+                            .setKey(key)
+                            .setVal(val)
+                            .setSenderId(getSettings().getRoleId())
+                            .setReceiverAddress(getLeaderAddress(key))
+                            .setSenderAddress(getSettings().getAddress())
+                            .setCorrelationId(IdUtils.generateId())
+            );
+            updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
+            return (boolean) response.getPayload();
+        } catch (RoutingFailedException e) {
+            // TODO: handle re-routing to another node
+            logger.error(e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public boolean delete(String key) {
         checkReady();
-        ClientResponse_NC response =  routeRequestAndGet(
-                new ClientApiDelete_NC()
-                        .setKey(key)
-                        .setSenderId(getSettings().getRoleId())
-                        .setReceiverAddress(getRandomAddress())
-                        .setSenderAddress(getSettings().getAddress())
-        );
-        updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
-        return (boolean) response.getPayload();
+        ClientResponse_NC response = null;
+        try {
+            response = route(
+                    new ClientApiDelete_NC()
+                            .setKey(key)
+                            .setSenderId(getSettings().getRoleId())
+                            .setReceiverAddress(getLeaderAddress(key))
+                            .setSenderAddress(getSettings().getAddress())
+                            .setCorrelationId(IdUtils.generateId())
+            );
+            updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
+            return (boolean) response.getPayload();
+        } catch (RoutingFailedException e) {
+            // TODO: handle re-routing to another node
+            logger.error(e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public Set<String> iterateKeys() {
         checkReady();
-        ClientResponse_NC response = routeRequestAndGet(
-                new ClientApiIterKeys_NC()
-                        .setSenderId(getSettings().getRoleId())
-                        .setReceiverAddress(getRandomAddress())
-                        .setSenderAddress(getSettings().getAddress())
-        );
-        return (Set<String>) response.getPayload();
+        ClientResponse_NC response = null;
+        try {
+            response = route(
+                    new ClientApiIterKeys_NC()
+                            .setSenderId(getSettings().getRoleId())
+                            .setReceiverAddress(getRandomAddress())
+                            .setSenderAddress(getSettings().getAddress())
+                            .setCorrelationId(IdUtils.generateId())
+            );
+            return (Set<String>) response.getPayload();
+        } catch (RoutingFailedException e) {
+            // TODO: handle re-routing to another node
+            logger.error(e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
     }
 
     private void arrangeAddresses() {

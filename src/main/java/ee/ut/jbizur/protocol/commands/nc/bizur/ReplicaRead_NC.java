@@ -4,6 +4,8 @@ import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 
 public class ReplicaRead_NC extends NetworkCommand {
 
+    {setRequest(true);}
+
     private int index;
     private int electId;
 
