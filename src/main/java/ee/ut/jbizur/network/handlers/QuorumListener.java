@@ -1,16 +1,13 @@
 package ee.ut.jbizur.network.handlers;
 
-import ee.ut.jbizur.common.CountdownPredicate;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.nc.common.Ack_NC;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
-public class QuorumListener extends CountdownPredicate<NetworkCommand> {
+public class QuorumListener extends AbstractSyncedListener {
 
     private static final Logger logger = LoggerFactory.getLogger(QuorumListener.class);
 

@@ -1,15 +1,13 @@
 package ee.ut.jbizur.network.handlers;
 
-import ee.ut.jbizur.common.CountdownConsumer;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
-public class CallbackListener extends CountdownConsumer<NetworkCommand> implements Predicate<NetworkCommand> {
+public class CallbackListener extends AbstractSyncedListener {
 
     private static final Logger logger = LoggerFactory.getLogger(CallbackListener.class);
 
