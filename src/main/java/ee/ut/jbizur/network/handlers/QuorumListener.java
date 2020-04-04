@@ -17,6 +17,7 @@ public class QuorumListener extends CountdownPredicate<NetworkCommand> {
     private final int totalSize;
     private final int quorumSize;
     private int ackCount = 0;
+    private int nackCount = 0;
     private int testCount = 0;
 
     private final Predicate<NetworkCommand> commandPredicate;
@@ -43,16 +44,22 @@ public class QuorumListener extends CountdownPredicate<NetworkCommand> {
                     terminate();
                     return true;    // mark for remove
                 }
+            } else {
+                ++nackCount;
             }
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
         countdown();
-        if (++testCount >= totalSize) {
+        if (isMajorityNAcked() || (++testCount >= totalSize)) {
             terminate();
             return true;    // mark for remove
         }
         return false;
+    }
+
+    public boolean isMajorityNAcked() {
+        return nackCount >= quorumSize;
     }
 
     public boolean isMajorityAcked() {

@@ -105,9 +105,13 @@ public class ListenersTest {
         Assert.assertTrue(qc.await());
         Assert.assertTrue(qc.isMajorityAcked());
         Assert.assertTrue("counter=" + counter.get(), counter.get() >= quorumSize);
+
+        /* we wait for commands to be handled by listeners.
+           Otherwise we cannot know if listeners removed the QuorumListener or not. */
+        mte.endExecution();
+
         Assert.assertEquals(1, listeners.getListeners().size());    // base listener still exists
         Assert.assertTrue(listeners.getListeners().get(0) instanceof BaseListener);
-        mte.endExecution();
     }
 
     @Test
@@ -125,10 +129,14 @@ public class ListenersTest {
         }
         Assert.assertTrue(qc.await());
         Assert.assertFalse(qc.isMajorityAcked());
-        Assert.assertEquals(totalSize, counter.get());
+        Assert.assertTrue("counter=" + counter.get(), counter.get() >= quorumSize);
+
+        /* we wait for commands to be handled by listeners.
+           Otherwise we cannot know if listeners removed the QuorumListener or not. */
+        mte.endExecution();
+
         Assert.assertEquals(1, listeners.getListeners().size());    // base listener still exists
         Assert.assertTrue(listeners.getListeners().get(0) instanceof BaseListener);
-        mte.endExecution();
     }
 
     @Test
@@ -146,9 +154,13 @@ public class ListenersTest {
         Assert.assertTrue(qc.await());
         Assert.assertTrue(qc.isMajorityAcked());
         Assert.assertTrue("counter=" + counter.get(), counter.get() >= quorumSize);
+
+        /* we wait for commands to be handled by listeners.
+           Otherwise we cannot know if listeners removed the QuorumListener or not. */
+        mte.endExecution();
+
         Assert.assertEquals(1, listeners.getListeners().size());    // base listener still exists
         Assert.assertTrue(listeners.getListeners().get(0) instanceof BaseListener);
-        mte.endExecution();
     }
 
     private QuorumListener addQuorumListener(int totalSize, int quorumSize, AtomicInteger counter) {
