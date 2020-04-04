@@ -106,7 +106,7 @@ public class JbizurConfig {
       this.sendRecvAs = c.hasPathOrNull("sendRecvAs") ? c.getString("sendRecvAs") : "OBJECT";
       this.serializer = c.hasPathOrNull("serializer") ? c.getString("serializer") : "ee.ut.jbizur.protocol.ByteSerializer";
       this.server = c.hasPathOrNull("server") ? c.getString("server") : "ee.ut.jbizur.network.io.tcp.custom.BlockingServerImpl";
-      this.shutdownWaitSec = c.hasPathOrNull("shutdownWaitSec") ? c.getLong("shutdownWaitSec") : 300;
+      this.shutdownWaitSec = c.hasPathOrNull("shutdownWaitSec") ? c.getLong("shutdownWaitSec") : 20;
       this.tcp = c.hasPathOrNull("tcp") ? new Network.Tcp(c.getConfig("tcp"), parentPath + "tcp.", $tsCfgValidator) : new Network.Tcp(com.typesafe.config.ConfigFactory.parseString("tcp{}"), parentPath + "tcp.", $tsCfgValidator);
     }
   }

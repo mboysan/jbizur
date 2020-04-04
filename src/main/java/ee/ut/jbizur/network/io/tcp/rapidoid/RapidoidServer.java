@@ -33,9 +33,12 @@ public class RapidoidServer extends AbstractServer {
 
     @Override
     public void close() {
-        super.close();
-        if (rapidoidServer.isActive()) {
-            rapidoidServer.shutdown();
+        try {
+            super.close();
+        } finally {
+            if (rapidoidServer.isActive()) {
+                rapidoidServer.shutdown();
+            }
         }
     }
 

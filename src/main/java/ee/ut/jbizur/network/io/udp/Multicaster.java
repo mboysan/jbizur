@@ -70,15 +70,16 @@ public class Multicaster extends AbstractServer implements AutoCloseable {
      */
     @Override
     public void close() {
-        receiver.close();
-        schExecutor.shutdown();
         try {
+            receiver.close();
+            schExecutor.shutdown();
             schExecutor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             logger.error(e.getMessage(), e);
             Thread.currentThread().interrupt();
+        } finally {
+            super.close();
         }
-        super.close();
     }
 
     private class MulticastReceiver implements Runnable, AutoCloseable {

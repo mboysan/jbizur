@@ -33,7 +33,11 @@ public class RoleSettings {
     }
 
     protected void defaults() {
-        Optional<JbizurConfig.Members$Elm> m = Conf.get().members.stream().filter(e -> e.instance).findFirst();
+        java.util.List<JbizurConfig.Members$Elm> members = Conf.get().members;
+        Optional<JbizurConfig.Members$Elm> m = members != null
+                ? Conf.get().members.stream().filter(e -> e.instance).findFirst()
+                : Optional.empty();
+
         setRoleId(m.isPresent() ? m.get().id : "node-" + UUID.randomUUID().toString());
         try {
             TCPAddress tcp = m.isPresent()
@@ -54,7 +58,10 @@ public class RoleSettings {
         } catch (UnknownHostException e) {
             logger.error(e.getMessage(), e);
         }
-        setAnticipatedMemberCount(Math.max(Conf.get().members.size(), Conf.get().node.member.expectedCount));
+        setAnticipatedMemberCount(members != null
+                        ? Math.max(Conf.get().members.size(), Conf.get().node.member.expectedCount)
+                        : Conf.get().node.member.expectedCount
+        );
     }
 
     public String getRoleId() {

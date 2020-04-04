@@ -50,14 +50,17 @@ public class BlockingServerImpl extends AbstractServer {
 
     @Override
     public void close() {
-        super.close();
-        serverThread.close();
-        executor.shutdown();
         try {
-            executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            logger.error(e.getMessage(), e);
-            Thread.currentThread().interrupt();
+            super.close();
+        } finally {
+            try {
+                serverThread.close();
+                executor.shutdown();
+                executor.awaitTermination(Conf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                logger.error(e.getMessage(), e);
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
