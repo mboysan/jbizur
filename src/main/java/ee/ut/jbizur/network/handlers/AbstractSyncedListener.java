@@ -1,35 +1,35 @@
-package ee.ut.jbizur.common;
+package ee.ut.jbizur.network.handlers;
 
+import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
-abstract class CountdownLambda {
-    private static final Logger logger = LoggerFactory.getLogger(CountdownConsumer.class);
+/**
+ * A synchronous listener that waits for responses through a {@link #latch}.
+ */
+public abstract class AbstractSyncedListener implements Predicate<NetworkCommand> {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractSyncedListener.class);
 
     private final CountDownLatch latch;
     private final long timeoutMs;
 
-
-    CountdownLambda(int count) {
-        this(count, 0);
-    }
-
-    CountdownLambda(int count, long timeoutMillis) {
-        this.latch = new CountDownLatch(count);
+    public AbstractSyncedListener(int totalSize, long timeoutMillis) {
+        this.latch = new CountDownLatch(totalSize);
         this.timeoutMs = timeoutMillis;
     }
 
-    protected void terminate() {
+    void countdown() {
+        latch.countDown();
+    }
+
+    void terminate() {
         while (latch.getCount() > 0) {
             countdown();
         }
-    }
-
-    protected void countdown() {
-        latch.countDown();
     }
 
     public boolean await() {
