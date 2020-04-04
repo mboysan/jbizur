@@ -20,7 +20,7 @@ import static utils.TestUtils.getRandom;
 
 public class BizurNodeTestBase {
     static {
-        Conf.setConfigFromResources("BizurUT.conf");
+        Conf.setConfig("BizurUT.conf");
     }
 
     private static final int NODE_COUNT = Conf.get().members.size();

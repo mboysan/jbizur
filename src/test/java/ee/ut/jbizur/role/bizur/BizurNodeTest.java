@@ -21,7 +21,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class BizurNodeTest implements ResourceCloser {
     static {
-        Conf.setConfigFromResources("BizurUT.conf");
+        Conf.setConfig("BizurUT.conf");
     }
 
     private BizurNode member1;

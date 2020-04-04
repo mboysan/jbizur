@@ -17,7 +17,7 @@ import static utils.TestUtils.getRandom;
 public class BizurClientFunctionalTest extends BizurNodeTestBase {
 
     static {
-        Conf.setConfigFromResources("BizurUT.conf");
+        Conf.setConfig("BizurUT.conf");
     }
 
     private static final int CLIENT_COUNT = Conf.get().clients.size();

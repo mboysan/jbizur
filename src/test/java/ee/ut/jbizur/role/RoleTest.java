@@ -6,7 +6,6 @@ import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
 import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.nc.ping.Ping_NC;
 import ee.ut.jbizur.protocol.commands.nc.ping.Pong_NC;
-import ee.ut.jbizur.util.LambdaUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -26,7 +25,7 @@ import static org.junit.Assert.assertTrue;
 
 public class RoleTest {
     static {
-        Conf.setConfigFromResources("RoleUT.conf");
+        Conf.setConfig("RoleUT.conf");
     }
 
     private Role role1;

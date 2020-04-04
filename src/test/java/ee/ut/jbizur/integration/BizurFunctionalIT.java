@@ -23,8 +23,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @RunWith(Parameterized.class)
-public class BizurFunctionalIntegrationTest {
-    private static final Logger logger = LoggerFactory.getLogger(BizurFunctionalIntegrationTest.class);
+public class BizurFunctionalIT {
+    private static final Logger logger = LoggerFactory.getLogger(BizurFunctionalIT.class);
 
     @Parameterized.Parameters(name = "conf={0}")
     public static Object[][] conf() {
@@ -54,7 +54,7 @@ public class BizurFunctionalIntegrationTest {
 
     private void initConfiguration() {
         // set the configuration
-        Conf.setConfigFromResources(confName);
+        Conf.setConfig(confName);
 
         memberCount = Conf.get().members.size();
         memberAddresses = Conf.get().members.stream()
