@@ -7,7 +7,6 @@ public class JbizurConfig {
   public final java.util.List<JbizurConfig.Members$Elm> members;
   public final JbizurConfig.Network network;
   public final JbizurConfig.Node node;
-  public final JbizurConfig.Tests tests;
   public static class Clients$Elm {
     public final java.lang.String id;
     public final boolean instance;
@@ -141,45 +140,6 @@ public class JbizurConfig {
     }
   }
   
-  public static class Tests {
-    public final Tests.Functional functional;
-    public final Tests.Integration integration;
-    public static class Functional {
-      public final boolean clientMultiThreading;
-      public final java.lang.Integer iterateKeysTest;
-      public final java.lang.Integer keyValueDeleteMultiThreadTest;
-      public final java.lang.Integer keyValueDeleteTest;
-      public final java.lang.Integer keyValueSetGetMultiThreadTest;
-      public final java.lang.Integer keyValueSetGetTest;
-      public final boolean serverMultiThreading;
-      
-      public Functional(com.typesafe.config.Config c, java.lang.String parentPath, $TsCfgValidator $tsCfgValidator) {
-        this.clientMultiThreading = !c.hasPathOrNull("clientMultiThreading") || c.getBoolean("clientMultiThreading");
-        this.iterateKeysTest = c.hasPathOrNull("iterateKeysTest") ? c.getInt("iterateKeysTest") : null;
-        this.keyValueDeleteMultiThreadTest = c.hasPathOrNull("keyValueDeleteMultiThreadTest") ? c.getInt("keyValueDeleteMultiThreadTest") : null;
-        this.keyValueDeleteTest = c.hasPathOrNull("keyValueDeleteTest") ? c.getInt("keyValueDeleteTest") : null;
-        this.keyValueSetGetMultiThreadTest = c.hasPathOrNull("keyValueSetGetMultiThreadTest") ? c.getInt("keyValueSetGetMultiThreadTest") : null;
-        this.keyValueSetGetTest = c.hasPathOrNull("keyValueSetGetTest") ? c.getInt("keyValueSetGetTest") : null;
-        this.serverMultiThreading = !c.hasPathOrNull("serverMultiThreading") || c.getBoolean("serverMultiThreading");
-      }
-    }
-    
-    public static class Integration {
-      public final java.lang.Integer keyValueSetGetMultiThreadTest;
-      public final java.lang.Integer simpleIterateKeysTest;
-      
-      public Integration(com.typesafe.config.Config c, java.lang.String parentPath, $TsCfgValidator $tsCfgValidator) {
-        this.keyValueSetGetMultiThreadTest = c.hasPathOrNull("keyValueSetGetMultiThreadTest") ? c.getInt("keyValueSetGetMultiThreadTest") : null;
-        this.simpleIterateKeysTest = c.hasPathOrNull("simpleIterateKeysTest") ? c.getInt("simpleIterateKeysTest") : null;
-      }
-    }
-    
-    public Tests(com.typesafe.config.Config c, java.lang.String parentPath, $TsCfgValidator $tsCfgValidator) {
-      this.functional = c.hasPathOrNull("functional") ? new Tests.Functional(c.getConfig("functional"), parentPath + "functional.", $tsCfgValidator) : new Tests.Functional(com.typesafe.config.ConfigFactory.parseString("functional{}"), parentPath + "functional.", $tsCfgValidator);
-      this.integration = c.hasPathOrNull("integration") ? new Tests.Integration(c.getConfig("integration"), parentPath + "integration.", $tsCfgValidator) : new Tests.Integration(com.typesafe.config.ConfigFactory.parseString("integration{}"), parentPath + "integration.", $tsCfgValidator);
-    }
-  }
-  
   public JbizurConfig(com.typesafe.config.Config c) {
     final $TsCfgValidator $tsCfgValidator = new $TsCfgValidator();
     final java.lang.String parentPath = "";
@@ -189,7 +149,6 @@ public class JbizurConfig {
     this.members = c.hasPathOrNull("members") ? $_LJbizurConfig_Members$Elm(c.getList("members"), parentPath, $tsCfgValidator) : null;
     this.network = c.hasPathOrNull("network") ? new JbizurConfig.Network(c.getConfig("network"), parentPath + "network.", $tsCfgValidator) : new JbizurConfig.Network(com.typesafe.config.ConfigFactory.parseString("network{}"), parentPath + "network.", $tsCfgValidator);
     this.node = c.hasPathOrNull("node") ? new JbizurConfig.Node(c.getConfig("node"), parentPath + "node.", $tsCfgValidator) : new JbizurConfig.Node(com.typesafe.config.ConfigFactory.parseString("node{}"), parentPath + "node.", $tsCfgValidator);
-    this.tests = c.hasPathOrNull("tests") ? new JbizurConfig.Tests(c.getConfig("tests"), parentPath + "tests.", $tsCfgValidator) : new JbizurConfig.Tests(com.typesafe.config.ConfigFactory.parseString("tests{}"), parentPath + "tests.", $tsCfgValidator);
     $tsCfgValidator.validate();
   }
   private static java.util.List<JbizurConfig.Clients$Elm> $_LJbizurConfig_Clients$Elm(com.typesafe.config.ConfigList cl, java.lang.String parentPath, $TsCfgValidator $tsCfgValidator) {
