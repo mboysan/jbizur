@@ -1,18 +1,18 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.network.address.Address;
+import ee.ut.jbizur.common.config.Conf;
+import ee.ut.jbizur.common.protocol.address.Address;
 import org.junit.Assert;
 import org.junit.Test;
-import utils.MockUtils;
-import utils.MultiThreadExecutor;
+import util.MockUtils;
+import util.MultiThreadExecutor;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import static utils.TestUtils.getRandom;
+import static util.TestUtils.getRandom;
 
 public class BizurClientFunctionalTest extends BizurNodeTestBase {
 

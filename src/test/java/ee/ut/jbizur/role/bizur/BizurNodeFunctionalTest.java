@@ -1,13 +1,11 @@
 package ee.ut.jbizur.role.bizur;
 
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
-import utils.MultiThreadExecutor;
+import util.MultiThreadExecutor;
 
 import java.util.Set;
 
-@Ignore
 public class BizurNodeFunctionalTest extends BizurNodeTestBase {
 
     /**

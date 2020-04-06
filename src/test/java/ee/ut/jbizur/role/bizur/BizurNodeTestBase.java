@@ -1,12 +1,12 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.util.IdUtils;
+import ee.ut.jbizur.common.config.Conf;
+import ee.ut.jbizur.common.protocol.address.Address;
+import ee.ut.jbizur.common.util.IdUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import utils.MockUtils;
+import util.MockUtils;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static utils.TestUtils.getRandom;
+import static util.TestUtils.getRandom;
 
 public class BizurNodeTestBase {
     static {
@@ -75,7 +75,7 @@ public class BizurNodeTestBase {
     }
 
     protected int hashKey(String s) {
-        return IdUtils.hashKey(s, Conf.get().consensus.bizur.bucketCount);
+        return IdUtil.hashKey(s, Conf.get().consensus.bizur.bucketCount);
     }
 
     void putExpectedKeyValue(String expKey, String expVal) {

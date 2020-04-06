@@ -1,10 +1,10 @@
 package ee.ut.jbizur.network.io.tcp.custom;
 
-import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.network.address.TCPAddress;
+import ee.ut.jbizur.common.config.Conf;
+import ee.ut.jbizur.common.protocol.address.TCPAddress;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.ping.SignalEnd_NC;
 import ee.ut.jbizur.network.io.AbstractServer;
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.nc.ping.SignalEnd_NC;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,9 +17,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-/**
- * The message receiver wrapper for the communication protocols defined in {@link ee.ut.jbizur.network.ConnectionProtocol}.
- */
 public class BlockingServerImpl extends AbstractServer {
 
     private static final Logger logger = LoggerFactory.getLogger(BlockingServerImpl.class);

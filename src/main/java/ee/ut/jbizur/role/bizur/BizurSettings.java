@@ -1,8 +1,8 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.address.MulticastAddress;
+import ee.ut.jbizur.common.config.Conf;
+import ee.ut.jbizur.common.protocol.address.Address;
+import ee.ut.jbizur.common.protocol.address.MulticastAddress;
 import ee.ut.jbizur.role.RoleSettings;
 
 import java.util.Set;

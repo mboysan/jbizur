@@ -1,6 +1,6 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.network.address.Address;
+import ee.ut.jbizur.common.protocol.address.Address;
 
 import java.util.Collections;
 import java.util.Set;

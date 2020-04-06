@@ -1,8 +1,6 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.datastore.bizur.Bucket;
-import ee.ut.jbizur.datastore.bizur.BucketContainer;
-import ee.ut.jbizur.network.address.Address;
+import ee.ut.jbizur.common.protocol.address.Address;
 import ee.ut.jbizur.role.DeadNodeManager;
 import org.junit.Assert;
 import org.junit.Test;

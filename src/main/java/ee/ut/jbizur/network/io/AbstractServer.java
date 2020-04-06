@@ -1,15 +1,14 @@
 package ee.ut.jbizur.network.io;
 
-import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.address.MulticastAddress;
-import ee.ut.jbizur.network.address.TCPAddress;
+import ee.ut.jbizur.common.config.Conf;
+import ee.ut.jbizur.common.protocol.address.Address;
+import ee.ut.jbizur.common.protocol.address.MulticastAddress;
+import ee.ut.jbizur.common.protocol.address.TCPAddress;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.network.handlers.Listeners;
 import ee.ut.jbizur.network.io.tcp.custom.BlockingServerImpl;
 import ee.ut.jbizur.network.io.tcp.rapidoid.RapidoidServer;
 import ee.ut.jbizur.network.io.udp.Multicaster;
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import ee.ut.jbizur.util.LambdaUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,7 +19,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-import static ee.ut.jbizur.util.LambdaUtils.runnable;
+import static ee.ut.jbizur.common.util.LambdaUtil.runnable;
 
 public abstract class AbstractServer implements AutoCloseable {
 

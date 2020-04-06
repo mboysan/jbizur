@@ -1,11 +1,11 @@
 package ee.ut.jbizur.network.io;
 
-import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.address.TCPAddress;
+import ee.ut.jbizur.common.config.Conf;
+import ee.ut.jbizur.common.protocol.address.Address;
+import ee.ut.jbizur.common.protocol.address.TCPAddress;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.network.io.tcp.custom.BlockingClientImpl;
 import ee.ut.jbizur.network.io.tcp.rapidoid.RapidoidBlockingClient;
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

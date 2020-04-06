@@ -1,15 +1,12 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.datastore.bizur.BucketContainer;
-import ee.ut.jbizur.exceptions.RoleIsNotReadyError;
-import ee.ut.jbizur.exceptions.RoutingFailedException;
-import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
-import ee.ut.jbizur.protocol.commands.ic.NodeDead_IC;
-import ee.ut.jbizur.protocol.commands.ic.SendFail_IC;
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.nc.bizur.*;
+import ee.ut.jbizur.common.config.Conf;
+import ee.ut.jbizur.common.protocol.address.Address;
+import ee.ut.jbizur.common.protocol.commands.ic.InternalCommand;
+import ee.ut.jbizur.common.protocol.commands.ic.NodeDead_IC;
+import ee.ut.jbizur.common.protocol.commands.ic.SendFail_IC;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.bizur.*;
 import ee.ut.jbizur.role.Role;
 import ee.ut.jbizur.role.RoleValidation;
 import org.slf4j.Logger;
@@ -46,12 +43,8 @@ public class BizurNode extends Role {
         return (BizurSettings) super.getSettings();
     }
 
-    protected void checkReady() throws RoleIsNotReadyError {
-        try {
-            RoleValidation.checkStateAndError(isReady, "Bizur node is not ready.");
-        } catch (IllegalStateException e) {
-            throw new RoleIsNotReadyError(e);
-        }
+    protected void checkReady() {
+        RoleValidation.checkStateAndError(isReady, "Bizur node is not ready.");
     }
 
     @Override
@@ -106,7 +99,7 @@ public class BizurNode extends Role {
         new BizurRun(this).replicaRead(replicaReadNc);
     }
 
-    public String get(String key) throws RoleIsNotReadyError {
+    public String get(String key) {
         checkReady();
         return new BizurRun(this).get(key);
     }
@@ -114,7 +107,7 @@ public class BizurNode extends Role {
         new BizurRun(this, getNc.getContextId()).getByLeader(getNc);
     }
 
-    public boolean set(String key, String val) throws RoleIsNotReadyError {
+    public boolean set(String key, String val) {
         checkReady();
         return new BizurRun(this).set(key,val);
     }
@@ -122,7 +115,7 @@ public class BizurNode extends Role {
         new BizurRun(this, setNc.getContextId()).setByLeader(setNc);
     }
 
-    public boolean delete(String key) throws RoleIsNotReadyError {
+    public boolean delete(String key) {
         checkReady();
         return new BizurRun(this).delete(key);
     }
@@ -130,7 +123,7 @@ public class BizurNode extends Role {
         new BizurRun(this, deleteNc.getContextId()).deleteByLeader(deleteNc);
     }
 
-    public Set<String> iterateKeys() throws RoleIsNotReadyError {
+    public Set<String> iterateKeys() {
         checkReady();
         return new BizurRun(this).iterateKeys();
     }

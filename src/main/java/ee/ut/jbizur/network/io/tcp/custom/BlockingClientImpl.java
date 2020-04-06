@@ -1,19 +1,15 @@
 package ee.ut.jbizur.network.io.tcp.custom;
 
-import ee.ut.jbizur.network.address.TCPAddress;
+import ee.ut.jbizur.common.protocol.address.TCPAddress;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.ping.SignalEnd_NC;
 import ee.ut.jbizur.network.io.AbstractClient;
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.nc.ping.SignalEnd_NC;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Objects;
 
-import static ee.ut.jbizur.util.LambdaUtils.runnable;
+import static ee.ut.jbizur.common.util.LambdaUtil.runnable;
 
-/**
- * The message sender wrapper for the communication protocols defined in {@link ee.ut.jbizur.network.ConnectionProtocol}.
- */
 public class BlockingClientImpl extends AbstractClient {
 
     private SendSocket sendSocket;

@@ -1,16 +1,16 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.address.TCPAddress;
+import ee.ut.jbizur.common.config.Conf;
+import ee.ut.jbizur.common.protocol.address.Address;
+import ee.ut.jbizur.common.protocol.address.TCPAddress;
+import ee.ut.jbizur.common.protocol.commands.ic.InternalCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.ping.*;
+import ee.ut.jbizur.common.util.IdUtil;
 import ee.ut.jbizur.network.handlers.CallbackListener;
 import ee.ut.jbizur.network.handlers.QuorumListener;
 import ee.ut.jbizur.network.io.NetworkManager;
-import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.nc.ping.*;
-import ee.ut.jbizur.util.IdUtils;
-import ee.ut.jbizur.util.NetUtil;
+import ee.ut.jbizur.network.util.NetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -150,7 +150,7 @@ public abstract class Role implements AutoCloseable {
     protected boolean ping(Address address) throws IOException {
         NetworkCommand resp = sendRecv(
                 new Ping_NC()
-                        .setCorrelationId(IdUtils.generateId())
+                        .setCorrelationId(IdUtil.generateId())
                         .setSenderAddress(getSettings().getAddress())
                         .setReceiverAddress(address));
         return resp instanceof Pong_NC;

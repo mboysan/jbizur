@@ -1,9 +1,8 @@
 package ee.ut.jbizur.network.io.vm;
 
-import ee.ut.jbizur.network.address.Address;
+import ee.ut.jbizur.common.protocol.address.Address;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.network.io.AbstractServer;
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.nc.common.Nack_NC;
 import ee.ut.jbizur.role.DeadNodeManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

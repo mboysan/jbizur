@@ -1,20 +1,19 @@
 package ee.ut.jbizur.network.handlers;
 
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.nc.common.Ack_NC;
-import ee.ut.jbizur.protocol.commands.nc.common.Nack_NC;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.common.Ack_NC;
+import ee.ut.jbizur.common.protocol.commands.nc.common.Nack_NC;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import utils.MultiThreadExecutor;
+import util.MultiThreadExecutor;
 
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 public class ListenersTest {
 

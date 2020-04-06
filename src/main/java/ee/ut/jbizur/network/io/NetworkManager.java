@@ -1,13 +1,13 @@
 package ee.ut.jbizur.network.io;
 
 import ee.ut.jbizur.common.ResourceCloser;
-import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.network.address.MulticastAddress;
+import ee.ut.jbizur.common.config.Conf;
+import ee.ut.jbizur.common.protocol.address.Address;
+import ee.ut.jbizur.common.protocol.address.MulticastAddress;
+import ee.ut.jbizur.common.protocol.commands.ic.InternalCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.network.handlers.BaseListener;
 import ee.ut.jbizur.network.io.udp.Multicaster;
-import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

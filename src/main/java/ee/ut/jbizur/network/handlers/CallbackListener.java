@@ -1,6 +1,6 @@
 package ee.ut.jbizur.network.handlers;
 
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,17 +1,16 @@
 package ee.ut.jbizur.role.bizur;
 
 import ee.ut.jbizur.common.ResourceCloser;
-import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.exceptions.RoutingFailedException;
-import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.nc.ping.Ping_NC;
-import ee.ut.jbizur.protocol.commands.nc.ping.Pong_NC;
+import ee.ut.jbizur.common.config.Conf;
+import ee.ut.jbizur.common.protocol.address.Address;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.ping.Ping_NC;
+import ee.ut.jbizur.common.protocol.commands.nc.ping.Pong_NC;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import utils.MockUtils;
+import util.MockUtils;
 
 import java.io.IOException;
 import java.util.Arrays;

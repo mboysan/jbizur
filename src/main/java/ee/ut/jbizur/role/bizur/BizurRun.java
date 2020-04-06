@@ -1,17 +1,12 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.datastore.bizur.Bucket;
-import ee.ut.jbizur.datastore.bizur.BucketContainer;
-import ee.ut.jbizur.datastore.bizur.BucketView;
-import ee.ut.jbizur.exceptions.LeaderResolutionFailedError;
-import ee.ut.jbizur.exceptions.RoutingFailedException;
-import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.protocol.commands.ic.SendFail_IC;
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.nc.bizur.*;
-import ee.ut.jbizur.protocol.commands.nc.common.Ack_NC;
-import ee.ut.jbizur.util.IdUtils;
+import ee.ut.jbizur.common.config.Conf;
+import ee.ut.jbizur.common.protocol.address.Address;
+import ee.ut.jbizur.common.protocol.commands.ic.SendFail_IC;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.bizur.*;
+import ee.ut.jbizur.common.protocol.commands.nc.common.Ack_NC;
+import ee.ut.jbizur.common.util.IdUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +30,7 @@ public class BizurRun {
     private static final int BUCKET_LEADER_ELECTION_RETRY_COUNT = Conf.get().consensus.bizur.bucketElectRetryCount;
 
     BizurRun(BizurNode node) {
-        this(node, IdUtils.generateId());
+        this(node, IdUtil.generateId());
     }
 
     BizurRun(BizurNode node, int contextId) {
@@ -100,7 +95,7 @@ public class BizurRun {
         Bucket localBucket = bucketContainer.getBucket(bucketIndex);
         int electId = localBucket.incrementAndGetElectId();
 
-        int correlationId = IdUtils.generateId();
+        int correlationId = IdUtil.generateId();
         Supplier<NetworkCommand> pleaseVote =
                 () -> new PleaseVote_NC()
                         .setBucketIndex(bucketIndex)
@@ -171,7 +166,7 @@ public class BizurRun {
 
     protected Address resolveLeader(Bucket bucket, int retry) {
         if (retry < 0) {
-            throw new LeaderResolutionFailedError(logMsg("leader could not be resolved. Max retry count reached!"));
+            throw new LeaderResolutionFailedException(logMsg("leader could not be resolved. Max retry count reached!"));
         }
         if (bucket.getLeaderAddress() != null) {
             return bucket.getLeaderAddress();
@@ -182,7 +177,7 @@ public class BizurRun {
     }
 
     protected void electLeaderForBucket(Bucket localBucket, int startIdx, boolean forceElection) {
-        Address nextAddr = IdUtils.nextAddressInUnorderedSet(getSettings().getMemberAddresses(), startIdx);
+        Address nextAddr = IdUtil.nextAddressInUnorderedSet(getSettings().getMemberAddresses(), startIdx);
         if (nextAddr.equals(getSettings().getAddress())) {
             logger.info(logMsg("initializing election process on bucket idx=" + localBucket.getIndex()));
             electLeaderForBucket(localBucket);
@@ -227,7 +222,7 @@ public class BizurRun {
         bucketToWrite.incrementAndGetVerCounter();
         BucketView bucketViewToSend = bucketToWrite.createView();
 
-        int correlationId = IdUtils.generateId();
+        int correlationId = IdUtil.generateId();
         Supplier<NetworkCommand> replicaWrite =
                 () -> new ReplicaWrite_NC()
                         .setBucketView(bucketViewToSend)
@@ -268,7 +263,7 @@ public class BizurRun {
             return null;
         }
 
-        int correlationId = IdUtils.generateId();
+        int correlationId = IdUtil.generateId();
         Supplier<NetworkCommand> replicaRead =
                 () -> new ReplicaRead_NC()
                         .setIndex(index)
@@ -330,7 +325,7 @@ public class BizurRun {
             return false;
         };
 
-        int correlationId = IdUtils.generateId();
+        int correlationId = IdUtil.generateId();
         Supplier<NetworkCommand> replicaRead =
                 () -> new ReplicaRead_NC()
                         .setIndex(index)
@@ -340,7 +335,7 @@ public class BizurRun {
 
         final boolean isSuccess;
         if (publishAndWaitMajority(correlationId, replicaRead, handler)) {
-            Bucket maxVerBucket = maxVerBucketView.get().createBucket();
+            Bucket maxVerBucket = Bucket.createBucket(maxVerBucketView.get());
             maxVerBucket.setVerElectId(electId);
             maxVerBucket.setVerCounter(0);
             isSuccess = write(maxVerBucket);
@@ -435,7 +430,7 @@ public class BizurRun {
                     new ApiGet_NC()
                             .setKey(key)
                             .setReceiverAddress(lead)
-                            .setCorrelationId(IdUtils.generateId())
+                            .setCorrelationId(IdUtil.generateId())
                             .setContextId(contextId)
             );
         } catch (RoutingFailedException e) {
@@ -466,7 +461,7 @@ public class BizurRun {
                             .setKey(key)
                             .setVal(val)
                             .setReceiverAddress(lead)
-                            .setCorrelationId(IdUtils.generateId())
+                            .setCorrelationId(IdUtil.generateId())
                             .setContextId(contextId)
             );
         } catch (RoutingFailedException e) {
@@ -497,7 +492,7 @@ public class BizurRun {
                     new ApiDelete_NC()
                             .setKey(key)
                             .setReceiverAddress(lead)
-                            .setCorrelationId(IdUtils.generateId())
+                            .setCorrelationId(IdUtil.generateId())
                             .setContextId(contextId)
             );
         } catch (RoutingFailedException e) {
@@ -529,7 +524,7 @@ public class BizurRun {
                 } else {
                     NetworkCommand apiIterKeys = new ApiIterKeys_NC()
                             .setReceiverAddress(leaderAddress)
-                            .setCorrelationId(IdUtils.generateId())
+                            .setCorrelationId(IdUtil.generateId())
                             .setContextId(contextId);
                     keys = route(apiIterKeys);
                 }
@@ -595,7 +590,7 @@ public class BizurRun {
         NetworkCommand request = new LeaderElectionRequest_NC()
                 .setBucketIndex(bucketIndex)
                 .setReceiverAddress(address)
-                .setCorrelationId(IdUtils.generateId())
+                .setCorrelationId(IdUtil.generateId())
                 .setContextId(contextId);
 
         NetworkCommand resp = sendRecv(request);

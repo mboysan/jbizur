@@ -1,14 +1,14 @@
 package ee.ut.jbizur.integration;
 
 import ee.ut.jbizur.common.ResourceCloser;
-import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.network.address.TCPAddress;
+import ee.ut.jbizur.common.config.Conf;
+import ee.ut.jbizur.common.protocol.address.TCPAddress;
+import ee.ut.jbizur.common.protocol.commands.ic.InternalCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.ping.Connect_NC;
+import ee.ut.jbizur.common.util.IdUtil;
 import ee.ut.jbizur.network.io.NetworkManager;
-import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.nc.ping.Connect_NC;
-import ee.ut.jbizur.util.IdUtils;
-import ee.ut.jbizur.util.NetUtil;
+import ee.ut.jbizur.network.util.NetUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -17,7 +17,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.MultiThreadExecutor;
+import util.MultiThreadExecutor;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -25,7 +25,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.function.Supplier;
 
-import static ee.ut.jbizur.util.LambdaUtils.runnable;
+import static ee.ut.jbizur.common.util.LambdaUtil.runnable;
 
 @RunWith(Parameterized.class)
 public class NetworkManagerIT implements ResourceCloser {
@@ -88,7 +88,7 @@ public class NetworkManagerIT implements ResourceCloser {
         int totalSend = 500;
         for (int i = 0; i < totalSend; i++) {
             Supplier<NetworkCommand> ncSupplier = () -> new NetworkCommand()
-                    .setCorrelationId(IdUtils.generateId())
+                    .setCorrelationId(IdUtil.generateId())
                     .setReceiverAddress(recvAddr);
             nmW1.nm.send(ncSupplier.get());
             nmW2.nm.send(ncSupplier.get());
@@ -107,7 +107,7 @@ public class NetworkManagerIT implements ResourceCloser {
         int totalSend = 500;
         for (int i = 0; i < totalSend; i++) {
             Supplier<NetworkCommand> ncSupplier = () -> new NetworkCommand()
-                    .setCorrelationId(IdUtils.generateId())
+                    .setCorrelationId(IdUtil.generateId())
                     .setReceiverAddress(recvAddr);
             mte.execute(runnable(() -> nmW1.nm.send(ncSupplier.get())));
             mte.execute(runnable(() -> nmW2.nm.send(ncSupplier.get())));

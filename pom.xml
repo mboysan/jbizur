@@ -81,7 +81,7 @@
                 <version>0.8.2</version>
                 <configuration>
                     <templateFile>src/main/resources/jbizur_template.conf</templateFile>
-                    <packageName>ee.ut.jbizur.config</packageName>
+                    <packageName>ee.ut.jbizur.common.config</packageName>
                     <outputDirectory>src/main/java/</outputDirectory>
                     <className>JbizurConfig</className>
                     <generateGetters>false</generateGetters>

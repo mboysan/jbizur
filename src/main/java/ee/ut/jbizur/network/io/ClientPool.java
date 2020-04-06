@@ -1,13 +1,12 @@
 package ee.ut.jbizur.network.io;
 
 import ee.ut.jbizur.common.ObjectPool;
-import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.network.address.Address;
+import ee.ut.jbizur.common.config.Conf;
+import ee.ut.jbizur.common.protocol.address.Address;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ClientPool extends ObjectPool<AbstractClient> {

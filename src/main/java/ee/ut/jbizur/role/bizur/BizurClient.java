@@ -1,15 +1,14 @@
 package ee.ut.jbizur.role.bizur;
 
-import ee.ut.jbizur.exceptions.RoutingFailedException;
-import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
-import ee.ut.jbizur.protocol.commands.ic.NodeAddressRegistered_IC;
-import ee.ut.jbizur.protocol.commands.ic.NodeAddressUnregistered_IC;
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.nc.bizur.*;
-import ee.ut.jbizur.protocol.commands.nc.ping.ConnectOK_NC;
-import ee.ut.jbizur.protocol.commands.nc.ping.SignalEnd_NC;
-import ee.ut.jbizur.util.IdUtils;
+import ee.ut.jbizur.common.protocol.address.Address;
+import ee.ut.jbizur.common.protocol.commands.ic.InternalCommand;
+import ee.ut.jbizur.common.protocol.commands.ic.NodeAddressRegistered_IC;
+import ee.ut.jbizur.common.protocol.commands.ic.NodeAddressUnregistered_IC;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.bizur.*;
+import ee.ut.jbizur.common.protocol.commands.nc.ping.ConnectOK_NC;
+import ee.ut.jbizur.common.protocol.commands.nc.ping.SignalEnd_NC;
+import ee.ut.jbizur.common.util.IdUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +67,7 @@ public class BizurClient extends BizurNode {
                         .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(getLeaderAddress(key))
                         .setSenderAddress(getSettings().getAddress())
-                        .setCorrelationId(IdUtils.generateId())
+                        .setCorrelationId(IdUtil.generateId())
             );
             updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
             return (String) response.getPayload();
@@ -91,7 +90,7 @@ public class BizurClient extends BizurNode {
                             .setSenderId(getSettings().getRoleId())
                             .setReceiverAddress(getLeaderAddress(key))
                             .setSenderAddress(getSettings().getAddress())
-                            .setCorrelationId(IdUtils.generateId())
+                            .setCorrelationId(IdUtil.generateId())
             );
             updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
             return (boolean) response.getPayload();
@@ -113,7 +112,7 @@ public class BizurClient extends BizurNode {
                             .setSenderId(getSettings().getRoleId())
                             .setReceiverAddress(getLeaderAddress(key))
                             .setSenderAddress(getSettings().getAddress())
-                            .setCorrelationId(IdUtils.generateId())
+                            .setCorrelationId(IdUtil.generateId())
             );
             updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
             return (boolean) response.getPayload();
@@ -134,7 +133,7 @@ public class BizurClient extends BizurNode {
                             .setSenderId(getSettings().getRoleId())
                             .setReceiverAddress(getRandomAddress())
                             .setSenderAddress(getSettings().getAddress())
-                            .setCorrelationId(IdUtils.generateId())
+                            .setCorrelationId(IdUtil.generateId())
             );
             return (Set<String>) response.getPayload();
         } catch (RoutingFailedException e) {

@@ -1,8 +1,8 @@
 package ee.ut.jbizur.network.io.tcp.rapidoid;
 
+import ee.ut.jbizur.common.protocol.ByteSerializer;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
 import ee.ut.jbizur.network.io.tcp.custom.SendSocket;
-import ee.ut.jbizur.protocol.ByteSerializer;
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
 
 import java.io.*;
 import java.net.Socket;

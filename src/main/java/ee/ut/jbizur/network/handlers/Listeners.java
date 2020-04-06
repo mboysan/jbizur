@@ -1,6 +1,6 @@
 package ee.ut.jbizur.network.handlers;
 
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
 
 import java.util.Collections;
 import java.util.Map;

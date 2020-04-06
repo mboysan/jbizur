@@ -1,17 +1,17 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.network.address.Address;
-import ee.ut.jbizur.protocol.commands.ic.InternalCommand;
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.nc.ping.Ping_NC;
-import ee.ut.jbizur.protocol.commands.nc.ping.Pong_NC;
+import ee.ut.jbizur.common.config.Conf;
+import ee.ut.jbizur.common.protocol.address.Address;
+import ee.ut.jbizur.common.protocol.commands.ic.InternalCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.ping.Ping_NC;
+import ee.ut.jbizur.common.protocol.commands.nc.ping.Pong_NC;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import utils.MockUtils;
-import utils.MultiThreadExecutor;
+import util.MockUtils;
+import util.MultiThreadExecutor;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -20,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BooleanSupplier;
 
-import static ee.ut.jbizur.util.LambdaUtils.runnable;
+import static ee.ut.jbizur.common.util.LambdaUtil.runnable;
 import static org.junit.Assert.assertTrue;
 
 public class RoleTest {

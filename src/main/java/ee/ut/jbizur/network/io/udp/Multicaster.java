@@ -1,12 +1,12 @@
 package ee.ut.jbizur.network.io.udp;
 
-import ee.ut.jbizur.config.Conf;
-import ee.ut.jbizur.network.address.MulticastAddress;
+import ee.ut.jbizur.common.config.Conf;
+import ee.ut.jbizur.common.protocol.CommandMarshaller;
+import ee.ut.jbizur.common.protocol.address.MulticastAddress;
+import ee.ut.jbizur.common.protocol.commands.nc.NetworkCommand;
+import ee.ut.jbizur.common.protocol.commands.nc.ping.SignalEnd_NC;
 import ee.ut.jbizur.network.io.AbstractServer;
-import ee.ut.jbizur.protocol.CommandMarshaller;
-import ee.ut.jbizur.protocol.commands.nc.NetworkCommand;
-import ee.ut.jbizur.protocol.commands.nc.ping.SignalEnd_NC;
-import ee.ut.jbizur.util.ByteUtils;
+import ee.ut.jbizur.network.util.ByteUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,10 +16,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Used for sending multicast messages. Preferably used for process discovery with
- * {@link ee.ut.jbizur.network.ConnectionProtocol#TCP}
- */
 public class Multicaster extends AbstractServer implements AutoCloseable {
 
     private static final Logger logger = LoggerFactory.getLogger(Multicaster.class);
@@ -55,7 +51,7 @@ public class Multicaster extends AbstractServer implements AutoCloseable {
         try (DatagramSocket socket = new DatagramSocket()) {
             InetAddress group = getServerAddress().getMulticastGroupAddr();
             byte[] msg = commandMarshaller.marshall(command, byte[].class);
-            byte[] msgWithLength = ByteUtils.prependMessageLengthTo(msg);
+            byte[] msgWithLength = ByteUtil.prependMessageLengthTo(msg);
 
             DatagramPacket packet
                     = new DatagramPacket(msgWithLength, msgWithLength.length, group, getServerAddress().getMulticastPort());
@@ -97,7 +93,7 @@ public class Multicaster extends AbstractServer implements AutoCloseable {
                     synchronized (socket) {
                         socket.receive(packet);
                     }
-                    byte[] msgRecv = ByteUtils.extractActualMessage(packet.getData());
+                    byte[] msgRecv = ByteUtil.extractActualMessage(packet.getData());
 
                     NetworkCommand received = commandMarshaller.unmarshall(msgRecv);
                     if (received instanceof SignalEnd_NC) {

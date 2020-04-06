@@ -1,6 +1,5 @@
 package ee.ut.jbizur.common;
 
-import ee.ut.jbizur.exceptions.ResourceCloseException;
 import org.slf4j.Logger;
 
 import java.util.*;

@@ -1,6 +1,6 @@
 package ee.ut.jbizur.network.io.tcp.rapidoid;
 
-import ee.ut.jbizur.network.address.TCPAddress;
+import ee.ut.jbizur.common.protocol.address.TCPAddress;
 import ee.ut.jbizur.network.io.tcp.custom.BlockingClientImpl;
 import ee.ut.jbizur.network.io.tcp.custom.SendSocket;
 
