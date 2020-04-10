@@ -9,6 +9,9 @@ cd $HOME
 git clone --depth=1 --branch=repository https://github.com/mboysan/jbizur.git jbizur-repository
 cd jbizur-repository
 
+# clean dir
+rm -vr ./ee/ut/jbizur/*
+
 # commit files
 cp -avr $HOME/.m2/repository/ee/ut/jbizur/* ./ee/ut/jbizur/
 git add --all
