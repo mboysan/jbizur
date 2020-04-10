@@ -94,7 +94,7 @@
     <modules>
         <module>jbizur-core</module>
         <module>jbizur-bizur</module>
-        <module>distribution</module>
+        <module>jbizur-distribution</module>
     </modules>
 
     <dependencyManagement>
