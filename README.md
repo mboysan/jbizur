@@ -1,5 +1,5 @@
 [![Build Status](https://api.travis-ci.com/mboysan/jbizur.svg?branch=master)](https://travis-ci.com/mboysan/jbizur)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ee.ut%3Ajbizur&metric=alert_status)](https://sonarcloud.io/dashboard?id=ee.ut%3Ajbizur)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ee.ut.jbizur%3Ajbizur-parent&metric=alert_status)](https://sonarcloud.io/dashboard?id=ee.ut.jbizur%3Ajbizur-parent)
 
 #### Disclaimer
 This is still a work in progress! This repository is only

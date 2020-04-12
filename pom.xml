@@ -19,6 +19,7 @@
         <tscfg.maven.plugin.version>0.8.2</tscfg.maven.plugin.version>
         <maven.jar.plugin.version>3.0.2</maven.jar.plugin.version>
         <flatten.maven.plugin.version>1.1.0</flatten.maven.plugin.version>
+        <jacoco.maven.plugin.version>0.8.5</jacoco.maven.plugin.version>
 
         <slf4j.version>1.7.30</slf4j.version>
         <typesafe.version>1.3.4</typesafe.version>
@@ -28,6 +29,9 @@
         <netty.version>4.1.48.Final</netty.version>
         <junit.version>4.13</junit.version>
         <mockito.version>1.10.19</mockito.version>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
     <build>
@@ -36,6 +40,11 @@
                 <plugin>
                     <artifactId>maven-assembly-plugin</artifactId>
                     <version>${maven.assembly.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco.maven.plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -120,6 +129,7 @@
         <module>jbizur-core</module>
         <module>jbizur-bizur</module>
         <module>jbizur-distribution</module>
+        <module>jbizur-integration</module>
     </modules>
 
     <dependencyManagement>
@@ -179,5 +189,30 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <profiles>
+        <profile>
+            <id>coverage</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>prepare-agent</id>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>
