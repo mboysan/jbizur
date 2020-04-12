@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>ee.ut.jbizur</groupId>
+  <artifactId>jbizur-integration</artifactId>
+  <versioning>
+    <versions>
+      <version>1.0-SNAPSHOT</version>
+    </versions>
+    <lastUpdated>20200412101031</lastUpdated>
+  </versioning>
+</metadata>
