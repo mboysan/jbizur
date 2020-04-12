@@ -18,7 +18,8 @@ before_script:
   - mkdir ./log
   - chmod +x ./scripts/*
 script:
-  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install sonar:sonar -Dmaven.javadoc.skip=true -DcreateChecksum=true -V
+  - mvn clean install sonar:sonar -Dmaven.javadoc.skip=true -DcreateChecksum=true -V
+#  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install sonar:sonar -Dmaven.javadoc.skip=true -DcreateChecksum=true -V
 #  - mvn clean install -DskipITs -Dmaven.javadoc.skip=true -DcreateChecksum=true -V
 after_failure:
   - bash ./scripts/uploadlog.sh "jbizur-core/log"

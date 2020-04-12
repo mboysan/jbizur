@@ -129,7 +129,6 @@
         <module>jbizur-core</module>
         <module>jbizur-bizur</module>
         <module>jbizur-distribution</module>
-        <module>jbizur-integration</module>
     </modules>
 
     <dependencyManagement>
