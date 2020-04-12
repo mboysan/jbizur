@@ -2,10 +2,10 @@ language: java
 jdk: openjdk13
 git:
   depth: false
-cache:
-  directories:
-    - '$HOME/.m2'
-    - '$HOME/.sonar/cache'
+#cache:
+#  directories:
+#    - '$HOME/.m2'
+#    - '$HOME/.sonar/cache'
 
 addons:
   sonarcloud:
