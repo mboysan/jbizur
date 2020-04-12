@@ -12,10 +12,6 @@
     <artifactId>jbizur-bizur</artifactId>
     <packaging>jar</packaging>
 
-<!--    <properties>-->
-<!--        <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/../${aggregate.report.dir}</sonar.coverage.jacoco.xmlReportPaths>-->
-<!--    </properties>-->
-
     <dependencies>
         <dependency>
             <groupId>ee.ut.jbizur</groupId>

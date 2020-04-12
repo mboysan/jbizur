@@ -13,6 +13,9 @@ addons:
 
 install: true   # skip default mvn commands
 
+env:
+  - COV_DIR="$TRAVIS_BUILD_DIR/jbizur-distribution/target/site/jacoco-aggregate/jacoco.xml"
+
 jobs:
   include:
     - stage: test
@@ -20,9 +23,9 @@ jobs:
         - mkdir ./config
         - mkdir ./log
         - chmod +x ./scripts/*
+        - printenv
       script:
-#        - mvn -Dsonar.coverage.jacoco.xmlReportPaths=/home/travis/build/mboysan/jbizur/jbizur-distribution/target/site/jacoco-aggregate/jacoco.xml -Dmaven.javadoc.skip=true -DcreateChecksum=true -V clean install sonar:sonar
-        - mvn -Dsonar.coverage.jacoco.xmlReportPaths=$TRAVIS_BUILD_DIR/jbizur-distribution/target/site/jacoco-aggregate/jacoco.xml -Dmaven.javadoc.skip=true -DcreateChecksum=true -V clean install sonar:sonar
+        - mvn -Dsonar.coverage.jacoco.xmlReportPaths=$COV_DIR -Dmaven.javadoc.skip=true -DcreateChecksum=true -V clean install sonar:sonar
       after_failure:
         - bash ./scripts/uploadlog.sh "jbizur-core/log"
         - bash ./scripts/uploadlog.sh "jbizur-bizur/log"

@@ -32,8 +32,6 @@
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-
-<!--        <aggregate.report.dir>jbizur-distribution/target/site/jacoco-aggregate/jacoco.xml</aggregate.report.dir>-->
     </properties>
 
     <build>
