@@ -12,6 +12,10 @@
     <artifactId>jbizur-core</artifactId>
     <packaging>jar</packaging>
 
+<!--    <properties>-->
+<!--        <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/../${aggregate.report.dir}</sonar.coverage.jacoco.xmlReportPaths>-->
+<!--    </properties>-->
+
     <build>
         <plugins>
             <plugin>
