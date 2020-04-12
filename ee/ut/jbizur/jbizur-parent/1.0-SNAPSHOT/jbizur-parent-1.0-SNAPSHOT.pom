@@ -10,7 +10,6 @@
     <module>jbizur-core</module>
     <module>jbizur-bizur</module>
     <module>jbizur-distribution</module>
-    <module>jbizur-integration</module>
   </modules>
   <properties>
     <netty.version>4.1.48.Final</netty.version>

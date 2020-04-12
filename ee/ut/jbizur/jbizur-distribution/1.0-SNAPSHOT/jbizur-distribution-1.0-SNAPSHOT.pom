@@ -10,7 +10,6 @@
   <groupId>ee.ut.jbizur</groupId>
   <artifactId>jbizur-distribution</artifactId>
   <version>1.0-SNAPSHOT</version>
-  <packaging>pom</packaging>
   <dependencies>
     <dependency>
       <groupId>ee.ut.jbizur</groupId>
@@ -40,6 +39,19 @@
                 <descriptorRef>jar-with-dependencies</descriptorRef>
               </descriptorRefs>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report-aggregate</goal>
+            </goals>
           </execution>
         </executions>
       </plugin>
