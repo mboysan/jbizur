@@ -13,16 +13,20 @@ addons:
 
 install: true   # skip default mvn commands
 
-before_script:
-  - mkdir ./config
-  - mkdir ./log
-  - chmod +x ./scripts/*
-script:
-  - mvn -Dsonar.coverage.jacoco.xmlReportPaths=/home/travis/build/mboysan/jbizur/jbizur-distribution/target/site/jacoco-aggregate/jacoco.xml -Dmaven.javadoc.skip=true -DcreateChecksum=true -V clean install sonar:sonar
-#  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install sonar:sonar -Dmaven.javadoc.skip=true -DcreateChecksum=true -V
-#  - mvn clean install -DskipITs -Dmaven.javadoc.skip=true -DcreateChecksum=true -V
-after_failure:
-  - bash ./scripts/uploadlog.sh "jbizur-core/log"
-  - bash ./scripts/uploadlog.sh "jbizur-bizur/log"
-after_success:
-  - bash ./scripts/deploy.sh
+jobs:
+  include:
+    - stage: test
+      before_script:
+        - mkdir ./config
+        - mkdir ./log
+        - chmod +x ./scripts/*
+      script:
+#        - mvn -Dsonar.coverage.jacoco.xmlReportPaths=/home/travis/build/mboysan/jbizur/jbizur-distribution/target/site/jacoco-aggregate/jacoco.xml -Dmaven.javadoc.skip=true -DcreateChecksum=true -V clean install sonar:sonar
+        - mvn -Dsonar.coverage.jacoco.xmlReportPaths=$TRAVIS_BUILD_DIR/jbizur-distribution/target/site/jacoco-aggregate/jacoco.xml -Dmaven.javadoc.skip=true -DcreateChecksum=true -V clean install sonar:sonar
+      after_failure:
+        - bash ./scripts/uploadlog.sh "jbizur-core/log"
+        - bash ./scripts/uploadlog.sh "jbizur-bizur/log"
+    - stage: deploy
+      if: branch = master
+      script:
+        - bash ./scripts/deploy.sh
