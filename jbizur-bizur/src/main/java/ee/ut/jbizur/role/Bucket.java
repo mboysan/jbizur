@@ -58,6 +58,9 @@ public class Bucket implements Comparable<Bucket> {
     public String getOp(String key){
         mapLock.readLock().lock();
         try {
+            if (logger.isDebugEnabled()) {
+                logger.debug("get key={} from bucket={}", key, this);
+            }
             return bucketMap.get(key);
         } finally {
             mapLock.readLock().unlock();
