@@ -1,23 +1,18 @@
 package ee.ut.jbizur.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Random;
+import java.util.UUID;
 
 public class TestUtil {
 
-    private static final Logger logger = LoggerFactory.getLogger(TestUtil.class);
-
-    private static final Random RANDOM;
-    static {
-        long seed = System.currentTimeMillis();
-        logger.error("Seed for random: {}", seed);
-        System.out.println("Seed for random: " + seed);
-        RANDOM = new Random(seed);
+    public static String getRandomString() {
+        return getRandomString(8);
     }
 
-    public static Random getRandom() {
-        return RANDOM;
+    public static String getRandomString(int length) {
+        String r = UUID.randomUUID().toString();
+        if (length > r.length()) {
+            throw new IllegalArgumentException("length cannot be greater than " + r.length());
+        }
+        return r.substring(0, length);
     }
 }

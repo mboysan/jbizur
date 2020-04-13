@@ -7,6 +7,7 @@ import ee.ut.jbizur.role.BizurBuilder;
 import ee.ut.jbizur.role.BizurClient;
 import ee.ut.jbizur.role.BizurNode;
 import ee.ut.jbizur.util.MultiThreadExecutor;
+import ee.ut.jbizur.util.TestUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -121,8 +122,8 @@ public class BizurIT {
      */
     @Test
     public void simpleSetGetDeleteTest() {
-        String expKey = UUID.randomUUID().toString();
-        String expVal = UUID.randomUUID().toString();
+        String expKey = TestUtil.getRandomString();
+        String expVal = TestUtil.getRandomString();
 
         Assert.assertTrue(client.set(expKey, expVal));
         Assert.assertEquals(expVal, client.get(expKey));
@@ -138,8 +139,8 @@ public class BizurIT {
         Map<String, String> expKeyValMap = new HashMap<>();
 
         for (int i = 0; i < 10; i++) {
-            String expKey = UUID.randomUUID().toString();
-            String expVal = UUID.randomUUID().toString();
+            String expKey = TestUtil.getRandomString();
+            String expVal = TestUtil.getRandomString();
             expKeyValMap.put(expKey, expVal);
             Assert.assertTrue(client.set(expKey, expVal));
             Assert.assertEquals(expVal, client.get(expKey));
@@ -160,8 +161,8 @@ public class BizurIT {
         MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
             executor.execute(() -> {
-                String testKey = UUID.randomUUID().toString();
-                String expVal = UUID.randomUUID().toString();
+                String testKey = TestUtil.getRandomString();
+                String expVal = TestUtil.getRandomString();
 
                 Assert.assertTrue(client.set(testKey, expVal));
                 Assert.assertEquals(expVal, client.get(testKey));
