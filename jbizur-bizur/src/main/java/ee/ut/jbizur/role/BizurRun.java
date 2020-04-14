@@ -241,6 +241,20 @@ public class BizurRun {
         NetworkCommand response;
         if (recvBucketView.getVerElectId() < localBucket.getVotedElectId()) {
             response = new NackWrite_NC().ofRequest(replicaWriteNc);
+        } else if (localBucket.isLeader()) {
+            /* Note3: we need to check the ver.counter, otherwise, if the leader tries to process
+               an older ReplicaWrite command, the bucket will be replaced with an older version. */
+            int verComparison = localBucket.compareTo(recvBucketView);
+            if (verComparison > 0) {
+                // local bucket has newer version
+                response = new NackWrite_NC().ofRequest(replicaWriteNc);
+            } else if (verComparison == 0) {
+                // no need to re-write
+                response = new AckWrite_NC().ofRequest(replicaWriteNc);
+            } else {
+                localBucket.replaceBucketForReplicationWith(recvBucketView);
+                response = new AckWrite_NC().ofRequest(replicaWriteNc);
+            }
         } else {
             localBucket.replaceBucketForReplicationWith(recvBucketView);
             response = new AckWrite_NC().ofRequest(replicaWriteNc);

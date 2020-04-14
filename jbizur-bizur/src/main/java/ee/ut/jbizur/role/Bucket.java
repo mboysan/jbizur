@@ -232,6 +232,16 @@ public class Bucket implements Comparable<Bucket> {
                 .setLeaderAddress(bucketView.getLeaderAddress());
     }
 
+    public int compareTo(BucketView bucketView) {
+        if(this.getVerElectId() > bucketView.getVerElectId()){
+            return 1;
+        } else if (this.getVerElectId() == bucketView.getVerElectId()){
+            return Integer.compare(this.getVerCounter(), bucketView.getVerCounter());
+        } else {
+            return -1;
+        }
+    }
+
 
     /* ***************************************************************************
      * Utils
