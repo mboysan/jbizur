@@ -232,7 +232,7 @@ public class Bucket implements Comparable<Bucket> {
                 .setLeaderAddress(bucketView.getLeaderAddress());
     }
 
-    public int compareTo(BucketView bucketView) {
+    public int compareToView(BucketView bucketView) {
         if(this.getVerElectId() > bucketView.getVerElectId()){
             return 1;
         } else if (this.getVerElectId() == bucketView.getVerElectId()){

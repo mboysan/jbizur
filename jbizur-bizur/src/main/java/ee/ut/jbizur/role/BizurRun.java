@@ -244,7 +244,7 @@ public class BizurRun {
         } else if (localBucket.isLeader()) {
             /* Note3: we need to check the ver.counter, otherwise, if the leader tries to process
                an older ReplicaWrite command, the bucket will be replaced with an older version. */
-            int verComparison = localBucket.compareTo(recvBucketView);
+            int verComparison = localBucket.compareToView(recvBucketView);
             if (verComparison > 0) {
                 // local bucket has newer version
                 response = new NackWrite_NC().ofRequest(replicaWriteNc);
