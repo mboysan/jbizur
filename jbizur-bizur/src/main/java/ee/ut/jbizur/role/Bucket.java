@@ -58,6 +58,9 @@ public class Bucket implements Comparable<Bucket> {
     public String getOp(String key){
         mapLock.readLock().lock();
         try {
+            if (logger.isDebugEnabled()) {
+                logger.debug("get key={} from bucket={}", key, this);
+            }
             return bucketMap.get(key);
         } finally {
             mapLock.readLock().unlock();
@@ -227,6 +230,16 @@ public class Bucket implements Comparable<Bucket> {
                 .setVerElectId(bucketView.getVerElectId())
                 .setVerCounter(bucketView.getVerCounter())
                 .setLeaderAddress(bucketView.getLeaderAddress());
+    }
+
+    public int compareToView(BucketView bucketView) {
+        if(this.getVerElectId() > bucketView.getVerElectId()){
+            return 1;
+        } else if (this.getVerElectId() == bucketView.getVerElectId()){
+            return Integer.compare(this.getVerCounter(), bucketView.getVerCounter());
+        } else {
+            return -1;
+        }
     }
 
 
