@@ -1,7 +1,7 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.common.util.IdUtil;
+import ee.ut.jbizur.protocol.address.Address;
 
 import java.util.Map;
 import java.util.Set;
@@ -18,20 +18,20 @@ public class BucketContainer {
         this.localBuckets = new ConcurrentHashMap<>();
     }
 
-    public Bucket getBucket(String key) {
-        return getBucket(hashKey(key));
+    public Bucket getOrCreateBucket(String key) {
+        return getOrCreateBucket(hashKey(key));
     }
 
-    public Bucket getBucket(int index) {
+    public Bucket getOrCreateBucket(int index) {
         return localBuckets.computeIfAbsent(index, idx -> new Bucket().setIndex(idx));
     }
 
     public void lockBucket(int index) {
-        getBucket(index).lock();
+        getOrCreateBucket(index).lock();
     }
 
     public void unlockBucket(int index) {
-        getBucket(index).unlock();
+        getOrCreateBucket(index).unlock();
     }
 
     public int getNumBuckets() {
@@ -46,9 +46,13 @@ public class BucketContainer {
 
     public Set<Integer> bucketIndicesOfAddress(Address address) {
         return localBuckets.values().stream()
-                .filter(bucket -> bucket.getLeaderAddress().equals(address))
+                .filter(bucket -> bucket.getLeaderAddress() != null && bucket.getLeaderAddress().equals(address))
                 .map(Bucket::getIndex)
                 .collect(Collectors.toSet());
+    }
+
+    Set<Integer> collectIndices() {
+        return localBuckets.keySet();
     }
 
     public int hashKey(String s) {

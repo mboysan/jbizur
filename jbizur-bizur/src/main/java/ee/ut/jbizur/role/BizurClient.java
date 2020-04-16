@@ -1,11 +1,11 @@
 package ee.ut.jbizur.role;
 
+import ee.ut.jbizur.common.util.IdUtil;
 import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.protocol.commands.intl.InternalCommand;
 import ee.ut.jbizur.protocol.commands.intl.NodeAddressRegistered_IC;
 import ee.ut.jbizur.protocol.commands.intl.NodeAddressUnregistered_IC;
 import ee.ut.jbizur.protocol.commands.net.*;
-import ee.ut.jbizur.common.util.IdUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,11 +25,6 @@ public class BizurClient extends BizurNode {
         if (isAddressesAlreadyRegistered()) {
             arrangeAddresses();
         }
-    }
-
-    @Override
-    protected boolean initLeaderPerBucketElectionFlow() {
-        return true;
     }
 
     @Override
@@ -164,11 +159,11 @@ public class BizurClient extends BizurNode {
     }
 
     private Address getLeaderAddress(String bucketKey) {
-        Address leader = bucketContainer.getBucket(bucketKey).getLeaderAddress();
+        Address leader = bucketContainer.getOrCreateBucket(bucketKey).getLeaderAddress();
         return leader != null ? leader : getRandomAddress();
     }
 
     private void updateLeaderOfBucket(String bucketKey, Address assumedLeader) {
-        bucketContainer.getBucket(bucketKey).setLeaderAddress(assumedLeader);
+        bucketContainer.getOrCreateBucket(bucketKey).setLeaderAddress(assumedLeader);
     }
 }

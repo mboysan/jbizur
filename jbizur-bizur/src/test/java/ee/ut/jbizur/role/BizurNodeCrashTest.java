@@ -1,13 +1,18 @@
 package ee.ut.jbizur.role;
 
+import ee.ut.jbizur.config.CoreConf;
 import ee.ut.jbizur.protocol.address.Address;
-import org.junit.Assert;
+import ee.ut.jbizur.util.TestUtil;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.UUID;
 
 public class BizurNodeCrashTest extends BizurNodeTestBase {
+    static {
+        CoreConf.setConfig("BizurUT.crash.conf");
+    }
+
+    private int nonLeaderNodeCounter = 0;
 
     /**
      * Tests read/write when a random node failure happens besides the leader.
@@ -21,7 +26,7 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         String expKey = getExpectedKeySet().iterator().next();
 
         BizurNode leader = getLeader(expKey);
-        BizurNode nonLeaderNode = getNextNode(leader);
+        BizurNode nonLeaderNode = getNextNonLeaderNode(expKey);
 
         // kill a non-leader node
         DeadNodeManager.kill(nonLeaderNode);
@@ -50,7 +55,7 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         String expKey = getExpectedKeySet().iterator().next();
 
         BizurNode leader = getLeader(expKey);
-        BizurNode nonLeaderNode = getNextNode(leader);
+        BizurNode nonLeaderNode = getNextNonLeaderNode(expKey);
 
         // kill leader node
         DeadNodeManager.kill(leader);
@@ -86,15 +91,15 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
             // dead node
             throw new IllegalArgumentException("node is dead, cannot set key val, node=" + byNode);
         }
-        String expKey = UUID.randomUUID().toString();
-        String expVal = UUID.randomUUID().toString();
+        String expKey = TestUtil.getRandomString();
+        String expVal = TestUtil.getRandomString();
         byNode.set(expKey, expVal);
         putExpectedKeyValue(expKey, expVal);
     }
 
     private BizurNode getLeader(String key) {
         BucketContainer bucketContainer = getRandomNode().bucketContainer;
-        Bucket bucket = bucketContainer.getBucket(bucketContainer.hashKey(key));
+        Bucket bucket = bucketContainer.getOrCreateBucket(bucketContainer.hashKey(key));
         Address leaderAddress = bucket.getLeaderAddress();
         return Arrays.stream(bizurNodes)
                 .filter(bizurNode -> bizurNode.getSettings().getAddress().equals(leaderAddress))
@@ -102,14 +107,12 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
                 .orElseThrow(() -> new IllegalArgumentException("leader node not found: key=" + key + ", expAddr=" + leaderAddress));
     }
 
-    private BizurNode getNextNode(BizurNode prevNode) {
-        for (BizurNode bizurNode : bizurNodes) {
-            if (bizurNode != prevNode) {
-                return bizurNode;
-            }
-        }
-        Assert.fail("next node not found!");
-        return null;
+    private BizurNode getNextNonLeaderNode(String key) {
+        BizurNode leaderNode = getLeader(key);
+        int idx = nonLeaderNodeCounter++ % bizurNodes.length;
+        return !bizurNodes[idx].equals(leaderNode)
+                ? bizurNodes[idx]
+                : getNextNonLeaderNode(key);
     }
 
 }

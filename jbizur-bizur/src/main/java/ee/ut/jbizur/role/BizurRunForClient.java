@@ -40,10 +40,10 @@ class BizurRunForClient extends BizurRun {
                 .ofRequest(req);
     }
 
-    private Address resolveLeader(String key) {
+    Address resolveLeader(String key) {
         if (key == null) {
             return null;
         }
-        return bucketContainer.getBucket(key).getLeaderAddress();
+        return bucketContainer.getOrCreateBucket(key).getLeaderAddress();
     }
 }

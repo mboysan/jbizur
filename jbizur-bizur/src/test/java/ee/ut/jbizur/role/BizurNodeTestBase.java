@@ -123,20 +123,20 @@ public class BizurNodeTestBase {
         if (expKeyVals.size() == 0) {
             leaderDefinedBucketIndexes.iterator().forEachRemaining(bIdx -> {
                 BizurNode leader = findLeaderOfBucket(bIdx);
-                Assert.assertEquals(logNode(leader, bIdx), 0, leader.bucketContainer.getBucket(bIdx).getKeySetOp().size());
+                Assert.assertEquals(logNode(leader, bIdx), 0, leader.bucketContainer.getOrCreateBucket(bIdx).getKeySetOp().size());
             });
         } else {
             expKeyVals.forEach((expKey, expVal) -> {
                 int bIdx = hashKey(expKey);
                 BizurNode leader = findLeaderOfBucket(bIdx);
-                Assert.assertEquals(logNode(leader, bIdx), expVal, leader.bucketContainer.getBucket(bIdx).getOp(expKey));
+                Assert.assertEquals(logNode(leader, bIdx), expVal, leader.bucketContainer.getOrCreateBucket(bIdx).getOp(expKey));
             });
         }
     }
 
     private BizurNode findLeaderOfBucket(int bucketIndex) {
         for (BizurNode bizurNode : bizurNodes) {
-            if (bizurNode.bucketContainer.getBucket(bucketIndex).isLeader()) {
+            if (bizurNode.bucketContainer.getOrCreateBucket(bucketIndex).isLeader()) {
                 return bizurNode;
             }
         }
@@ -148,8 +148,8 @@ public class BizurNodeTestBase {
         String log = "node=[%s], bucket=[%s], keySet=[%s]";
         return String.format(log,
                 bizurNode.toString(),
-                bizurNode.bucketContainer.getBucket(bucketIndex),
-                bizurNode.bucketContainer.getBucket(bucketIndex).getKeySetOp());
+                bizurNode.bucketContainer.getOrCreateBucket(bucketIndex),
+                bizurNode.bucketContainer.getOrCreateBucket(bucketIndex).getKeySetOp());
     }
 
     public void tearDown() {

@@ -1,10 +1,16 @@
 package ee.ut.jbizur.role;
 
+import ee.ut.jbizur.config.CoreConf;
+import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.util.MultiThreadExecutor;
+import ee.ut.jbizur.util.TestUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 public class BizurNodeFunctionalTest extends BizurNodeTestBase {
 
@@ -15,8 +21,8 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
     public void keyValueSetGetTest() {
         int testCount = 50;
         for (int i = 0; i < testCount; i++) {
-            String expKey = "tkey" + i;
-            String expVal = "tval" + i;
+            String expKey = TestUtil.getRandomString();
+            String expVal = TestUtil.getRandomString();
             putExpectedKeyValue(expKey, expVal);
 
             BizurNode setterNode = getRandomNode();
@@ -27,6 +33,37 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
         }
     }
 
+    @Test
+    public void testLeaderResolution() throws ExecutionException, InterruptedException {
+        MultiThreadExecutor executor = new MultiThreadExecutor();
+        int bucketCount = CoreConf.get().consensus.bizur.bucketCount;
+        for (int i = 0; i < bucketCount; i++) {
+            for (BizurNode bizurNode : bizurNodes) {
+                int finalI = i;
+                executor.execute(() -> {
+                    bizurNode.startElection(finalI);
+                });
+            }
+        }
+        executor.endExecution();
+
+        Map<Integer, Address> leaders = new HashMap<>();
+        for (BizurNode bizurNode : bizurNodes) {
+            for (int i = 0; i < bucketCount; i++) {
+                Address leader = leaders.get(i);
+                Bucket bucket = bizurNode.bucketContainer.getOrCreateBucket(i);
+                if (leader != null) {
+                    Assert.assertEquals(leader, bucket.getLeaderAddress());
+                } else {
+                    if (bucket.isLeader()) {
+                        leaders.put(i, bucket.getLeaderAddress());
+                    }
+                }
+            }
+        }
+        System.out.println();
+    }
+
     /**
      * Tests for set/get operations at the same time with multiple nodes.
      */
@@ -35,10 +72,9 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
         int testCount = 50;
         MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
-            int finalI = i;
             executor.execute(() -> {
-                String expKey = "tkey" + finalI;
-                String expVal = "tval" + finalI;
+                String expKey = TestUtil.getRandomString();
+                String expVal = TestUtil.getRandomString();
                 putExpectedKeyValue(expKey, expVal);
 
                 BizurNode setterNode = getRandomNode();
@@ -59,8 +95,8 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
     public void keyValueDeleteTest() {
         int testCount = 50;
         for (int i = 0; i < testCount; i++) {
-            String expKey = "tkey" + i;
-            String expVal = "tval" + i;
+            String expKey = TestUtil.getRandomString();
+            String expVal = TestUtil.getRandomString();
 
             BizurNode setterNode = getRandomNode();
             Assert.assertTrue(setterNode.set(expKey, expVal));
@@ -84,10 +120,9 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
         int testCount = 50;
         MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
-            int finalI = i;
             executor.execute(() -> {
-                String expKey = "tkey" + finalI;
-                String expVal = "tval" + finalI;
+                String expKey = TestUtil.getRandomString();
+                String expVal = TestUtil.getRandomString();
                 putExpectedKeyValue(expKey, expVal);
 
                 Assert.assertTrue(getRandomNode().set(expKey, expVal));
@@ -108,8 +143,8 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
     public void iterateKeysTest() {
         int keyCount = 50;
         for (int i = 0; i < keyCount; i++) {
-            String key = "tkey" + i;
-            String val = "tval" + i;
+            String key = TestUtil.getRandomString();
+            String val = TestUtil.getRandomString();
 
             putExpectedKeyValue(key, val);
             Assert.assertTrue(getRandomNode().set(key, val));

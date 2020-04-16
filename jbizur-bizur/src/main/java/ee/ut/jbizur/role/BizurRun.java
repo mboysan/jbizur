@@ -1,15 +1,15 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.config.CoreConf;
+import ee.ut.jbizur.common.util.IdUtil;
 import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.protocol.commands.intl.SendFail_IC;
 import ee.ut.jbizur.protocol.commands.net.*;
-import ee.ut.jbizur.common.util.IdUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
@@ -24,8 +24,6 @@ public class BizurRun {
 
     protected final BucketContainer bucketContainer;
     private final int contextId;
-
-    private static final int BUCKET_LEADER_ELECTION_RETRY_COUNT = CoreConf.get().consensus.bizur.bucketElectRetryCount;
 
     BizurRun(BizurNode node) {
         this(node, IdUtil.generateId());
@@ -49,15 +47,6 @@ public class BizurRun {
         return node.getSettings();
     }
 
-    protected boolean ping(Address address) {
-        try {
-            return node.ping(address);
-        } catch (IOException e) {
-            logger.error(logMsg(e.getMessage()), e);
-        }
-        return false;
-    }
-
     protected <T> T route(NetworkCommand command) throws RoutingFailedException {
         return node.route(command);
     }
@@ -76,21 +65,21 @@ public class BizurRun {
         }
     }
 
-    private NetworkCommand sendRecv(NetworkCommand request) {
-        try {
-            return node.sendRecv(request);
-        } catch (IOException e) {
-            logger.error(logMsg(e.getMessage()), e);
-        }
-        return null;
-    }
-
     /* ***************************************************************************
      * Algorithm 1 - Leader Election
      * ***************************************************************************/
 
+    Address resolveLeader(Bucket bucket) {
+        Address leader = bucket.getLeaderAddress();
+        if (leader == null) {
+            startElection(bucket.getIndex());
+            return resolveLeader(bucket);
+        }
+        return leader;
+    }
+
     protected void startElection(int bucketIndex) {
-        Bucket localBucket = bucketContainer.getBucket(bucketIndex);
+        Bucket localBucket = bucketContainer.getOrCreateBucket(bucketIndex);
         int electId = localBucket.incrementAndGetElectId();
 
         int correlationId = IdUtil.generateId();
@@ -101,14 +90,16 @@ public class BizurRun {
                         .setContextId(contextId)
                         .setCorrelationId(correlationId);
 
-        if (publishAndWaitMajority(correlationId, pleaseVote, (cmd) -> cmd instanceof Ack_NC)) {
+        if (publishAndWaitMajority(correlationId, pleaseVote, (cmd) -> cmd instanceof AckVote_NC)) {
             /* Note1: following is done to guarantee that in case the leader discards the PleaseVote request,
                the bucket leader is set properly for the first time. */
-            localBucket.setElectId(electId);    // see Note2 below
+//            localBucket.setElectId(electId);    // see Note2 below
             localBucket.setVotedElectId(electId);
             localBucket.setLeaderAddress(getSettings().getAddress());
 
-            localBucket.updateLeader(true);
+            localBucket.setLeader(true);
+
+            logger.info(logMsg("elected as leader for index={}"), bucketIndex);
         }
     }
 
@@ -116,106 +107,33 @@ public class BizurRun {
         int bucketIndex = pleaseVoteNc.getBucketIndex();
         int electId = pleaseVoteNc.getElectId();
         Address source = pleaseVoteNc.getSenderAddress();
-        Bucket localBucket = bucketContainer.getBucket(bucketIndex);
+        Bucket localBucket = bucketContainer.getOrCreateBucket(bucketIndex);
 
         NetworkCommand vote;
         if (electId > localBucket.getVotedElectId()) {
             /* Note2: even though the algorithm does not specify to update the electId, we need to do it
                because the replica needs to keep track of the latest election Id of the bucket. */
-            localBucket.setElectId(electId);    // TODO: investigate if this introduces additional issues.
+//            localBucket.setElectId(electId);    // TODO: investigate if this introduces additional issues.
 
             localBucket.setVotedElectId(electId);
             localBucket.setLeaderAddress(source);
-            localBucket.updateLeader(source.equals(getSettings().getAddress()));
+            localBucket.setLeader(source.equals(getSettings().getAddress()));
 
-            vote = new AckVote_NC().ofRequest(pleaseVoteNc);
+            vote = new AckVote_NC().setIndex(bucketIndex).ofRequest(pleaseVoteNc);
         } else if (electId == localBucket.getVotedElectId() && source.equals(localBucket.getLeaderAddress())) {
-            vote = new AckVote_NC().ofRequest(pleaseVoteNc);
+            vote = new AckVote_NC().setIndex(bucketIndex).ofRequest(pleaseVoteNc);
         } else {
-            vote = new NackVote_NC().ofRequest(pleaseVoteNc);
+            vote = new NackVote_NC().setIndex(bucketIndex).ofRequest(pleaseVoteNc);
         }
         send(vote);
     }
-
-    protected boolean initLeaderPerBucketElectionFlow() throws InterruptedException {
-        for (int i = 0; i < bucketContainer.getNumBuckets(); i++) {
-            Bucket localBucket = bucketContainer.getBucket(i);
-            int retry = 0;
-            int maxRetry = CoreConf.get().consensus.bizur.bucketElectRetryCount;
-            while (retry < maxRetry) {
-                electLeaderForBucket(localBucket, localBucket.getIndex(), false);
-                if (localBucket.getLeaderAddress() != null) {
-                    break;
-                }
-                retry++;
-                logger.warn(logMsg("retrying (count=" + retry + ") leader election on bucket=[" + localBucket + "]"));
-                Thread.sleep(500);
-            }
-            if (retry >= maxRetry) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    protected Address resolveLeader(Bucket bucket) {
-        return resolveLeader(bucket, BUCKET_LEADER_ELECTION_RETRY_COUNT);
-    }
-
-    protected Address resolveLeader(Bucket bucket, int retry) {
-        if (retry < 0) {
-            throw new LeaderResolutionFailedException(logMsg("leader could not be resolved. Max retry count reached!"));
-        }
-        if (bucket.getLeaderAddress() != null) {
-            return bucket.getLeaderAddress();
-        } else {
-            electLeaderForBucket(bucket, bucket.getIndex(), true);
-            return resolveLeader(bucket, --retry);
-        }
-    }
-
-    protected void electLeaderForBucket(Bucket localBucket, int startIdx, boolean forceElection) {
-        Address nextAddr = IdUtil.nextAddressInUnorderedSet(getSettings().getMemberAddresses(), startIdx);
-        if (nextAddr.equals(getSettings().getAddress())) {
-            logger.info(logMsg("initializing election process on bucket idx=" + localBucket.getIndex()));
-            electLeaderForBucket(localBucket);
-        } else {
-            boolean willHandle;
-            if (forceElection) {
-                willHandle = requestLeaderElectionForBucket(nextAddr, localBucket.getIndex());
-            } else {
-                willHandle = ping(nextAddr);
-            }
-            if (willHandle) {
-                logger.info(logMsg("election process will be handled by: " + nextAddr + " for bucket idx=" + localBucket.getIndex()));
-            } else {
-                logger.warn(logMsg("address '" + nextAddr + "' unreachable, reinit election process for bucket idx=" + localBucket.getIndex() + " ..."));
-                electLeaderForBucket(localBucket, startIdx + 1, forceElection);
-            }
-        }
-    }
-
-    protected Address electLeaderForBucket(Bucket localBucket) {
-        int bucketIndex = localBucket.getIndex();
-        bucketContainer.lockBucket(bucketIndex);
-        try {
-            startElection(bucketIndex);
-        } finally {
-            bucketContainer.unlockBucket(bucketIndex);
-        }
-        if (localBucket.getLeaderAddress() == null) {
-            throw new IllegalStateException(logMsg("bucket has no leader: " + localBucket));
-        }
-        return localBucket.getLeaderAddress();
-    }
-
 
     /* ***************************************************************************
      * Algorithm 2 - Bucket Replication: Write
      * ***************************************************************************/
 
     private boolean write(Bucket bucketToWrite) {
-        Bucket localBucket = bucketContainer.getBucket(bucketToWrite.getIndex());
+        Bucket localBucket = bucketContainer.getOrCreateBucket(bucketToWrite.getIndex());
         bucketToWrite.setVerElectId(localBucket.getElectId());
         bucketToWrite.incrementAndGetVerCounter();
         BucketView bucketViewToSend = bucketToWrite.createView();
@@ -230,13 +148,15 @@ public class BizurRun {
         if (publishAndWaitMajority(correlationId, replicaWrite, (r) -> r instanceof AckWrite_NC)) {
             return true;
         }
-        localBucket.updateLeader(false);
+
+        localBucket.setLeaderAddress(null);
+        localBucket.setLeader(false);
         return false;
     }
 
     void replicaWrite(ReplicaWrite_NC replicaWriteNc) {
         BucketView recvBucketView = replicaWriteNc.getBucketView();
-        Bucket localBucket = bucketContainer.getBucket(recvBucketView.getIndex());
+        Bucket localBucket = bucketContainer.getOrCreateBucket(recvBucketView.getIndex());
 
         NetworkCommand response;
         if (recvBucketView.getVerElectId() < localBucket.getVotedElectId()) {
@@ -269,7 +189,7 @@ public class BizurRun {
      * ***************************************************************************/
 
     private Bucket read(int index) {
-        Bucket localBucket = bucketContainer.getBucket(index);
+        Bucket localBucket = bucketContainer.getOrCreateBucket(index);
         int electId = localBucket.getElectId();
         if (!ensureRecovery(electId, index)) {
             return null;
@@ -287,7 +207,8 @@ public class BizurRun {
             return localBucket;
         }
 
-        localBucket.updateLeader(false);
+        localBucket.setLeaderAddress(null);
+        localBucket.setLeader(false);
         return null;
     }
 
@@ -295,7 +216,7 @@ public class BizurRun {
         int index = replicaReadNc.getIndex();
         int electId = replicaReadNc.getElectId();
         Address source = replicaReadNc.getSenderAddress();
-        Bucket localBucket = bucketContainer.getBucket(index);
+        Bucket localBucket = bucketContainer.getOrCreateBucket(index);
 
         NetworkCommand resp;
         if (electId < localBucket.getVotedElectId()) {
@@ -303,7 +224,7 @@ public class BizurRun {
         } else {
             localBucket.setVotedElectId(electId);
             localBucket.setLeaderAddress(source);
-            localBucket.updateLeader(source.equals(getSettings().getAddress()));
+            localBucket.setLeader(source.equals(getSettings().getAddress()));
             resp = new AckRead_NC()
                     .setBucketView(localBucket.createView())
                     .ofRequest(replicaReadNc);
@@ -316,10 +237,11 @@ public class BizurRun {
      * ***************************************************************************/
 
     private boolean ensureRecovery(int electId, int index) {
-        Bucket localBucket = bucketContainer.getBucket(index);
+        Bucket localBucket = bucketContainer.getOrCreateBucket(index);
         if (electId == localBucket.getVerElectId()) {
             return true;
         }
+        logger.warn(logMsg("recovering index=" + index));
 
         AtomicReference<BucketView> maxVerBucketView = new AtomicReference<>(null);
         Predicate<NetworkCommand> handler = (cmd) -> {
@@ -352,9 +274,11 @@ public class BizurRun {
             maxVerBucket.setVerCounter(0);
             isSuccess = write(maxVerBucket);
         } else {
-            localBucket.updateLeader(false);
+            localBucket.setLeaderAddress(null);
+            localBucket.setLeader(false);
             isSuccess = false;
         }
+        logger.info(logMsg("index={} is recovered={}"), index, isSuccess);
         return isSuccess;
     }
 
@@ -371,6 +295,7 @@ public class BizurRun {
             if (bucket != null) {
                 return bucket.getOp(key);
             }
+            logger.warn(logMsg(String.format("get failed. key=[%s]", key)));
             return null;
         } finally {
             bucketContainer.unlockBucket(index);
@@ -386,6 +311,7 @@ public class BizurRun {
                 bucket.putOp(key, value);
                 return write(bucket);
             }
+            logger.warn(logMsg(String.format("set failed. key=[%s], value=[%s]", key, value)));
             return false;
         } finally {
             bucketContainer.unlockBucket(index);
@@ -401,28 +327,25 @@ public class BizurRun {
                 bucket.removeOp(key);
                 return write(bucket);
             }
+            logger.warn(logMsg(String.format("delete failed. key=[%s]", key)));
             return false;
         } finally {
             bucketContainer.unlockBucket(index);
         }
     }
 
-    private Set<String> _iterateKeys() {
-        Set<String> res = new HashSet<>();
-        bucketContainer.bucketIndicesOfAddress(getSettings().getAddress()).forEach(bucketIdx -> {
-            bucketContainer.lockBucket(bucketIdx);
-            try {
-                Bucket bucket = read(bucketIdx);
-                if (bucket != null) {
-                    res.addAll(bucket.getKeySetOp());
-                } else {
-                    logger.warn(logMsg(String.format("bucket keys could not be iterated by leader. bucketIdx=[%s]", bucketIdx)));
-                }
-            } finally {
-                bucketContainer.unlockBucket(bucketIdx);
+    private Set<String> _iterateKeys(int bucketIdx) {
+        bucketContainer.lockBucket(bucketIdx);
+        try {
+            Bucket bucket = read(bucketIdx);
+            if (bucket != null) {
+                return bucket.getKeySetOp();
             }
-        });
-        return res;
+            logger.warn(logMsg(String.format("leader iterateKeys failed. bucketIdx=[%s]", bucketIdx)));
+            return null;
+        } finally {
+            bucketContainer.unlockBucket(bucketIdx);
+        }
     }
 
 
@@ -432,7 +355,8 @@ public class BizurRun {
      * ***************************************************************************/
 
     String get(String key) {
-        Bucket bucket = bucketContainer.getBucket(key);
+        Objects.requireNonNull(key);
+        Bucket bucket = bucketContainer.getOrCreateBucket(key);
         Address lead = resolveLeader(bucket);
         if (bucket.isLeader()) {
             return _get(key);
@@ -447,7 +371,7 @@ public class BizurRun {
             );
         } catch (RoutingFailedException e) {
             logger.warn(e.getMessage(), e);
-            electLeaderForBucket(bucket, bucket.getIndex(), true);
+            startElection(bucket.getIndex());
             return get(key);
         }
     }
@@ -462,7 +386,9 @@ public class BizurRun {
     }
 
     boolean set(String key, String val) {
-        Bucket bucket = bucketContainer.getBucket(key);
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(val);
+        Bucket bucket = bucketContainer.getOrCreateBucket(key);
         Address lead = resolveLeader(bucket);
         if (bucket.isLeader()) {
             return _set(key, val);
@@ -478,7 +404,7 @@ public class BizurRun {
             );
         } catch (RoutingFailedException e) {
             logger.warn(e.getMessage(), e);
-            electLeaderForBucket(bucket, bucket.getIndex(), true);
+            startElection(bucket.getIndex());
             return set(key, val);
         }
     }
@@ -494,7 +420,8 @@ public class BizurRun {
     }
 
     boolean delete(String key) {
-        Bucket bucket = bucketContainer.getBucket(key);
+        Objects.requireNonNull(key);
+        Bucket bucket = bucketContainer.getOrCreateBucket(key);
         Address lead = resolveLeader(bucket);
         if (bucket.isLeader()) {
             return _delete(key);
@@ -509,7 +436,7 @@ public class BizurRun {
             );
         } catch (RoutingFailedException e) {
             logger.warn(e.getMessage(), e);
-            electLeaderForBucket(bucket, bucket.getIndex(), true);
+            startElection(bucket.getIndex());
             return delete(key);
         }
     }
@@ -526,37 +453,36 @@ public class BizurRun {
 
     Set<String> iterateKeys() {
         Set<String> keySet = new HashSet<>();
-        Set<Address> bucketLeaders = bucketContainer.collectAddressesWithBucketLeaders();
-        bucketLeaders.forEach(leaderAddress -> {
-            Set<String> keys = null;
-            try {
-                if (leaderAddress.equals(getSettings().getAddress())) {
-                    // this is the leader so get keys from leader without routing
-                    keys = _iterateKeys();
-                } else {
-                    NetworkCommand apiIterKeys = new ApiIterKeys_NC()
-                            .setReceiverAddress(leaderAddress)
-                            .setCorrelationId(IdUtil.generateId())
-                            .setContextId(contextId);
-                    keys = route(apiIterKeys);
-                }
-                if (keys == null) {
-                    logger.warn(logMsg("Null keys received from leader: " + leaderAddress.toString()));
-                }
-            } catch (RoutingFailedException e) {
-                logger.warn(logMsg("Operation failed while retrieving keys from leader: " + leaderAddress.toString()), e);
-            }
-            if (keys != null) {
-                keySet.addAll(keys);
-            } else {
-                System.out.println();
-            }
-        });
+        Set<Integer> indices = bucketContainer.collectIndices();
+        for (Integer index : indices) {
+            Bucket bucket = bucketContainer.getOrCreateBucket(index);
+            keySet.addAll(iterateKeys(bucket));
+        }
         return keySet;
     }
 
+    private Set<String> iterateKeys(Bucket bucket) {
+        int bucketIndex = bucket.getIndex();
+        Address lead = resolveLeader(bucket);
+        if (bucket.isLeader()) {
+            return _iterateKeys(bucket.getIndex());
+        }
+        try {
+            NetworkCommand apiIterKeys = new ApiIterKeys_NC()
+                    .setIndex(bucketIndex)
+                    .setReceiverAddress(lead)
+                    .setCorrelationId(IdUtil.generateId())
+                    .setContextId(contextId);
+            return route(apiIterKeys);
+        } catch (RoutingFailedException e) {
+            logger.warn(e.getMessage(), e);
+            startElection(bucket.getIndex());
+            return iterateKeys(bucket);
+        }
+    }
+
     void iterateKeysByLeader(ApiIterKeys_NC iterKeysNc) {
-        Set<String> keys = _iterateKeys();
+        Set<String> keys = _iterateKeys(iterKeysNc.getIndex());
         send(
                 new LeaderResponse_NC()
                         .setRequest("ApiIterKeys_NC")
@@ -568,50 +494,6 @@ public class BizurRun {
     /* ***************************************************************************
      * Failure Handling
      * ***************************************************************************/
-
-    void handleLeaderElection(LeaderElectionRequest_NC ler) {
-        Bucket localBucket = bucketContainer.getBucket(ler.getBucketIndex());
-
-        boolean isSuccess;
-        try {
-            if (localBucket.checkLeaderElectionInProgress()) {
-                localBucket.waitForLeaderElection();
-                isSuccess = localBucket.getLeaderAddress().equals(getSettings().getAddress());
-            } else {
-                localBucket.initLeaderElection();
-                try {
-                    Address leaderAddr = electLeaderForBucket(localBucket);
-                    isSuccess = leaderAddr.equals(getSettings().getAddress());
-                } finally {
-                    localBucket.endLeaderElection();
-                }
-            }
-        } catch (Exception e) {
-            isSuccess = false;
-            logger.error(logMsg(e + ""), e);
-        }
-
-        send(new LeaderElectionResponse_NC()
-                .setBucketIndex(ler.getBucketIndex())
-                .setSuccess(isSuccess)
-                .ofRequest(ler)
-        );
-    }
-
-    private boolean requestLeaderElectionForBucket(Address address, int bucketIndex) {
-        NetworkCommand request = new LeaderElectionRequest_NC()
-                .setBucketIndex(bucketIndex)
-                .setReceiverAddress(address)
-                .setCorrelationId(IdUtil.generateId())
-                .setContextId(contextId);
-
-        NetworkCommand resp = sendRecv(request);
-        if (resp instanceof LeaderElectionResponse_NC) {
-            LeaderElectionResponse_NC ler = (LeaderElectionResponse_NC) resp;
-            return ler.getBucketIndex() == bucketIndex && ler.isSuccess();
-        }
-        return false;
-    }
 
     void handleSendFailureWithoutRetry(SendFail_IC sendFailIc) {
         node.handle(sendFailIc.getNackNC());

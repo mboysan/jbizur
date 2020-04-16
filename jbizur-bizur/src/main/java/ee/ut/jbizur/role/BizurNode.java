@@ -80,10 +80,6 @@ public class BizurNode extends Role {
         throw new RoutingFailedException(logMsg("Routing failed for command: " + command));
     }
 
-    protected boolean initLeaderPerBucketElectionFlow() throws InterruptedException {
-        return new BizurRun(this).initLeaderPerBucketElectionFlow();
-    }
-
     private void pleaseVote(PleaseVote_NC pleaseVoteNc) {
         new BizurRun(this, pleaseVoteNc.getContextId()).pleaseVote(pleaseVoteNc);
     }
@@ -128,8 +124,10 @@ public class BizurNode extends Role {
         new BizurRun(this, iterKeysNc.getContextId()).iterateKeysByLeader(iterKeysNc);
     }
 
-    private void handleLeaderElection(LeaderElectionRequest_NC ler) {
-        new BizurRun(this, ler.getContextId()).handleLeaderElection(ler);
+
+    //TODO: to be removed
+    void startElection(int bucketIndex) {
+        new BizurRun(this).startElection(bucketIndex);
     }
 
     /* ***************************************************************************
@@ -139,10 +137,6 @@ public class BizurNode extends Role {
     @Override
     public void handle(NetworkCommand command) {
         super.handle(command);
-
-        if (command instanceof LeaderElectionRequest_NC) {
-            handleLeaderElection((LeaderElectionRequest_NC) command);
-        }
 
         if (command instanceof ReplicaWrite_NC){
             replicaWrite((ReplicaWrite_NC) command);

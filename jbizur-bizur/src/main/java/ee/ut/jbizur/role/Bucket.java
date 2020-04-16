@@ -35,8 +35,6 @@ public class Bucket implements Comparable<Bucket> {
     private final AtomicInteger verElectId = new AtomicInteger(0);
     private final AtomicInteger verCounter = new AtomicInteger(0);
 
-    private AtomicBoolean electionInProgress = new AtomicBoolean(false);
-
     Bucket() {}
 
     /* ***************************************************************************
@@ -124,7 +122,7 @@ public class Bucket implements Comparable<Bucket> {
         return leaderAddress.get();
     }
 
-    public Bucket updateLeader(boolean isLeader) {
+    public Bucket setLeader(boolean isLeader) {
         this.isLeader.set(isLeader);
         return this;
     }
@@ -168,30 +166,6 @@ public class Bucket implements Comparable<Bucket> {
     }
     public int getVerCounter() {
         return verCounter.get();
-    }
-
-
-    /* ***************************************************************************
-     * Election Operations
-     * ***************************************************************************/
-
-    public synchronized void initLeaderElection() {
-        electionInProgress.set(true);
-    }
-
-    public synchronized void endLeaderElection() {
-        electionInProgress.set(false);
-        notifyAll();
-    }
-
-    public synchronized boolean checkLeaderElectionInProgress() {
-        return electionInProgress.get();
-    }
-
-    public synchronized void waitForLeaderElection() throws InterruptedException {
-        while (electionInProgress.get()) {
-            wait();
-        }
     }
 
 
