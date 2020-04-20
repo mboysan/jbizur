@@ -18,20 +18,26 @@ public class BucketContainer {
         this.localBuckets = new ConcurrentHashMap<>();
     }
 
-    public Bucket getOrCreateBucket(String key) {
-        return getOrCreateBucket(hashKey(key));
-    }
-
-    public Bucket getOrCreateBucket(int index) {
+    private Bucket getOrCreateBucket(int index) {
         return localBuckets.computeIfAbsent(index, idx -> new Bucket().setIndex(idx));
     }
 
-    public void lockBucket(int index) {
-        getOrCreateBucket(index).lock();
+    public Bucket lockAndGetBucket(int index) {
+        Bucket bucket = getOrCreateBucket(index);
+        bucket.lock();
+        return bucket;
     }
 
     public void unlockBucket(int index) {
         getOrCreateBucket(index).unlock();
+    }
+
+    public void apiLock(int index) {
+        getOrCreateBucket(index).apiLock();
+    }
+
+    public void apiUnlock(int index) {
+        getOrCreateBucket(index).apiUnlock();
     }
 
     public int getNumBuckets() {

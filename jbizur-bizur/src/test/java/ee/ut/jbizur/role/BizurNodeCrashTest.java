@@ -99,12 +99,17 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
 
     private BizurNode getLeader(String key) {
         BucketContainer bucketContainer = getRandomNode().bucketContainer;
-        Bucket bucket = bucketContainer.getOrCreateBucket(bucketContainer.hashKey(key));
-        Address leaderAddress = bucket.getLeaderAddress();
-        return Arrays.stream(bizurNodes)
-                .filter(bizurNode -> bizurNode.getSettings().getAddress().equals(leaderAddress))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("leader node not found: key=" + key + ", expAddr=" + leaderAddress));
+        int index = bucketContainer.hashKey(key);
+        Bucket bucket = bucketContainer.lockAndGetBucket(index);
+        try {
+            Address leaderAddress = bucket.getLeaderAddress();
+            return Arrays.stream(bizurNodes)
+                    .filter(bizurNode -> bizurNode.getSettings().getAddress().equals(leaderAddress))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("leader node not found: key=" + key + ", expAddr=" + leaderAddress));
+        } finally {
+            bucketContainer.unlockBucket(index);
+        }
     }
 
     private BizurNode getNextNonLeaderNode(String key) {

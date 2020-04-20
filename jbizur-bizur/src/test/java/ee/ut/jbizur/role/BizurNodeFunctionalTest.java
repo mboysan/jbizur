@@ -1,18 +1,17 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.config.CoreConf;
-import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.util.MultiThreadExecutor;
 import ee.ut.jbizur.util.TestUtil;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 public class BizurNodeFunctionalTest extends BizurNodeTestBase {
+
+    private static final Logger logger = LoggerFactory.getLogger(BizurNodeFunctionalTest.class);
 
     /**
      * Test for sequential set/get operations of a set of keys and values on different nodes.
@@ -31,37 +30,6 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
             BizurNode getterNode = getRandomNode();
             Assert.assertEquals(expVal, getterNode.get(expKey));
         }
-    }
-
-    @Test
-    public void testLeaderResolution() throws ExecutionException, InterruptedException {
-        MultiThreadExecutor executor = new MultiThreadExecutor();
-        int bucketCount = CoreConf.get().consensus.bizur.bucketCount;
-        for (int i = 0; i < bucketCount; i++) {
-            for (BizurNode bizurNode : bizurNodes) {
-                int finalI = i;
-                executor.execute(() -> {
-                    bizurNode.startElection(finalI);
-                });
-            }
-        }
-        executor.endExecution();
-
-        Map<Integer, Address> leaders = new HashMap<>();
-        for (BizurNode bizurNode : bizurNodes) {
-            for (int i = 0; i < bucketCount; i++) {
-                Address leader = leaders.get(i);
-                Bucket bucket = bizurNode.bucketContainer.getOrCreateBucket(i);
-                if (leader != null) {
-                    Assert.assertEquals(leader, bucket.getLeaderAddress());
-                } else {
-                    if (bucket.isLeader()) {
-                        leaders.put(i, bucket.getLeaderAddress());
-                    }
-                }
-            }
-        }
-        System.out.println();
     }
 
     /**

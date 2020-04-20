@@ -20,6 +20,7 @@ public class Bucket implements Comparable<Bucket> {
     private static final Logger logger = LoggerFactory.getLogger(Bucket.class);
 
     private final Lock bucketLock = new ReentrantLock();
+    private final Lock apiLock = new ReentrantLock();
     private final ReadWriteLock mapLock = new ReentrantReadWriteLock();
 
     private final AtomicReference<Address> leaderAddress = new AtomicReference<>(null);
@@ -187,20 +188,10 @@ public class Bucket implements Comparable<Bucket> {
         }
     }
 
-    public Bucket replaceBucketForReplicationWith(BucketView bucketView) {
-        return setBucketMap(bucketView.getBucketMap())
-//                    .setIndex(bucketView.getIndex())
-//                    .setVerElectId(bucketView.getVerElectId())
-//                    .setVerCounter(bucketView.getVerCounter())
-                .setLeaderAddress(bucketView.getLeaderAddress())
-                .setVotedElectId(bucketView.getVerElectId());
-    }
-
     public static Bucket createBucket(BucketView bucketView) {
         return new Bucket()
                 .setIndex(bucketView.getIndex())
                 .setBucketMap(bucketView.getBucketMap())
-                .setIndex(bucketView.getIndex())
                 .setVerElectId(bucketView.getVerElectId())
                 .setVerCounter(bucketView.getVerCounter())
                 .setLeaderAddress(bucketView.getLeaderAddress());
@@ -232,12 +223,31 @@ public class Bucket implements Comparable<Bucket> {
         }
     }
 
+    public boolean isLocked() {
+        if (bucketLock.tryLock()) {
+            try {
+                return false;
+            } finally {
+                bucketLock.unlock();
+            }
+        }
+        return true;
+    }
+
     public void lock() {
         bucketLock.lock();
     }
 
     public void unlock() {
         bucketLock.unlock();
+    }
+
+    public void apiLock() {
+        apiLock.lock();
+    }
+
+    public void apiUnlock() {
+        apiLock.unlock();
     }
 
     @Override

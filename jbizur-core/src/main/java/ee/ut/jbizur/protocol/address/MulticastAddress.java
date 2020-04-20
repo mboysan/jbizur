@@ -2,6 +2,7 @@ package ee.ut.jbizur.protocol.address;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Objects;
 
 /**
  * Address used for node discovery.
@@ -50,5 +51,19 @@ public class MulticastAddress extends Address {
     @Override
     public String resolveAddressId() {
         return multicastGroupAddr + SEP + multicastPort;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MulticastAddress that = (MulticastAddress) o;
+        return multicastPort == that.multicastPort &&
+                Objects.equals(multicastGroupAddr, that.multicastGroupAddr);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(multicastGroupAddr, multicastPort);
     }
 }

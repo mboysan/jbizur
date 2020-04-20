@@ -1,6 +1,8 @@
 package ee.ut.jbizur.protocol.commands.net;
 
 public class ApiDelete_NC extends NetworkCommand {
+    {setRequest(true);}
+
     private String key;
 
     public String getKey() {

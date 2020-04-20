@@ -1,6 +1,8 @@
 package ee.ut.jbizur.protocol.commands.net;
 
 public class ApiSet_NC extends NetworkCommand {
+    {setRequest(true);}
+
     private String key;
     private String val;
 

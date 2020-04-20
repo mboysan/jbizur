@@ -57,7 +57,8 @@ public class BlockingClientImpl extends AbstractClient {
                 close();
             }
         } else {
-            submit(runnable(() -> sendSocket.send(command)));
+//            submit(runnable(() -> sendSocket.send(command)));
+            sendSocket.send(command);
         }
     }
 

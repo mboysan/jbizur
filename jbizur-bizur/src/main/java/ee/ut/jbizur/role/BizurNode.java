@@ -70,7 +70,11 @@ public class BizurNode extends Role {
             try {
                 NetworkCommand cmd = sendRecv(command);
                 if (cmd instanceof LeaderResponse_NC) {
-                    return (T) cmd.getPayload();
+                    Object payload = cmd.getPayload();
+                    if (payload instanceof IllegalLeaderOperationException) {
+                        throw new RoutingFailedException((Throwable) payload);
+                    }
+                    return (T) payload;
                 }
                 return (T) cmd;
             } catch (Exception e) {
@@ -124,7 +128,14 @@ public class BizurNode extends Role {
         new BizurRun(this, iterKeysNc.getContextId()).iterateKeysByLeader(iterKeysNc);
     }
 
+    private void whoIsLeader(WhoIsLeaderRequest_NC wilNc) {
+        new BizurRun(this).whoIsLeader(wilNc);
+    }
 
+    //TODO: to be removed
+    Address resolveLeader(int bucketIndex) {
+        return new BizurRun(this).resolveLeader(bucketIndex);
+    }
     //TODO: to be removed
     void startElection(int bucketIndex) {
         new BizurRun(this).startElection(bucketIndex);
@@ -146,6 +157,9 @@ public class BizurNode extends Role {
         }
         if (command instanceof PleaseVote_NC) {
             pleaseVote(((PleaseVote_NC) command));
+        }
+        if (command instanceof WhoIsLeaderRequest_NC) {
+            whoIsLeader((WhoIsLeaderRequest_NC) command);
         }
 
         /* Internal API routed requests */

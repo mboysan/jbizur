@@ -27,6 +27,7 @@ public abstract class AbstractServer implements AutoCloseable {
 
     private volatile boolean isRunning = true;
 
+//    private final ExecutorService executor = Executors.newFixedThreadPool(1);
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     private final String name;
@@ -104,9 +105,9 @@ public abstract class AbstractServer implements AutoCloseable {
     @Override
     public String toString() {
         return "Server{" +
-                "isRunning=" + isRunning +
+                "running=" + isRunning +
                 ", name='" + name + '\'' +
-                ", serverAddress=" + serverAddress +
+                ", addr=" + serverAddress +
                 '}';
     }
 

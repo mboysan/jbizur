@@ -159,11 +159,23 @@ public class BizurClient extends BizurNode {
     }
 
     private Address getLeaderAddress(String bucketKey) {
-        Address leader = bucketContainer.getOrCreateBucket(bucketKey).getLeaderAddress();
-        return leader != null ? leader : getRandomAddress();
+        int index = bucketContainer.hashKey(bucketKey);
+        Bucket bucket = bucketContainer.lockAndGetBucket(index);
+        try {
+            Address lead = bucket.getLeaderAddress();
+            return lead != null ? lead : getRandomAddress();
+        } finally {
+            bucketContainer.unlockBucket(index);
+        }
     }
 
     private void updateLeaderOfBucket(String bucketKey, Address assumedLeader) {
-        bucketContainer.getOrCreateBucket(bucketKey).setLeaderAddress(assumedLeader);
+        int index = bucketContainer.hashKey(bucketKey);
+        Bucket bucket = bucketContainer.lockAndGetBucket(index);
+        try {
+            bucket.setLeaderAddress(assumedLeader);
+        } finally {
+            bucketContainer.unlockBucket(index);
+        }
     }
 }
