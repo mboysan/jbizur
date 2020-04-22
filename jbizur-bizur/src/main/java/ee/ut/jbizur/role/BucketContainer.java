@@ -1,6 +1,7 @@
 package ee.ut.jbizur.role;
 
 import ee.ut.jbizur.common.util.IdUtil;
+import ee.ut.jbizur.config.CoreConf;
 import ee.ut.jbizur.protocol.address.Address;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +37,7 @@ public class BucketContainer {
     Bucket tryAndLockBucket(int index) {
         Bucket bucket = getOrCreateBucket(index);
         try {
-            if (bucket.tryLock(5000L, TimeUnit.MILLISECONDS)) {
+            if (bucket.tryLock(CoreConf.get().consensus.bizur.bucketLockTimeoutMs, TimeUnit.MILLISECONDS)) {
                 return bucket;
             }
         } catch (InterruptedException e) {

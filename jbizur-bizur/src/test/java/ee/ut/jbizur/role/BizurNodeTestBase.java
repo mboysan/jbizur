@@ -73,7 +73,7 @@ public class BizurNodeTestBase {
     void electBucketLeaders() {
         int bucketCount = CoreConf.get().consensus.bizur.bucketCount;
         for (int i = 0; i < bucketCount; i++) {
-            getRandomNode().startElection(i);
+            bizurNodes[i % bizurNodes.length].startElection(i);
         }
     }
 

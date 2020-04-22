@@ -101,9 +101,11 @@ public class ListenersTest {
             Supplier<NetworkCommand> s = () -> new Ack_NC().setCorrelationId(1);
             mte.execute(() -> listeners.handle(s.get()));
         }
-        Assert.assertTrue(qc.await());
-        Assert.assertTrue(qc.isMajorityAcked());
-        Assert.assertTrue("counter=" + counter.get(), counter.get() >= quorumSize);
+        mte.execute(() -> {
+            Assert.assertTrue(qc.await());
+            Assert.assertTrue(qc.isMajorityAcked());
+            Assert.assertTrue("counter=" + counter.get(), counter.get() >= quorumSize);
+        });
 
         /* we wait for commands to be handled by listeners.
            Otherwise we cannot know if listeners removed the QuorumListener or not. */
@@ -126,9 +128,11 @@ public class ListenersTest {
             Supplier<NetworkCommand> s = () -> new Nack_NC().setCorrelationId(1);
             mte.execute(() -> listeners.handle(s.get()));
         }
-        Assert.assertTrue(qc.await());
-        Assert.assertFalse(qc.isMajorityAcked());
-        Assert.assertTrue("counter=" + counter.get(), counter.get() >= quorumSize);
+        mte.execute(() -> {
+            Assert.assertTrue(qc.await());
+            Assert.assertFalse(qc.isMajorityAcked());
+            Assert.assertTrue("counter=" + counter.get(), counter.get() >= quorumSize);
+        });
 
         /* we wait for commands to be handled by listeners.
            Otherwise we cannot know if listeners removed the QuorumListener or not. */
@@ -150,9 +154,11 @@ public class ListenersTest {
         mte.execute(() -> listeners.handle(new Ack_NC().setCorrelationId(1)));
         mte.execute(() -> listeners.handle(new Nack_NC().setCorrelationId(1)));
         mte.execute(() -> listeners.handle(new Ack_NC().setCorrelationId(1)));
-        Assert.assertTrue(qc.await());
-        Assert.assertTrue(qc.isMajorityAcked());
-        Assert.assertTrue("counter=" + counter.get(), counter.get() >= quorumSize);
+        mte.execute(() -> {
+            Assert.assertTrue(qc.await());
+            Assert.assertTrue(qc.isMajorityAcked());
+            Assert.assertTrue("counter=" + counter.get(), counter.get() >= quorumSize);
+        });
 
         /* we wait for commands to be handled by listeners.
            Otherwise we cannot know if listeners removed the QuorumListener or not. */
