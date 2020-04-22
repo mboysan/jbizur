@@ -13,7 +13,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-public class BizurClientFunctionalTest extends BizurNodeTestBase {
+public class BizurClientTest extends BizurNodeTestBase {
 
     static {
         CoreConf.setConfig("BizurUT.conf");

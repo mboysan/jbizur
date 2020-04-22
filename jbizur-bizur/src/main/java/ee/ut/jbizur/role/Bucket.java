@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -24,6 +25,7 @@ public class Bucket implements Comparable<Bucket> {
     private final ReadWriteLock mapLock = new ReentrantReadWriteLock();
 
     private final AtomicReference<Address> leaderAddress = new AtomicReference<>(null);
+    private final AtomicReference<Address> prevLeaderAddress = new AtomicReference<>(null);
     private final AtomicBoolean isLeader = new AtomicBoolean(false);
     private final AtomicInteger electId = new AtomicInteger(0);
     private final AtomicInteger votedElectId = new AtomicInteger(0);
@@ -114,7 +116,12 @@ public class Bucket implements Comparable<Bucket> {
         return this;
     }
 
+    public Address getPrevLeaderAddress() {
+        return prevLeaderAddress.get();
+    }
+
     public Bucket setLeaderAddress(Address leaderAddress) {
+        prevLeaderAddress.set(this.leaderAddress.get());
         this.leaderAddress.set(leaderAddress);
         return this;
     }
@@ -232,6 +239,16 @@ public class Bucket implements Comparable<Bucket> {
             }
         }
         return true;
+    }
+
+
+
+    public boolean tryLock(long timeout, TimeUnit timeUnit) throws InterruptedException {
+        return bucketLock.tryLock(timeout, timeUnit);
+    }
+
+    public boolean tryLock() {
+        return bucketLock.tryLock();
     }
 
     public void lock() {

@@ -56,14 +56,13 @@ public class BizurClient extends BizurNode {
             response = route(
                     new ClientApiGet_NC()
                         .setKey(key)
-                        .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(getLeaderAddress(key))
                         .setSenderAddress(getSettings().getAddress())
                         .setCorrelationId(IdUtil.generateId())
             );
             updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
             return (String) response.getPayload();
-        } catch (RoutingFailedException e) {
+        } catch (BizurException e) {
             // TODO: handle re-routing to another node
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
@@ -79,14 +78,13 @@ public class BizurClient extends BizurNode {
                     new ClientApiSet_NC()
                             .setKey(key)
                             .setVal(val)
-                            .setSenderId(getSettings().getRoleId())
                             .setReceiverAddress(getLeaderAddress(key))
                             .setSenderAddress(getSettings().getAddress())
                             .setCorrelationId(IdUtil.generateId())
             );
             updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
             return (boolean) response.getPayload();
-        } catch (RoutingFailedException e) {
+        } catch (BizurException e) {
             // TODO: handle re-routing to another node
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
@@ -101,14 +99,13 @@ public class BizurClient extends BizurNode {
             response = route(
                     new ClientApiDelete_NC()
                             .setKey(key)
-                            .setSenderId(getSettings().getRoleId())
                             .setReceiverAddress(getLeaderAddress(key))
                             .setSenderAddress(getSettings().getAddress())
                             .setCorrelationId(IdUtil.generateId())
             );
             updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
             return (boolean) response.getPayload();
-        } catch (RoutingFailedException e) {
+        } catch (BizurException e) {
             // TODO: handle re-routing to another node
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
@@ -122,13 +119,12 @@ public class BizurClient extends BizurNode {
         try {
             response = route(
                     new ClientApiIterKeys_NC()
-                            .setSenderId(getSettings().getRoleId())
                             .setReceiverAddress(getRandomAddress())
                             .setSenderAddress(getSettings().getAddress())
                             .setCorrelationId(IdUtil.generateId())
             );
             return (Set<String>) response.getPayload();
-        } catch (RoutingFailedException e) {
+        } catch (BizurException e) {
             // TODO: handle re-routing to another node
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);

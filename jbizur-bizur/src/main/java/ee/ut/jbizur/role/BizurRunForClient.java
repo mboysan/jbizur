@@ -3,6 +3,7 @@ package ee.ut.jbizur.role;
 import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.protocol.commands.net.*;
 
+import java.io.Serializable;
 import java.util.Set;
 
 class BizurRunForClient extends BizurRun {
@@ -27,15 +28,14 @@ class BizurRunForClient extends BizurRun {
 
     ClientResponse_NC iterateKeys(ClientApiIterKeys_NC req) {
         Set<String> payload = iterateKeys();
-        return createClientResponse(req, null, payload);
+        return createClientResponse(req, null, (Serializable) payload);
     }
 
-    private ClientResponse_NC createClientResponse(ClientRequest_NC req, String bucketKey, Object payload) {
+    private ClientResponse_NC createClientResponse(ClientRequest_NC req, String bucketKey, Serializable payload) {
         return (ClientResponse_NC) new ClientResponse_NC()
                 .setAssumedLeaderAddress(resolveLeader(bucketKey))
                 .setRequest(req.toString())
                 .setPayload(payload)
-                .setSenderId(getSettings().getRoleId())
                 .setSenderAddress(getSettings().getAddress())
                 .ofRequest(req);
     }

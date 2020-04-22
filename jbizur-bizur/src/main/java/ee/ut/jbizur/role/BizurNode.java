@@ -3,8 +3,6 @@ package ee.ut.jbizur.role;
 import ee.ut.jbizur.config.CoreConf;
 import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.protocol.commands.intl.InternalCommand;
-import ee.ut.jbizur.protocol.commands.intl.NodeDead_IC;
-import ee.ut.jbizur.protocol.commands.intl.SendFail_IC;
 import ee.ut.jbizur.protocol.commands.net.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,23 +63,30 @@ public class BizurNode extends Role {
      * Message Routing
      * ***************************************************************************/
 
-    <T> T route(NetworkCommand command) throws RoutingFailedException {
+    <T> T route(NetworkCommand command) throws BizurException {
+        Exception finalEx = null;
         for (int i = 0; i < command.getRetryCount() + 1; i++) {
             try {
                 NetworkCommand cmd = sendRecv(command);
                 if (cmd instanceof LeaderResponse_NC) {
                     Object payload = cmd.getPayload();
-                    if (payload instanceof IllegalLeaderOperationException) {
-                        throw new RoutingFailedException((Throwable) payload);
+                    if (payload instanceof Exception) {
+                        logger.warn("payload has exception={}", payload);
+                        finalEx = (Exception) payload;
+                        continue;
                     }
                     return (T) payload;
                 }
                 return (T) cmd;
             } catch (Exception e) {
-                logger.warn("rout error count={}", i);
+                logger.warn("route error count={}", i, e);
             }
         }
-        throw new RoutingFailedException(logMsg("Routing failed for command: " + command));
+        if (finalEx instanceof BizurException) {
+            throw (BizurException) finalEx;
+        }
+        // still some other issue?
+        throw new BizurException(logMsg("Routing failed for command: " + command), finalEx);
     }
 
     private void pleaseVote(PleaseVote_NC pleaseVoteNc) {
@@ -128,10 +133,6 @@ public class BizurNode extends Role {
         new BizurRun(this, iterKeysNc.getContextId()).iterateKeysByLeader(iterKeysNc);
     }
 
-    private void whoIsLeader(WhoIsLeaderRequest_NC wilNc) {
-        new BizurRun(this).whoIsLeader(wilNc);
-    }
-
     //TODO: to be removed
     Address resolveLeader(int bucketIndex) {
         return new BizurRun(this).resolveLeader(bucketIndex);
@@ -157,9 +158,6 @@ public class BizurNode extends Role {
         }
         if (command instanceof PleaseVote_NC) {
             pleaseVote(((PleaseVote_NC) command));
-        }
-        if (command instanceof WhoIsLeaderRequest_NC) {
-            whoIsLeader((WhoIsLeaderRequest_NC) command);
         }
 
         /* Internal API routed requests */
@@ -204,12 +202,6 @@ public class BizurNode extends Role {
 
     @Override
     protected void handle(InternalCommand ic) {
-        if(ic instanceof SendFail_IC) {
-            new BizurRun(this).handleSendFailureWithoutRetry((SendFail_IC) ic);
-        }
-        if(ic instanceof NodeDead_IC) {
-            handleNodeFailure(((NodeDead_IC) ic).getNodeAddress());
-        }
     }
 
     @Override

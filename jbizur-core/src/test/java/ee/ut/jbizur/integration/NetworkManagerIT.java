@@ -130,7 +130,6 @@ public class NetworkManagerIT implements ResourceCloser {
             mte.execute(() -> {
                 nmW1.nm.multicast(
                         new Connect_NC()
-                                .setSenderId(nmW1.name)
                                 .setSenderAddress(nmW1.addr)
                                 .setNodeType("member")
                 );

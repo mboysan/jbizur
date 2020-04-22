@@ -22,11 +22,9 @@ public class CommandMarshallerTest {
         expectedNC = new Ping_NC()
                 .setSenderAddress(MockUtil.mockAddress("sender-address"))
                 .setReceiverAddress(MockUtil.mockAddress("receiver-address"))
-                .setMsgId(12345)
-                .setSenderId("senderId")
+                .setCorrelationId(12345)
+                .setContextId(54321)
                 .setRetryCount(5)
-                .setHandled(false)
-                .setTag(3)
                 .setNodeType("member")
                 .setPayload(new Nack_NC());
     }

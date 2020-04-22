@@ -20,4 +20,8 @@ public final class RngUtil {
     public static int nextInt(int bound) {
         return RANDOM.nextInt(bound);
     }
+
+    public static int nextInt(int min, int max) {
+        return RANDOM.nextInt(max + 1 - min) + min;
+    }
 }

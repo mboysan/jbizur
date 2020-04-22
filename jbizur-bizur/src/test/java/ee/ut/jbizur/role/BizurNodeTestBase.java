@@ -97,7 +97,7 @@ public class BizurNodeTestBase {
 
     @After
     public void postValidationsAndTearDown() {
-//        validateKeyValsForAllNodes();
+        validateKeyValsForAllNodes();
 //        validateLocalBucketKeyVals();
         tearDown();
     }
