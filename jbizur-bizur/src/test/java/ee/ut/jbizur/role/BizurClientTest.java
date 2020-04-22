@@ -1,17 +1,20 @@
 package ee.ut.jbizur.role;
 
+import ee.ut.jbizur.common.util.RngUtil;
 import ee.ut.jbizur.config.CoreConf;
 import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.util.MockUtil;
 import ee.ut.jbizur.util.MultiThreadExecutor;
-import ee.ut.jbizur.common.util.RngUtil;
+import ee.ut.jbizur.util.TestUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 public class BizurClientTest extends BizurNodeTestBase {
 
@@ -23,7 +26,7 @@ public class BizurClientTest extends BizurNodeTestBase {
     private BizurClient[] bizurClients;
 
     @Override
-    public void setUp() throws Exception {
+    public void setUp() throws IOException {
         super.setUp();
         createClients();
         startClients();
@@ -73,8 +76,8 @@ public class BizurClientTest extends BizurNodeTestBase {
      */
     @Test
     public void clientOperationsTest() {
-        String expKey = UUID.randomUUID().toString();
-        String expVal = UUID.randomUUID().toString();
+        String expKey = TestUtil.getRandomString();
+        String expVal = TestUtil.getRandomString();
 
         /* Test set/get */
         Assert.assertTrue(getRandomClient().set(expKey, expVal));
@@ -104,12 +107,14 @@ public class BizurClientTest extends BizurNodeTestBase {
      */
     @Test
     public void clientKeyValueSetGetMultiThreadTest() throws Throwable {
+        electBucketLeaders();
+
         int testCount = 50;
         MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
             executor.execute(() -> {
-                String testKey = UUID.randomUUID().toString();
-                String expVal = UUID.randomUUID().toString();
+                String testKey = TestUtil.getRandomString();
+                String expVal = TestUtil.getRandomString();
                 putExpectedKeyValue(testKey, expVal);
 
                 Assert.assertTrue(getRandomClient().set(testKey, expVal));
@@ -124,12 +129,14 @@ public class BizurClientTest extends BizurNodeTestBase {
      */
     @Test
     public void clientKeyValueDeleteMultiThreadTest() throws Throwable {
+        electBucketLeaders();
+
         int testCount = 50;
         MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
             executor.execute(() -> {
-                String testKey = UUID.randomUUID().toString();
-                String expVal = UUID.randomUUID().toString();
+                String testKey = TestUtil.getRandomString();
+                String expVal = TestUtil.getRandomString();
                 putExpectedKeyValue(testKey, expVal);
 
                 Assert.assertTrue(getRandomClient().set(testKey, expVal));
@@ -147,11 +154,11 @@ public class BizurClientTest extends BizurNodeTestBase {
      * iterates over the inserted keys and compares with the expected values.
      */
     @Test
-    public void iterateKeysTest() throws ExecutionException, InterruptedException {
+    public void iterateKeysTest() {
         int keyCount = 50;
         for (int i = 0; i < keyCount; i++) {
-            String testKey = "tkey" + i;
-            String expVal = "tval" + i;
+            String testKey = TestUtil.getRandomString();
+            String expVal = TestUtil.getRandomString();
 
             Assert.assertTrue(getRandomClient().set(testKey, expVal));
             putExpectedKeyValue(testKey, expVal);

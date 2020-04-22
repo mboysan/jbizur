@@ -1,6 +1,7 @@
 package ee.ut.jbizur.role;
 
 import ee.ut.jbizur.common.util.IdUtil;
+import ee.ut.jbizur.common.util.RngUtil;
 import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.protocol.commands.intl.InternalCommand;
 import ee.ut.jbizur.protocol.commands.intl.NodeAddressRegistered_IC;
@@ -11,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class BizurClient extends BizurNode {
 
@@ -51,9 +51,8 @@ public class BizurClient extends BizurNode {
     @Override
     public String get(String key) {
         checkReady();
-        ClientResponse_NC response = null;
         try {
-            response = route(
+            ClientResponse_NC response = route(
                     new ClientApiGet_NC()
                         .setKey(key)
                         .setReceiverAddress(getLeaderAddress(key))
@@ -72,9 +71,8 @@ public class BizurClient extends BizurNode {
     @Override
     public boolean set(String key, String val) {
         checkReady();
-        ClientResponse_NC response = null;
         try {
-            response = route(
+            ClientResponse_NC response = route(
                     new ClientApiSet_NC()
                             .setKey(key)
                             .setVal(val)
@@ -94,9 +92,8 @@ public class BizurClient extends BizurNode {
     @Override
     public boolean delete(String key) {
         checkReady();
-        ClientResponse_NC response = null;
         try {
-            response = route(
+            ClientResponse_NC response = route(
                     new ClientApiDelete_NC()
                             .setKey(key)
                             .setReceiverAddress(getLeaderAddress(key))
@@ -149,7 +146,7 @@ public class BizurClient extends BizurNode {
 
     public Address getRandomAddress() {
         synchronized (addressesLock) {
-            int index = ThreadLocalRandom.current().nextInt(addresses.length);
+            int index = RngUtil.nextInt(addresses.length);
             return addresses[index];
         }
     }

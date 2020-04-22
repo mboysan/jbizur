@@ -176,7 +176,7 @@ public class BizurNode extends Role {
 
         /* Client Request-response */
         if (command instanceof ClientRequest_NC) {
-            BizurRunForClient bcRun = new BizurRunForClient(this);
+            BizurClientRun bcRun = new BizurClientRun(this);
             ClientResponse_NC response = null;
             if(command instanceof ClientApiGet_NC){
                 response = bcRun.get((ClientApiGet_NC) command);

@@ -1,13 +1,15 @@
 package ee.ut.jbizur.role;
 
+import ee.ut.jbizur.common.util.IdUtil;
+import ee.ut.jbizur.common.util.RngUtil;
 import ee.ut.jbizur.config.CoreConf;
 import ee.ut.jbizur.protocol.address.Address;
-import ee.ut.jbizur.common.util.IdUtil;
 import ee.ut.jbizur.util.MockUtil;
-import ee.ut.jbizur.common.util.RngUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -23,6 +25,8 @@ public class BizurNodeTestBase {
         CoreConf.setConfig("BizurUT.conf");
     }
 
+    private static final Logger logger = LoggerFactory.getLogger(BizurNodeTestBase.class);
+
     private static final int NODE_COUNT = CoreConf.get().members.size();
     BizurNode[] bizurNodes;
 
@@ -30,7 +34,7 @@ public class BizurNodeTestBase {
     private Set<Integer> leaderDefinedBucketIndexes;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() throws IOException {
         createNodes();
         startRoles();
         this.expKeyVals = new ConcurrentHashMap<>();
@@ -66,6 +70,13 @@ public class BizurNodeTestBase {
         }
     }
 
+    void electBucketLeaders() {
+        int bucketCount = CoreConf.get().consensus.bizur.bucketCount;
+        for (int i = 0; i < bucketCount; i++) {
+            getRandomNode().startElection(i);
+        }
+    }
+
     BizurNode getRandomNode() {
         return getNode(-1);
     }
@@ -79,6 +90,9 @@ public class BizurNodeTestBase {
     }
 
     void putExpectedKeyValue(String expKey, String expVal) {
+        if (expKeyVals.get(expKey) != null) {
+            logger.warn("key exists, is this intended? key={}", expKey);
+        }
         expKeyVals.put(expKey, expVal);
         leaderDefinedBucketIndexes.add(hashKey(expKey));
     }

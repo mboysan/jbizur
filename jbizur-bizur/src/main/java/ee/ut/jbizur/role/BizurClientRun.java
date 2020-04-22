@@ -6,8 +6,8 @@ import ee.ut.jbizur.protocol.commands.net.*;
 import java.io.Serializable;
 import java.util.Set;
 
-class BizurRunForClient extends BizurRun {
-    BizurRunForClient(BizurNode node) {
+class BizurClientRun extends BizurRun {
+    BizurClientRun(BizurNode node) {
         super(node);
     }
 

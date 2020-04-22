@@ -1,6 +1,5 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.config.CoreConf;
 import ee.ut.jbizur.protocol.commands.net.BucketView;
 import ee.ut.jbizur.util.MultiThreadExecutor;
 import ee.ut.jbizur.util.TestUtil;
@@ -132,13 +131,6 @@ public class BizurRunTest extends BizurNodeTestBase {
             for (String actKey : actKeys) {
                 Assert.assertEquals(getExpectedValue(actKey), getRandomNode().get(actKey));
             }
-        }
-    }
-
-    private void electBucketLeaders() {
-        int bucketCount = CoreConf.get().consensus.bizur.bucketCount;
-        for (int i = 0; i < bucketCount; i++) {
-            getRandomNode().startElection(i);
         }
     }
 
