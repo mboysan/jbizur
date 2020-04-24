@@ -82,10 +82,6 @@ public class BizurRun {
                         .setCorrelationId(correlationId);
 
         if (publishAndWaitMajority(correlationId, pleaseVote, (cmd) -> cmd instanceof AckVote_NC)) {
-                /* Note1: following is done to guarantee that in case the leader discards the PleaseVote request,
-                the bucket leader is set properly for the first time. */
-//              localBucket.setElectId(electId);    // see Note2 below
-//                localBucket.setVotedElectId(electId);
             localBucket.setLeaderAddress(getSettings().getAddress());
             localBucket.setLeader(true);
 
@@ -98,14 +94,10 @@ public class BizurRun {
         int electId = pleaseVoteNc.getElectId();
         Address source = pleaseVoteNc.getSenderAddress();
         NetworkCommand vote;
-        Bucket localBucket = bucketContainer.tryAndLockBucket(bucketIndex);
+        Bucket localBucket = bucketContainer.tryAndLockBucket(bucketIndex, contextId);
         if (localBucket != null) {
             try {
                 if (electId > localBucket.getVotedElectId()) {
-                /* Note2: even though the algorithm does not specify to update the electId, we need to do it
-                   because the replica needs to keep track of the latest election Id of the bucket. */
-//              localBucket.setElectId(electId);    // TODO: investigate if this introduces additional issues.
-
                     localBucket.setVotedElectId(electId);
                     localBucket.setLeaderAddress(source);
                     localBucket.setLeader(source.equals(getSettings().getAddress()));
@@ -129,27 +121,13 @@ public class BizurRun {
      * Algorithm 2 - Bucket Replication: Write
      * ***************************************************************************/
 
-    private boolean write(Bucket localBucket) throws IllegalLeaderOperationException, OperationFailedException {
-        return write(localBucket, localBucket);
-    }
-
-    private boolean write(Bucket bucketToWrite, Bucket localBucket) throws IllegalLeaderOperationException, OperationFailedException {
-        if (bucketToWrite.getIndex() != localBucket.getIndex()) {
-            throw new OperationFailedException(logMsg("indices don't match localIndex=" + localBucket.getIndex() + ", other=" + bucketToWrite.getIndex()));
-        }
-        if (!localBucket.isLeader()) {
-            throw new IllegalLeaderOperationException(node.toString(), localBucket.getIndex());
-        }
-
-        BucketView bucketViewToSend;
-        bucketToWrite.setVerElectId(localBucket.getElectId());
-        bucketToWrite.incrementAndGetVerCounter();
-        bucketViewToSend = bucketToWrite.createView();
+    private boolean write(Bucket localBucket) throws OperationFailedException {
+        localBucket.incrementAndGetVerCounter();
 
         int correlationId = IdUtil.generateId();
         Supplier<NetworkCommand> replicaWrite =
                 () -> new ReplicaWrite_NC()
-                        .setBucketView(bucketViewToSend)
+                        .setBucketView(localBucket.createView())
                         .setContextId(contextId)
                         .setCorrelationId(correlationId);
 
@@ -166,29 +144,32 @@ public class BizurRun {
         BucketView recvBucketView = replicaWriteNc.getBucketView();
         int index = recvBucketView.getIndex();
         NetworkCommand response;
-        Bucket localBucket = bucketContainer.tryAndLockBucket(index);
+        Bucket localBucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (localBucket != null) {
             try {
-                if (isNotLeader(localBucket, replicaWriteNc)) {
-                    // only leader can request this
-                    response = new NackWrite_NC().setIndex(index).ofRequest(replicaWriteNc);
-                }
-                else if (recvBucketView.getVerElectId() < localBucket.getVotedElectId()) {
-                    response = new NackWrite_NC().setIndex(index).ofRequest(replicaWriteNc);
-                } else {
+                //TODO: Proposal1
+                /* Proposal1: Algorithm doesn't take received Bucket's full VER properties into account.
+                   i.e. if ReplicaWrite of an older request is received, since bucket.ver.counter isn't taken
+                   into account, we might end up replacing the latest bucket with an older one even though
+                   the bucket.ver.electId >= votedElectId */
+                if (recvBucketView.getVerElectId() > localBucket.getVotedElectId()
+                        || localBucket.compareToView(recvBucketView) <= 0) {
+
                     localBucket.setVotedElectId(recvBucketView.getVerElectId());
                     localBucket.setBucketMap(recvBucketView.getBucketMap());
                     localBucket.setLeaderAddress(recvBucketView.getLeaderAddress());
                     localBucket.setLeader(recvBucketView.getLeaderAddress().equals(getSettings().getAddress()));
 
-                    //TODO: investigate if this causes any issues
-                    /* Note1: algorithm does not mention this, but when we send the view of the local bucket during
-                       the ensureRecovery phase with the ReplicaRead command, we must send the latest VER of the
-                       bucket, otherwise the ensureRecovery phase might end up using a bucket with older VER. */
+                    //TODO: Proposal2
+                    /* When we send the view of the local bucket during the ensureRecovery phase with
+                       the ReplicaRead command, we must send the latest VER of the bucket, otherwise
+                       the ensureRecovery phase might end up using a bucket with an older VER. */
                     localBucket.setVerElectId(recvBucketView.getVerElectId());
                     localBucket.setVerCounter(recvBucketView.getVerCounter());
 
                     response = new AckWrite_NC().setIndex(index).ofRequest(replicaWriteNc);
+                } else {
+                    response = new NackWrite_NC().setIndex(index).ofRequest(replicaWriteNc);
                 }
             } finally {
                 bucketContainer.unlockBucket(index);
@@ -235,14 +216,10 @@ public class BizurRun {
         Address source = replicaReadNc.getSenderAddress();
 
         NetworkCommand resp;
-        Bucket localBucket = bucketContainer.tryAndLockBucket(index);
+        Bucket localBucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (localBucket != null) {
             try {
-                if (isNotLeader(localBucket, replicaReadNc)) {
-                    // only leader can request this
-                    resp = new NackRead_NC().setIndex(index).ofRequest(replicaReadNc);
-                }
-                else if (electId < localBucket.getVotedElectId()) {
+                if (electId < localBucket.getVotedElectId()) {
                     resp = new NackRead_NC().setIndex(index).ofRequest(replicaReadNc);
                 } else {
                     localBucket.setVotedElectId(electId);
@@ -267,7 +244,7 @@ public class BizurRun {
      * Algorithm 4 - Bucket Replication: Recovery
      * ***************************************************************************/
 
-    private boolean ensureRecovery(Bucket localBucket) throws IllegalLeaderOperationException, OperationFailedException {
+    private boolean ensureRecovery(Bucket localBucket) throws OperationFailedException {
         if (localBucket.getElectId() == localBucket.getVerElectId()) {
             return true;
         }
@@ -299,11 +276,12 @@ public class BizurRun {
                         .setCorrelationId(correlationId);
 
         if (publishAndWaitMajority(correlationId, replicaRead, handler)) {
-            // new bucket, i.e. no need to lock
-            Bucket maxVerBucket = Bucket.createBucket(maxVerBucketView.get());
-            maxVerBucket.setVerElectId(localBucket.getElectId());
-            maxVerBucket.setVerCounter(0);
-            return write(maxVerBucket, localBucket);
+            logger.info(logMsg("finalizing recovery with write, index={}"), localBucket.getIndex());
+            BucketView view = maxVerBucketView.get();
+            localBucket.setVerElectId(localBucket.getElectId());
+            localBucket.setVerCounter(0);
+            localBucket.setBucketMap(view.getBucketMap());
+            return write(localBucket);
         }
 
         localBucket.setLeaderAddress(null);
@@ -322,7 +300,7 @@ public class BizurRun {
         }
 
         boolean isNeeded = false;
-        Bucket bucket = bucketContainer.tryAndLockBucket(index);
+        Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (bucket != null) {
             try {
                 if (bucket.getLeaderAddress() == null) {
@@ -349,7 +327,7 @@ public class BizurRun {
         if (!isElectionNeeded(index)) {
             return;
         }
-        Bucket bucket = bucketContainer.tryAndLockBucket(index);
+        Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (bucket != null) {
             try {
                 startElection(bucket);
@@ -366,7 +344,7 @@ public class BizurRun {
 
     private String _get(String key) throws IllegalLeaderOperationException, OperationFailedException {
         int index = bucketContainer.hashKey(key);
-        Bucket bucket = bucketContainer.tryAndLockBucket(index);
+        Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (bucket != null) {
             try {
                 read(bucket);
@@ -381,11 +359,11 @@ public class BizurRun {
 
     private boolean _set(String key, String value) throws IllegalLeaderOperationException, OperationFailedException {
         int index = bucketContainer.hashKey(key);
-        Bucket bucket = bucketContainer.tryAndLockBucket(index);
+        Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (bucket != null) {
             try {
                 read(bucket);
-                bucket.putOp(key, value);
+                bucket.putOp(key, value);   //fixme: what happens if write is rejected?
                 return write(bucket);
             } finally {
                 bucket.unlock();
@@ -397,7 +375,7 @@ public class BizurRun {
 
     private boolean _delete(String key) throws IllegalLeaderOperationException, OperationFailedException {
         int index = bucketContainer.hashKey(key);
-        Bucket bucket = bucketContainer.tryAndLockBucket(index);
+        Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (bucket != null) {
             try {
                 read(bucket);
@@ -412,7 +390,7 @@ public class BizurRun {
     }
 
     private Set<String> _iterateKeys(int index) throws IllegalLeaderOperationException, OperationFailedException {
-        Bucket bucket = bucketContainer.tryAndLockBucket(index);
+        Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (bucket != null) {
             try {
                 read(bucket);
@@ -447,7 +425,6 @@ public class BizurRun {
             );
         } catch (BizurException e) {
             logger.error(e.getMessage(), e);
-//            _startElection(index, e);
             if (isElectionNeeded(index)) {
                 _startElection(index);
             }
@@ -487,7 +464,6 @@ public class BizurRun {
             );
         } catch (BizurException e) {
             logger.error(e.getMessage(), e);
-//            _startElection(index, e);
             if (isElectionNeeded(index)) {
                 _startElection(index);
             }
@@ -525,7 +501,6 @@ public class BizurRun {
             );
         } catch (BizurException e) {
             logger.error(e.getMessage(), e);
-//            _startElection(index, e);
             if (isElectionNeeded(index)) {
                 _startElection(index);
             }
@@ -570,7 +545,6 @@ public class BizurRun {
             );
         } catch (BizurException e) {
             logger.error(e.getMessage(), e);
-//            _startElection(index, e);
             if (isElectionNeeded(index)) {
                 _startElection(index);
             }
@@ -599,13 +573,10 @@ public class BizurRun {
 
     void startElection(int bucketIndex) {
         _startElection(bucketIndex);
-        /*if (isElectionNeeded(bucketIndex)) {
-            _startElection(bucketIndex);
-        }*/
     }
 
     Address resolveLeader(int index) {
-        Bucket bucket = bucketContainer.tryAndLockBucket(index);
+        Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (bucket != null) {
             try {
                 Address lead = bucket.getLeaderAddress();
@@ -625,12 +596,4 @@ public class BizurRun {
         return resolveLeader(index);
     }
 
-    private boolean isNotLeader(Bucket bucket, NetworkCommand command) {
-        return !isLeader(bucket, command);
-    }
-
-    private boolean isLeader(Bucket bucket, NetworkCommand command) {
-        Address lead = bucket.getLeaderAddress();
-        return lead != null && lead.equals(command.getSenderAddress());
-    }
 }

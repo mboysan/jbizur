@@ -26,8 +26,17 @@ public class Listeners {
             listener = listeners.get(0);    // get base listener
         }
         Objects.requireNonNull(listener);
-        if (listener.test(command)) {
-            listeners.remove(correlationId);
+        if (listener instanceof AbstractSyncedListener) {
+            synchronized (listener) {
+                // restrict access to only one thread at a time
+                if (listener.test(command)) {
+                    listeners.remove(correlationId);
+                }
+            }
+        } else {
+            if (listener.test(command)) {
+                listeners.remove(correlationId);
+            }
         }
     }
 

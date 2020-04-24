@@ -20,7 +20,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class Bucket implements Comparable<Bucket> {
     private static final Logger logger = LoggerFactory.getLogger(Bucket.class);
 
-    private final Lock bucketLock = new ReentrantLock();
+    private final ReentrantLock bucketLock = new ReentrantLock();
     private final Lock apiLock = new ReentrantLock();
     private final ReadWriteLock mapLock = new ReentrantReadWriteLock();
 
@@ -231,17 +231,8 @@ public class Bucket implements Comparable<Bucket> {
     }
 
     public boolean isLocked() {
-        if (bucketLock.tryLock()) {
-            try {
-                return false;
-            } finally {
-                bucketLock.unlock();
-            }
-        }
-        return true;
+        return bucketLock.isLocked();
     }
-
-
 
     public boolean tryLock(long timeout, TimeUnit timeUnit) throws InterruptedException {
         return bucketLock.tryLock(timeout, timeUnit);

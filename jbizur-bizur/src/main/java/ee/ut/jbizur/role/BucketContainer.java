@@ -18,8 +18,10 @@ public class BucketContainer {
 
     private final Map<Integer, Bucket> localBuckets;
     private final int numBuckets;
+    private final String name;
 
-    public BucketContainer(int numBuckets) {
+    public BucketContainer(String name, int numBuckets) {
+        this.name = name;
         this.numBuckets = numBuckets;
         this.localBuckets = new ConcurrentHashMap<>();
     }
@@ -34,17 +36,29 @@ public class BucketContainer {
         return bucket;
     }
 
-    Bucket tryAndLockBucket(int index) {
+    Bucket tryAndLockBucket(int index, int contextId) {
         Bucket bucket = getOrCreateBucket(index);
         try {
-            if (bucket.tryLock(CoreConf.get().consensus.bizur.bucketLockTimeoutMs, TimeUnit.MILLISECONDS)) {
+            long bucketLockTimeoutMs = CoreConf.get().consensus.bizur.bucketLockTimeoutMs;
+            if (bucketLockTimeoutMs >= 0) {
+                if (bucket.tryLock(bucketLockTimeoutMs, TimeUnit.MILLISECONDS)) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("[{}] locked bucket (1), at thread={}, contextId={}, bucket={}", name, Thread.currentThread(), contextId, getOrCreateBucket(index));
+                    }
+                    return bucket;
+                }
+            } else {
+                bucket.lock();
+                if (logger.isDebugEnabled()) {
+                    logger.debug("[{}] locked bucket (2), at thread={}, contextId={}, bucket={}", name, Thread.currentThread(), contextId, getOrCreateBucket(index));
+                }
                 return bucket;
             }
         } catch (InterruptedException e) {
             logger.error(e.getMessage(), e);
         }
         if (logger.isDebugEnabled()) {
-            logger.debug("bucket is locked, bucket=" + getOrCreateBucket(index));
+            logger.debug("[{}] bucket already locked, contextId={}, bucket={}", name, contextId, getOrCreateBucket(index));
         }
         return null;
     }
@@ -84,5 +98,14 @@ public class BucketContainer {
 
     int hashKey(String s) {
         return IdUtil.hashKey(s, numBuckets);
+    }
+
+    @Override
+    public String toString() {
+        return "BucketContainer{" +
+                "localBuckets=" + localBuckets +
+                ", numBuckets=" + numBuckets +
+                ", name='" + name + '\'' +
+                '}';
     }
 }

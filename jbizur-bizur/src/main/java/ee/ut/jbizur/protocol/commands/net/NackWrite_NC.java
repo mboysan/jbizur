@@ -17,6 +17,8 @@ public class NackWrite_NC extends Nack_NC{
 
     @Override
     public String toString() {
-        return "NackWrite_NC{} " + super.toString();
+        return "NackWrite_NC{" +
+                "index=" + index +
+                "} " + super.toString();
     }
 }

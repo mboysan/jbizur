@@ -30,7 +30,7 @@ public class BizurNode extends Role {
     }
 
     protected BucketContainer createBucketContainer() {
-        return new BucketContainer(CoreConf.get().consensus.bizur.bucketCount);
+        return new BucketContainer(getSettings().getRoleId(), CoreConf.get().consensus.bizur.bucketCount);
     }
 
     @Override
@@ -94,11 +94,11 @@ public class BizurNode extends Role {
     }
 
     private void replicaWrite(ReplicaWrite_NC replicaWriteNc){
-        new BizurRun(this).replicaWrite(replicaWriteNc);
+        new BizurRun(this, replicaWriteNc.getContextId()).replicaWrite(replicaWriteNc);
     }
 
     private void replicaRead(ReplicaRead_NC replicaReadNc){
-        new BizurRun(this).replicaRead(replicaReadNc);
+        new BizurRun(this, replicaReadNc.getContextId()).replicaRead(replicaReadNc);
     }
 
     public String get(String key) {

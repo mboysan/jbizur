@@ -135,8 +135,14 @@ public class NetworkManager implements AutoCloseable, ResourceCloser {
     }
 
     public void send(NetworkCommand message) throws IOException {
+        Objects.requireNonNull(message);
+        Objects.requireNonNull(message.getReceiverAddress());
+
         message.setSenderAddress(serverAddress);
         if (message.getSenderAddress().equals(message.getReceiverAddress())) {
+            /* Related to Remark2 in Bizur Paper - i.e. eliminating network issues for:
+               - When the leader sends to “all”, it also sends to itself (as a replica),
+                 and this message is assumed to be received. */
             server.recv(message);
             return;
         }
