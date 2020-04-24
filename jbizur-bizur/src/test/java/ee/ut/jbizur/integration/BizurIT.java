@@ -55,7 +55,8 @@ public class BizurIT {
         startNodes();
         startClient();
 
-        electBucketLeaders();
+        // let Bizur handle Bucket leaders internally
+//        electBucketLeaders();
     }
 
     private void initConfiguration() {
@@ -114,8 +115,9 @@ public class BizurIT {
         client.start().join();
     }
 
+    @Deprecated
     private void electBucketLeaders() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        // TODO: we must allow bizur nodes resolve leaders internally.
+        // this method must be used for debug purposes
         int bucketCount = CoreConf.get().consensus.bizur.bucketCount;
         for (int i = 0; i < bucketCount; i++) {
             BizurNode node = nodes[i % nodes.length];

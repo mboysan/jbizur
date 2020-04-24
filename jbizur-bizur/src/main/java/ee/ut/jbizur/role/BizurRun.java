@@ -109,7 +109,7 @@ public class BizurRun {
                     vote = new NackVote_NC().setIndex(bucketIndex).ofRequest(pleaseVoteNc);
                 }
             } finally {
-                bucketContainer.unlockBucket(bucketIndex);
+                localBucket.unlock();
             }
         } else {
             vote = new NackVote_NC().setIndex(bucketIndex).ofRequest(pleaseVoteNc);
@@ -172,7 +172,7 @@ public class BizurRun {
                     response = new NackWrite_NC().setIndex(index).ofRequest(replicaWriteNc);
                 }
             } finally {
-                bucketContainer.unlockBucket(index);
+                localBucket.unlock();
             }
         } else {
             response = new NackWrite_NC().setIndex(index).ofRequest(replicaWriteNc);
@@ -231,7 +231,7 @@ public class BizurRun {
                             .ofRequest(replicaReadNc);
                 }
             } finally {
-                bucketContainer.unlockBucket(index);
+                localBucket.unlock();
             }
 
         } else {
@@ -295,50 +295,57 @@ public class BizurRun {
      * ***************************************************************************/
 
     private boolean isElectionNeeded(int index) {
-        if (true) {
-            return true;
-        }
-
-        boolean isNeeded = false;
+        boolean isLeaderNull = false;
         Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (bucket != null) {
             try {
-                if (bucket.getLeaderAddress() == null) {
-                    isNeeded = true;
-                }
+                isLeaderNull = bucket.getLeaderAddress() == null;
             } finally {
                 bucket.unlock();
             }
         }
-        if (isNeeded) {
-            try {
-                long sleepMs = RngUtil.nextInt(5000);
-                logger.info(logMsg("waiting " + sleepMs + " ms before starting election..."));
-                Thread.sleep(sleepMs);
-            } catch (InterruptedException e) {
-                logger.error(e.getMessage(), e);
-            }
+        if (isLeaderNull) {
+            // if true, either no previous leader assigned to the leader or your leadership is abolished.
             return true;
         }
-        return false;
+        // Otherwise some node was elected as the leader and we will just wait for synchronization.
+        // Therefore, we fail 20% of the time to let other nodes try and handle the election process.
+        // This will somewhat help prevent collisions, i.e. some node selecting itself as the leader
+        // by disagreeing the majority vote.
+        return RngUtil.nextInt(5) >= 2;
     }
 
     private void _startElection(int index) {
-        if (!isElectionNeeded(index)) {
-            return;
-        }
-        Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
-        if (bucket != null) {
-            try {
-                startElection(bucket);
-                return;
-            } finally {
-                bucket.unlock();
-            }
-        }
-        logger.warn(logMsg("retry start election index=" + index));
+        _startElection(index, true);
+    }
+    private void _startElection(int index, boolean mustWait) {
         if (isElectionNeeded(index)) {
-            _startElection(index);
+            if (mustWait) {
+                try {
+                    int nodeIdx = node.getSettings().getRoleId() != null
+                            ? IdUtil.hashKey(node.getSettings().getRoleId(), node.getSettings().getProcessCount())
+                            : RngUtil.nextInt(node.getSettings().getProcessCount());
+                    long sleepMs = RngUtil.nextInt(1000) * nodeIdx;
+                    logger.info(logMsg("waiting " + sleepMs + " ms before starting election... index={}"), index);
+                    Thread.sleep(sleepMs);
+                } catch (InterruptedException e) {
+                    logger.error(e.getMessage(), e);
+                }
+            }
+            Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
+            if (bucket != null) {
+                try {
+                    if (!isElectionNeeded(index)) {
+                        // while we were waiting the leader might've already been updated.
+                        logger.info(logMsg("election not needed exiting, index={}"), index);
+                        return;
+                    }
+                    logger.info(logMsg("election needed proceeding, index={}"), index);
+                    startElection(bucket);
+                } finally {
+                    bucket.unlock();
+                }
+            }
         }
     }
 
@@ -363,7 +370,7 @@ public class BizurRun {
         if (bucket != null) {
             try {
                 read(bucket);
-                bucket.putOp(key, value);   //fixme: what happens if write is rejected?
+                bucket.putOp(key, value);
                 return write(bucket);
             } finally {
                 bucket.unlock();
@@ -425,9 +432,7 @@ public class BizurRun {
             );
         } catch (BizurException e) {
             logger.error(e.getMessage(), e);
-            if (isElectionNeeded(index)) {
-                _startElection(index);
-            }
+            _startElection(index);
             return get(key);
         }
     }
@@ -464,9 +469,7 @@ public class BizurRun {
             );
         } catch (BizurException e) {
             logger.error(e.getMessage(), e);
-            if (isElectionNeeded(index)) {
-                _startElection(index);
-            }
+            _startElection(index);
             return set(key, val);
         }
     }
@@ -501,9 +504,7 @@ public class BizurRun {
             );
         } catch (BizurException e) {
             logger.error(e.getMessage(), e);
-            if (isElectionNeeded(index)) {
-                _startElection(index);
-            }
+            _startElection(index);
             return delete(key);
         }
     }
@@ -545,9 +546,7 @@ public class BizurRun {
             );
         } catch (BizurException e) {
             logger.error(e.getMessage(), e);
-            if (isElectionNeeded(index)) {
-                _startElection(index);
-            }
+            _startElection(index);
             return iterateKeys(index);
         }
     }
@@ -572,7 +571,7 @@ public class BizurRun {
      * ***************************************************************************/
 
     void startElection(int bucketIndex) {
-        _startElection(bucketIndex);
+        _startElection(bucketIndex, false);
     }
 
     Address resolveLeader(int index) {
@@ -590,9 +589,7 @@ public class BizurRun {
                 bucket.unlock();
             }
         }
-        if (isElectionNeeded(index)) {
-            _startElection(index);
-        }
+        _startElection(index);
         return resolveLeader(index);
     }
 

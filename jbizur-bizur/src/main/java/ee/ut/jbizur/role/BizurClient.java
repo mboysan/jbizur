@@ -153,22 +153,27 @@ public class BizurClient extends BizurNode {
 
     private Address getLeaderAddress(String bucketKey) {
         int index = bucketContainer.hashKey(bucketKey);
-        Bucket bucket = bucketContainer.lockAndGetBucket(index);
-        try {
-            Address lead = bucket.getLeaderAddress();
-            return lead != null ? lead : getRandomAddress();
-        } finally {
-            bucketContainer.unlockBucket(index);
+        Bucket bucket = bucketContainer.tryAndLockBucket(index);
+        if (bucket != null) {
+            try {
+                Address lead = bucket.getLeaderAddress();
+                return lead != null ? lead : getRandomAddress();
+            } finally {
+                bucket.unlock();
+            }
         }
+        return getRandomAddress();
     }
 
     private void updateLeaderOfBucket(String bucketKey, Address assumedLeader) {
         int index = bucketContainer.hashKey(bucketKey);
-        Bucket bucket = bucketContainer.lockAndGetBucket(index);
-        try {
-            bucket.setLeaderAddress(assumedLeader);
-        } finally {
-            bucketContainer.unlockBucket(index);
+        Bucket bucket = bucketContainer.tryAndLockBucket(index);
+        if (bucket != null) {
+            try {
+                bucket.setLeaderAddress(assumedLeader);
+            } finally {
+                bucket.unlock();
+            }
         }
     }
 }

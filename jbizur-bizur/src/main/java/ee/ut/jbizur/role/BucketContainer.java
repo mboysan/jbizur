@@ -2,7 +2,6 @@ package ee.ut.jbizur.role;
 
 import ee.ut.jbizur.common.util.IdUtil;
 import ee.ut.jbizur.config.CoreConf;
-import ee.ut.jbizur.protocol.address.Address;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,7 +9,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class BucketContainer {
 
@@ -30,10 +28,8 @@ public class BucketContainer {
         return localBuckets.computeIfAbsent(index, idx -> new Bucket().setIndex(idx));
     }
 
-    Bucket lockAndGetBucket(int index) {
-        Bucket bucket = getOrCreateBucket(index);
-        bucket.lock();
-        return bucket;
+    Bucket tryAndLockBucket(int index) {
+        return tryAndLockBucket(index, -1);
     }
 
     Bucket tryAndLockBucket(int index, int contextId) {
@@ -43,14 +39,14 @@ public class BucketContainer {
             if (bucketLockTimeoutMs >= 0) {
                 if (bucket.tryLock(bucketLockTimeoutMs, TimeUnit.MILLISECONDS)) {
                     if (logger.isDebugEnabled()) {
-                        logger.debug("[{}] locked bucket (1), at thread={}, contextId={}, bucket={}", name, Thread.currentThread(), contextId, getOrCreateBucket(index));
+                        logger.debug("[{}] locked bucket (1), contextId={}, bucket={}", name, contextId, getOrCreateBucket(index));
                     }
                     return bucket;
                 }
             } else {
                 bucket.lock();
                 if (logger.isDebugEnabled()) {
-                    logger.debug("[{}] locked bucket (2), at thread={}, contextId={}, bucket={}", name, Thread.currentThread(), contextId, getOrCreateBucket(index));
+                    logger.debug("[{}] locked bucket (2), contextId={}, bucket={}", name, contextId, getOrCreateBucket(index));
                 }
                 return bucket;
             }
@@ -61,35 +57,6 @@ public class BucketContainer {
             logger.debug("[{}] bucket already locked, contextId={}, bucket={}", name, contextId, getOrCreateBucket(index));
         }
         return null;
-    }
-
-    void unlockBucket(int index) {
-        getOrCreateBucket(index).unlock();
-    }
-
-    void apiLock(int index) {
-        getOrCreateBucket(index).apiLock();
-    }
-
-    void apiUnlock(int index) {
-        getOrCreateBucket(index).apiUnlock();
-    }
-
-    int getNumBuckets() {
-        return numBuckets;
-    }
-
-    Set<Address> collectAddressesWithBucketLeaders() {
-        return localBuckets.values().stream()
-                .map(Bucket::getLeaderAddress)
-                .collect(Collectors.toSet());
-    }
-
-    Set<Integer> bucketIndicesOfAddress(Address address) {
-        return localBuckets.values().stream()
-                .filter(bucket -> bucket.getLeaderAddress() != null && bucket.getLeaderAddress().equals(address))
-                .map(Bucket::getIndex)
-                .collect(Collectors.toSet());
     }
 
     Set<Integer> collectIndices() {

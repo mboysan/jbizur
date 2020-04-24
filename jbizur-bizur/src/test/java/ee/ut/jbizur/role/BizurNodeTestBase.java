@@ -177,11 +177,15 @@ public class BizurNodeTestBase {
     }
 
     static <R> R execOnBucket(BucketContainer bucketContainer, int index, Function<Bucket, R> function) {
-        Bucket bucket = bucketContainer.lockAndGetBucket(index);
-        try {
-            return function.apply(bucket);
-        } finally {
-            bucketContainer.unlockBucket(index);
+        Bucket bucket = bucketContainer.tryAndLockBucket(index);
+        if (bucket != null) {
+            try {
+                return function.apply(bucket);
+            } finally {
+                bucket.unlock();
+            }
         }
+        Assert.fail();
+        return null;
     }
 }

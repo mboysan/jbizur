@@ -12,7 +12,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -21,7 +20,6 @@ public class Bucket implements Comparable<Bucket> {
     private static final Logger logger = LoggerFactory.getLogger(Bucket.class);
 
     private final ReentrantLock bucketLock = new ReentrantLock();
-    private final Lock apiLock = new ReentrantLock();
     private final ReadWriteLock mapLock = new ReentrantReadWriteLock();
 
     private final AtomicReference<Address> leaderAddress = new AtomicReference<>(null);
@@ -195,15 +193,6 @@ public class Bucket implements Comparable<Bucket> {
         }
     }
 
-    public static Bucket createBucket(BucketView bucketView) {
-        return new Bucket()
-                .setIndex(bucketView.getIndex())
-                .setBucketMap(bucketView.getBucketMap())
-                .setVerElectId(bucketView.getVerElectId())
-                .setVerCounter(bucketView.getVerCounter())
-                .setLeaderAddress(bucketView.getLeaderAddress());
-    }
-
     public int compareToView(BucketView bucketView) {
         if(this.getVerElectId() > bucketView.getVerElectId()){
             return 1;
@@ -230,32 +219,20 @@ public class Bucket implements Comparable<Bucket> {
         }
     }
 
-    public boolean isLocked() {
+    boolean isLocked() {
         return bucketLock.isLocked();
     }
 
-    public boolean tryLock(long timeout, TimeUnit timeUnit) throws InterruptedException {
+    boolean tryLock(long timeout, TimeUnit timeUnit) throws InterruptedException {
         return bucketLock.tryLock(timeout, timeUnit);
     }
 
-    public boolean tryLock() {
-        return bucketLock.tryLock();
-    }
-
-    public void lock() {
+    void lock() {
         bucketLock.lock();
     }
 
-    public void unlock() {
+    void unlock() {
         bucketLock.unlock();
-    }
-
-    public void apiLock() {
-        apiLock.lock();
-    }
-
-    public void apiUnlock() {
-        apiLock.unlock();
     }
 
     @Override

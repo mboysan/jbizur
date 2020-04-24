@@ -45,11 +45,14 @@ class BizurClientRun extends BizurRun {
             return null;
         }
         int index = bucketContainer.hashKey(key);
-        Bucket bucket = bucketContainer.lockAndGetBucket(index);
-        try {
-            return bucket.getLeaderAddress();
-        } finally {
-            bucketContainer.unlockBucket(index);
+        Bucket bucket = bucketContainer.tryAndLockBucket(index);
+        if (bucket != null) {
+            try {
+                return bucket.getLeaderAddress();
+            } finally {
+                bucket.unlock();
+            }
         }
+        return null;
     }
 }
