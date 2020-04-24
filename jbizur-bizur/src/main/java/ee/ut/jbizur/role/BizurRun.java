@@ -582,9 +582,6 @@ public class BizurRun {
                 if (lead != null) {
                     return lead;
                 }
-                /*if (isElectionNeeded(index)) {
-                    _startElection(index);
-                }*/
             } finally {
                 bucket.unlock();
             }

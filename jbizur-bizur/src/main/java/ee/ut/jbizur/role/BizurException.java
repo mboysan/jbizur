@@ -7,10 +7,6 @@ public class BizurException extends Exception implements Serializable {
         this(who + " " + message + ", index=" + index);
     }
 
-    public BizurException(Throwable cause) {
-        super(cause);
-    }
-
     BizurException(String message) {
         super(message);
     }

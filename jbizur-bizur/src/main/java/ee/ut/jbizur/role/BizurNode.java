@@ -133,11 +133,7 @@ public class BizurNode extends Role {
         new BizurRun(this, iterKeysNc.getContextId()).iterateKeysByLeader(iterKeysNc);
     }
 
-    //TODO: to be removed
-    Address resolveLeader(int bucketIndex) {
-        return new BizurRun(this).resolveLeader(bucketIndex);
-    }
-    //TODO: to be removed
+    //ForTestingOnly
     void startElection(int bucketIndex) {
         new BizurRun(this).startElection(bucketIndex);
     }

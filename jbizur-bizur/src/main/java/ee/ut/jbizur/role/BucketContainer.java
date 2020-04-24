@@ -25,7 +25,7 @@ public class BucketContainer {
     }
 
     private Bucket getOrCreateBucket(int index) {
-        return localBuckets.computeIfAbsent(index, idx -> new Bucket().setIndex(idx));
+        return localBuckets.computeIfAbsent(index, idx -> new Bucket(index));
     }
 
     Bucket tryAndLockBucket(int index) {
