@@ -68,7 +68,7 @@ public class BizurNodeTest implements ResourceCloser {
     }
 
     @Test
-    public void testRoute() throws RoutingFailedException {
+    public void testRoute() throws BizurException {
         NetworkCommand ping = new Ping_NC()
                 .setCorrelationId(1)
                 .setSenderAddress(member1.getSettings().getAddress())

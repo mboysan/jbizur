@@ -20,7 +20,9 @@ import java.util.concurrent.TimeUnit;
 public abstract class AbstractClient implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(AbstractClient.class);
 
-    private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    private final ExecutorService executor = Executors.newFixedThreadPool(1);
+//    private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+//    private final ExecutorService executor = Executors.newCachedThreadPool();
 
     private final String name;
     private final Address destAddress;
@@ -45,8 +47,8 @@ public abstract class AbstractClient implements AutoCloseable {
     }
     protected abstract void send0(NetworkCommand command) throws Exception;
 
-    protected Future<Void> submit(Runnable r) {
-        return (Future<Void>) executor.submit(r);
+    protected void submit(Runnable r) {
+        executor.submit(r);
     }
 
     public String getName() {

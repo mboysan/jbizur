@@ -14,8 +14,11 @@ public class InVMClient extends AbstractClient {
 
     private static Logger logger = LoggerFactory.getLogger(InVMClient.class);
 
+    private volatile boolean isRunning;
+
     public InVMClient(String name, Address destAddress) {
         super(name, destAddress);
+        isRunning = true;
     }
 
     @Override
@@ -29,7 +32,7 @@ public class InVMClient extends AbstractClient {
 
     @Override
     protected boolean isValid() {
-        return true;
+        return isRunning;
     }
 
     @Override
@@ -55,6 +58,12 @@ public class InVMClient extends AbstractClient {
         if (DeadNodeManager.isDead(cmd.getReceiverAddress())) {
             logger.warn("receiver node is dead. cmd=" + cmd);
         }
+    }
+
+    @Override
+    public void close() {
+        isRunning = false;
+        super.close();
     }
 
     @Override

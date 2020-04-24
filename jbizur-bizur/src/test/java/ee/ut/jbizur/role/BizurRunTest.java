@@ -1,12 +1,19 @@
 package ee.ut.jbizur.role;
 
+import ee.ut.jbizur.protocol.commands.net.BucketView;
 import ee.ut.jbizur.util.MultiThreadExecutor;
+import ee.ut.jbizur.util.TestUtil;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
-public class BizurNodeFunctionalTest extends BizurNodeTestBase {
+public class BizurRunTest extends BizurNodeTestBase {
+
+    private static final Logger logger = LoggerFactory.getLogger(BizurRunTest.class);
 
     /**
      * Test for sequential set/get operations of a set of keys and values on different nodes.
@@ -15,8 +22,8 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
     public void keyValueSetGetTest() {
         int testCount = 50;
         for (int i = 0; i < testCount; i++) {
-            String expKey = "tkey" + i;
-            String expVal = "tval" + i;
+            String expKey = TestUtil.getRandomString();
+            String expVal = TestUtil.getRandomString();
             putExpectedKeyValue(expKey, expVal);
 
             BizurNode setterNode = getRandomNode();
@@ -32,13 +39,14 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueSetGetMultiThreadTest() throws Throwable {
+        electBucketLeaders();
+
         int testCount = 50;
         MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
-            int finalI = i;
             executor.execute(() -> {
-                String expKey = "tkey" + finalI;
-                String expVal = "tval" + finalI;
+                String expKey = TestUtil.getRandomString();
+                String expVal = TestUtil.getRandomString();
                 putExpectedKeyValue(expKey, expVal);
 
                 BizurNode setterNode = getRandomNode();
@@ -59,8 +67,8 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
     public void keyValueDeleteTest() {
         int testCount = 50;
         for (int i = 0; i < testCount; i++) {
-            String expKey = "tkey" + i;
-            String expVal = "tval" + i;
+            String expKey = TestUtil.getRandomString();
+            String expVal = TestUtil.getRandomString();
 
             BizurNode setterNode = getRandomNode();
             Assert.assertTrue(setterNode.set(expKey, expVal));
@@ -81,13 +89,14 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
      */
     @Test
     public void keyValueDeleteMultiThreadTest() throws Throwable {
+        electBucketLeaders();
+
         int testCount = 50;
         MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
-            int finalI = i;
             executor.execute(() -> {
-                String expKey = "tkey" + finalI;
-                String expVal = "tval" + finalI;
+                String expKey = TestUtil.getRandomString();
+                String expVal = TestUtil.getRandomString();
                 putExpectedKeyValue(expKey, expVal);
 
                 Assert.assertTrue(getRandomNode().set(expKey, expVal));
@@ -108,8 +117,8 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
     public void iterateKeysTest() {
         int keyCount = 50;
         for (int i = 0; i < keyCount; i++) {
-            String key = "tkey" + i;
-            String val = "tval" + i;
+            String key = TestUtil.getRandomString();
+            String val = TestUtil.getRandomString();
 
             putExpectedKeyValue(key, val);
             Assert.assertTrue(getRandomNode().set(key, val));
@@ -123,5 +132,27 @@ public class BizurNodeFunctionalTest extends BizurNodeTestBase {
                 Assert.assertEquals(getExpectedValue(actKey), getRandomNode().get(actKey));
             }
         }
+    }
+
+    @Test
+    public void testBucketComparison() {
+        BucketView b00 = new BucketView().setVerElectId(0).setVerCounter(0);
+        BucketView b10 = new BucketView().setVerElectId(1).setVerCounter(0);
+        BucketView b11 = new BucketView().setVerElectId(1).setVerCounter(1);
+
+        AtomicReference<BucketView> maxVerBucketView = new AtomicReference<>(null);
+
+        Assert.assertTrue(maxVerBucketView.compareAndSet(null, b10));
+        Assert.assertFalse(maxVerBucketView.compareAndSet(null, b10));
+        Assert.assertFalse(maxVerBucketView.compareAndSet(null, b11));
+        Assert.assertEquals(b10, maxVerBucketView.get());
+
+        Assert.assertTrue(b00.compareTo(b10) < 0);
+        Assert.assertTrue(b00.compareTo(b00) == 0);
+        Assert.assertTrue(b10.compareTo(b00) > 0);
+
+        Assert.assertTrue(b00.compareTo(maxVerBucketView.get()) < 0);
+        Assert.assertTrue(b10.compareTo(maxVerBucketView.get()) == 0);
+        Assert.assertTrue(b11.compareTo(maxVerBucketView.get()) > 0);
     }
 }

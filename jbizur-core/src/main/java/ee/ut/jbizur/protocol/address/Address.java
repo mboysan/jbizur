@@ -22,4 +22,8 @@ public abstract class Address implements Serializable, Comparable<Address> {
     public String toString() {
         return "Address{}";
     }
+
+    public static boolean isEquals(Address a1, Address a2) {
+        return a1 == null && a2 == null || (a1 == null || a2 != null) && a1 != null && a1.equals(a2);
+    }
 }

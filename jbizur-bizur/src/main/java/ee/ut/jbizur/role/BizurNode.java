@@ -3,8 +3,6 @@ package ee.ut.jbizur.role;
 import ee.ut.jbizur.config.CoreConf;
 import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.protocol.commands.intl.InternalCommand;
-import ee.ut.jbizur.protocol.commands.intl.NodeDead_IC;
-import ee.ut.jbizur.protocol.commands.intl.SendFail_IC;
 import ee.ut.jbizur.protocol.commands.net.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +30,7 @@ public class BizurNode extends Role {
     }
 
     protected BucketContainer createBucketContainer() {
-        return new BucketContainer(CoreConf.get().consensus.bizur.bucketCount);
+        return new BucketContainer(getSettings().getRoleId(), CoreConf.get().consensus.bizur.bucketCount);
     }
 
     @Override
@@ -65,23 +63,30 @@ public class BizurNode extends Role {
      * Message Routing
      * ***************************************************************************/
 
-    <T> T route(NetworkCommand command) throws RoutingFailedException {
+    <T> T route(NetworkCommand command) throws BizurException {
+        Exception finalEx = null;
         for (int i = 0; i < command.getRetryCount() + 1; i++) {
             try {
                 NetworkCommand cmd = sendRecv(command);
                 if (cmd instanceof LeaderResponse_NC) {
-                    return (T) cmd.getPayload();
+                    Object payload = cmd.getPayload();
+                    if (payload instanceof Exception) {
+                        logger.warn("payload has exception={}", payload);
+                        finalEx = (Exception) payload;
+                        continue;
+                    }
+                    return (T) payload;
                 }
                 return (T) cmd;
             } catch (Exception e) {
-                logger.warn("rout error count={}", i);
+                logger.warn("route error count={}", i, e);
             }
         }
-        throw new RoutingFailedException(logMsg("Routing failed for command: " + command));
-    }
-
-    protected boolean initLeaderPerBucketElectionFlow() throws InterruptedException {
-        return new BizurRun(this).initLeaderPerBucketElectionFlow();
+        if (finalEx instanceof BizurException) {
+            throw (BizurException) finalEx;
+        }
+        // still some other issue?
+        throw new BizurException(logMsg("Routing failed for command: " + command), finalEx);
     }
 
     private void pleaseVote(PleaseVote_NC pleaseVoteNc) {
@@ -89,11 +94,11 @@ public class BizurNode extends Role {
     }
 
     private void replicaWrite(ReplicaWrite_NC replicaWriteNc){
-        new BizurRun(this).replicaWrite(replicaWriteNc);
+        new BizurRun(this, replicaWriteNc.getContextId()).replicaWrite(replicaWriteNc);
     }
 
     private void replicaRead(ReplicaRead_NC replicaReadNc){
-        new BizurRun(this).replicaRead(replicaReadNc);
+        new BizurRun(this, replicaReadNc.getContextId()).replicaRead(replicaReadNc);
     }
 
     public String get(String key) {
@@ -128,8 +133,9 @@ public class BizurNode extends Role {
         new BizurRun(this, iterKeysNc.getContextId()).iterateKeysByLeader(iterKeysNc);
     }
 
-    private void handleLeaderElection(LeaderElectionRequest_NC ler) {
-        new BizurRun(this, ler.getContextId()).handleLeaderElection(ler);
+    //ForTestingOnly
+    void startElection(int bucketIndex) {
+        new BizurRun(this).startElection(bucketIndex);
     }
 
     /* ***************************************************************************
@@ -139,10 +145,6 @@ public class BizurNode extends Role {
     @Override
     public void handle(NetworkCommand command) {
         super.handle(command);
-
-        if (command instanceof LeaderElectionRequest_NC) {
-            handleLeaderElection((LeaderElectionRequest_NC) command);
-        }
 
         if (command instanceof ReplicaWrite_NC){
             replicaWrite((ReplicaWrite_NC) command);
@@ -170,7 +172,7 @@ public class BizurNode extends Role {
 
         /* Client Request-response */
         if (command instanceof ClientRequest_NC) {
-            BizurRunForClient bcRun = new BizurRunForClient(this);
+            BizurClientRun bcRun = new BizurClientRun(this);
             ClientResponse_NC response = null;
             if(command instanceof ClientApiGet_NC){
                 response = bcRun.get((ClientApiGet_NC) command);
@@ -196,12 +198,6 @@ public class BizurNode extends Role {
 
     @Override
     protected void handle(InternalCommand ic) {
-        if(ic instanceof SendFail_IC) {
-            new BizurRun(this).handleSendFailureWithoutRetry((SendFail_IC) ic);
-        }
-        if(ic instanceof NodeDead_IC) {
-            handleNodeFailure(((NodeDead_IC) ic).getNodeAddress());
-        }
     }
 
     @Override

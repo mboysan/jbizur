@@ -51,7 +51,6 @@ public abstract class Role implements AutoCloseable {
 
         if (settings.isMultiCastEnabled()) {
             networkManager.multicastAtFixedRate(new Connect_NC()
-                    .setSenderId(settings.getRoleId())
                     .setSenderAddress(settings.getAddress())
                     .setNodeType("member"));
         }
@@ -74,7 +73,6 @@ public abstract class Role implements AutoCloseable {
     protected void handle(NetworkCommand nc){
         if(nc instanceof Connect_NC){
             NetworkCommand connectOK = new ConnectOK_NC()
-                    .setSenderId(getSettings().getRoleId())
                     .setSenderAddress(getSettings().getAddress())
                     .setReceiverAddress(nc.getSenderAddress())
                     .setNodeType("member");

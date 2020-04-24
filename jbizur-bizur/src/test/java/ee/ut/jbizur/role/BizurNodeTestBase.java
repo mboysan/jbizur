@@ -1,13 +1,15 @@
 package ee.ut.jbizur.role;
 
+import ee.ut.jbizur.common.util.IdUtil;
+import ee.ut.jbizur.common.util.RngUtil;
 import ee.ut.jbizur.config.CoreConf;
 import ee.ut.jbizur.protocol.address.Address;
-import ee.ut.jbizur.common.util.IdUtil;
 import ee.ut.jbizur.util.MockUtil;
-import ee.ut.jbizur.common.util.RngUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -16,11 +18,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 public class BizurNodeTestBase {
     static {
         CoreConf.setConfig("BizurUT.conf");
     }
+
+    private static final Logger logger = LoggerFactory.getLogger(BizurNodeTestBase.class);
 
     private static final int NODE_COUNT = CoreConf.get().members.size();
     BizurNode[] bizurNodes;
@@ -29,7 +34,7 @@ public class BizurNodeTestBase {
     private Set<Integer> leaderDefinedBucketIndexes;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() throws IOException {
         createNodes();
         startRoles();
         this.expKeyVals = new ConcurrentHashMap<>();
@@ -65,6 +70,13 @@ public class BizurNodeTestBase {
         }
     }
 
+    void electBucketLeaders() {
+        int bucketCount = CoreConf.get().consensus.bizur.bucketCount;
+        for (int i = 0; i < bucketCount; i++) {
+            bizurNodes[i % bizurNodes.length].startElection(i);
+        }
+    }
+
     BizurNode getRandomNode() {
         return getNode(-1);
     }
@@ -78,6 +90,9 @@ public class BizurNodeTestBase {
     }
 
     void putExpectedKeyValue(String expKey, String expVal) {
+        if (expKeyVals.get(expKey) != null) {
+            logger.warn("key exists, is this intended? key={}", expKey);
+        }
         expKeyVals.put(expKey, expVal);
         leaderDefinedBucketIndexes.add(hashKey(expKey));
     }
@@ -97,7 +112,7 @@ public class BizurNodeTestBase {
     @After
     public void postValidationsAndTearDown() {
         validateKeyValsForAllNodes();
-        validateLocalBucketKeyVals();
+//        validateLocalBucketKeyVals();
         tearDown();
     }
 
@@ -123,20 +138,22 @@ public class BizurNodeTestBase {
         if (expKeyVals.size() == 0) {
             leaderDefinedBucketIndexes.iterator().forEachRemaining(bIdx -> {
                 BizurNode leader = findLeaderOfBucket(bIdx);
-                Assert.assertEquals(logNode(leader, bIdx), 0, leader.bucketContainer.getBucket(bIdx).getKeySetOp().size());
+                int actKeySetSize = execOnBucket(leader.bucketContainer, bIdx, (b) -> b.getKeySetOp().size());
+                Assert.assertEquals(logNode(leader, bIdx), 0, actKeySetSize);
             });
         } else {
             expKeyVals.forEach((expKey, expVal) -> {
                 int bIdx = hashKey(expKey);
                 BizurNode leader = findLeaderOfBucket(bIdx);
-                Assert.assertEquals(logNode(leader, bIdx), expVal, leader.bucketContainer.getBucket(bIdx).getOp(expKey));
+                String actKey = execOnBucket(leader.bucketContainer, bIdx, (b) -> b.getOp(expKey));
+                Assert.assertEquals(logNode(leader, bIdx), expVal, actKey);
             });
         }
     }
 
     private BizurNode findLeaderOfBucket(int bucketIndex) {
         for (BizurNode bizurNode : bizurNodes) {
-            if (bizurNode.bucketContainer.getBucket(bucketIndex).isLeader()) {
+            if (execOnBucket(bizurNode.bucketContainer, bucketIndex, Bucket::isLeader)) {
                 return bizurNode;
             }
         }
@@ -148,13 +165,27 @@ public class BizurNodeTestBase {
         String log = "node=[%s], bucket=[%s], keySet=[%s]";
         return String.format(log,
                 bizurNode.toString(),
-                bizurNode.bucketContainer.getBucket(bucketIndex),
-                bizurNode.bucketContainer.getBucket(bucketIndex).getKeySetOp());
+                execOnBucket(bizurNode.bucketContainer, bucketIndex, b -> b),
+                execOnBucket(bizurNode.bucketContainer, bucketIndex, b -> b.getKeySetOp())
+        );
     }
 
     public void tearDown() {
         for (BizurNode bizurNode : bizurNodes) {
             bizurNode.close();
         }
+    }
+
+    static <R> R execOnBucket(BucketContainer bucketContainer, int index, Function<Bucket, R> function) {
+        Bucket bucket = bucketContainer.tryAndLockBucket(index);
+        if (bucket != null) {
+            try {
+                return function.apply(bucket);
+            } finally {
+                bucket.unlock();
+            }
+        }
+        Assert.fail();
+        return null;
     }
 }

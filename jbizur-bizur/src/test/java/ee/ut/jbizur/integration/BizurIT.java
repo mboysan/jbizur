@@ -6,6 +6,7 @@ import ee.ut.jbizur.protocol.address.TCPAddress;
 import ee.ut.jbizur.role.BizurBuilder;
 import ee.ut.jbizur.role.BizurClient;
 import ee.ut.jbizur.role.BizurNode;
+import ee.ut.jbizur.role.BizurRun;
 import ee.ut.jbizur.util.MultiThreadExecutor;
 import ee.ut.jbizur.util.TestUtil;
 import org.junit.After;
@@ -18,6 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -51,6 +54,9 @@ public class BizurIT {
         initClient();
         startNodes();
         startClient();
+
+        // let Bizur handle Bucket leaders internally
+//        electBucketLeaders();
     }
 
     private void initConfiguration() {
@@ -107,6 +113,19 @@ public class BizurIT {
 
     protected void startClient() {
         client.start().join();
+    }
+
+    @Deprecated
+    private void electBucketLeaders() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        // this method must be used for debug purposes
+        int bucketCount = CoreConf.get().consensus.bizur.bucketCount;
+        for (int i = 0; i < bucketCount; i++) {
+            BizurNode node = nodes[i % nodes.length];
+            Method method = BizurNode.class.getDeclaredMethod("startElection", int.class);
+            method.setAccessible(true);
+            method.invoke(node, i);
+            method.setAccessible(false);
+        }
     }
 
     @After

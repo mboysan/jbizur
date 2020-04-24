@@ -24,11 +24,13 @@ public class GenCoreConf {
     public static class Bizur {
       public final int bucketCount;
       public final int bucketElectRetryCount;
+      public final long bucketLockTimeoutMs;
       public final long maxElectionWaitSec;
       
       public Bizur(com.typesafe.config.Config c, java.lang.String parentPath, $TsCfgValidator $tsCfgValidator) {
         this.bucketCount = c.hasPathOrNull("bucketCount") ? c.getInt("bucketCount") : 5;
         this.bucketElectRetryCount = c.hasPathOrNull("bucketElectRetryCount") ? c.getInt("bucketElectRetryCount") : 5;
+        this.bucketLockTimeoutMs = c.hasPathOrNull("bucketLockTimeoutMs") ? c.getLong("bucketLockTimeoutMs") : 5000;
         this.maxElectionWaitSec = c.hasPathOrNull("maxElectionWaitSec") ? c.getLong("maxElectionWaitSec") : 5;
       }
     }

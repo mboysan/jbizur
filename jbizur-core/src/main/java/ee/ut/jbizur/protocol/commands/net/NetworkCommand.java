@@ -11,22 +11,13 @@ import java.io.Serializable;
  */
 public class NetworkCommand implements ICommand, Serializable {
     /**
-     * Message id associated with this command.
-     */
-    private Integer msgId;
-    /**
      * Id to correlate with a certain context.
      */
     private Integer correlationId;
     /**
      * Id that is related to a specific context (i.e. a batch of operations).
      */
-    @Deprecated
     private Integer contextId;
-    /**
-     * Id of the sender process
-     */
-    private String senderId;
     /**
      * Address of the sender
      */
@@ -36,21 +27,13 @@ public class NetworkCommand implements ICommand, Serializable {
      */
     private Address receiverAddr;
     /**
-     * Message tag
-     */
-    private Integer tag;
-    /**
      * Message timestamp. Auto-generated.
      */
     private long timeStamp;
     /**
      * Any additional payload to _send.
      */
-    private Object payload;
-    /**
-     * To determine if this command is handled or not.
-     */
-    private boolean isHandled;
+    private Serializable payload;
     /**
      * Number of times to retry sending this command in case of a failure.
      */
@@ -68,24 +51,7 @@ public class NetworkCommand implements ICommand, Serializable {
 
     public void reset() {
         this.timeStamp = System.currentTimeMillis();
-        this.isHandled = false;
         this.retryCount = CoreConf.get().network.sendFailRetryCount;
-    }
-
-    /**
-     * @return gets {@link #senderId}
-     */
-    public String getSenderId() {
-        return senderId;
-    }
-
-    /**
-     * @param senderId sets {@link #senderId}
-     * @return this
-     */
-    public NetworkCommand setSenderId(String senderId) {
-        this.senderId = senderId;
-        return this;
     }
 
     /**
@@ -121,22 +87,6 @@ public class NetworkCommand implements ICommand, Serializable {
     }
 
     /**
-     * @return gets {@link #tag}
-     */
-    public int getTag() {
-        return tag;
-    }
-
-    /**
-     * @param tag sets {@link #tag}
-     * @return this
-     */
-    public NetworkCommand setTag(int tag) {
-        this.tag = tag;
-        return this;
-    }
-
-    /**
      * @return gets {@link #timeStamp}
      */
     public long getTimeStamp() {
@@ -147,17 +97,8 @@ public class NetworkCommand implements ICommand, Serializable {
         return payload;
     }
 
-    public NetworkCommand setPayload(Object payload) {
+    public NetworkCommand setPayload(Serializable payload) {
         this.payload = payload;
-        return this;
-    }
-
-    public Integer getMsgId() {
-        return msgId;
-    }
-
-    public NetworkCommand setMsgId(Integer msgId) {
-        this.msgId = msgId;
         return this;
     }
 
@@ -177,15 +118,6 @@ public class NetworkCommand implements ICommand, Serializable {
 
     public NetworkCommand setContextId(Integer contextId) {
         this.contextId = contextId;
-        return this;
-    }
-
-    public boolean isHandled() {
-        return isHandled;
-    }
-
-    public NetworkCommand setHandled(boolean handled) {
-        isHandled = handled;
         return this;
     }
 
@@ -218,7 +150,6 @@ public class NetworkCommand implements ICommand, Serializable {
 
     public NetworkCommand ofRequest(NetworkCommand requestCmd) {
         return this
-                .setMsgId(requestCmd.getMsgId())
                 .setCorrelationId(requestCmd.getCorrelationId())
                 .setContextId(requestCmd.getContextId())
                 .setReceiverAddress(requestCmd.getSenderAddress());
@@ -230,14 +161,10 @@ public class NetworkCommand implements ICommand, Serializable {
                 "isRequest=" + isRequest +
                 ", correlationId=" + correlationId +
                 ", contextId=" + contextId +
-                ", msgId=" + msgId +
-                ", senderId='" + senderId + '\'' +
                 ", senderAddr=" + senderAddr +
                 ", receiverAddr=" + receiverAddr +
-                ", tag=" + tag +
                 ", timeStamp=" + timeStamp +
                 ", payload=" + payload +
-                ", awaitResponses=" + isHandled +
                 ", retryCount=" + retryCount +
                 ", nodeType='" + nodeType + '\'' +
                 '}';

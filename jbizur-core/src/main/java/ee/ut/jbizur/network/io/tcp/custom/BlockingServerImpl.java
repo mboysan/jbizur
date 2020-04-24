@@ -1,10 +1,9 @@
 package ee.ut.jbizur.network.io.tcp.custom;
 
-import ee.ut.jbizur.config.CoreConf;
+import ee.ut.jbizur.network.io.AbstractServer;
 import ee.ut.jbizur.protocol.address.TCPAddress;
 import ee.ut.jbizur.protocol.commands.net.NetworkCommand;
 import ee.ut.jbizur.protocol.commands.net.SignalEnd_NC;
-import ee.ut.jbizur.network.io.AbstractServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,16 +12,12 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class BlockingServerImpl extends AbstractServer {
 
     private static final Logger logger = LoggerFactory.getLogger(BlockingServerImpl.class);
 
     private ServerThread serverThread;
-    private final ExecutorService executor = Executors.newCachedThreadPool();
 
     public BlockingServerImpl(String name, TCPAddress tcpAddress) {
         super(name, tcpAddress);
@@ -50,14 +45,7 @@ public class BlockingServerImpl extends AbstractServer {
         try {
             super.close();
         } finally {
-            try {
-                serverThread.close();
-                executor.shutdown();
-                executor.awaitTermination(CoreConf.get().network.shutdownWaitSec, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                logger.error(e.getMessage(), e);
-                Thread.currentThread().interrupt();
-            }
+            serverThread.close();
         }
     }
 
@@ -80,7 +68,7 @@ public class BlockingServerImpl extends AbstractServer {
                     Socket socket = serverSocket.accept();
                     RecvSocket recvSocket = new RecvSocket(socket, true);
                     SocketHandler socketHandler = new SocketHandler(recvSocket);
-                    executor.execute(socketHandler);
+                    submit(socketHandler);
                 }
             } catch (IOException e) {
                 if (e instanceof SocketException) {

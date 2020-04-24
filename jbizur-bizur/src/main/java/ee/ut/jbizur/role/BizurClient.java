@@ -1,17 +1,17 @@
 package ee.ut.jbizur.role;
 
+import ee.ut.jbizur.common.util.IdUtil;
+import ee.ut.jbizur.common.util.RngUtil;
 import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.protocol.commands.intl.InternalCommand;
 import ee.ut.jbizur.protocol.commands.intl.NodeAddressRegistered_IC;
 import ee.ut.jbizur.protocol.commands.intl.NodeAddressUnregistered_IC;
 import ee.ut.jbizur.protocol.commands.net.*;
-import ee.ut.jbizur.common.util.IdUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class BizurClient extends BizurNode {
 
@@ -25,11 +25,6 @@ public class BizurClient extends BizurNode {
         if (isAddressesAlreadyRegistered()) {
             arrangeAddresses();
         }
-    }
-
-    @Override
-    protected boolean initLeaderPerBucketElectionFlow() {
-        return true;
     }
 
     @Override
@@ -56,19 +51,17 @@ public class BizurClient extends BizurNode {
     @Override
     public String get(String key) {
         checkReady();
-        ClientResponse_NC response = null;
         try {
-            response = route(
+            ClientResponse_NC response = route(
                     new ClientApiGet_NC()
                         .setKey(key)
-                        .setSenderId(getSettings().getRoleId())
                         .setReceiverAddress(getLeaderAddress(key))
                         .setSenderAddress(getSettings().getAddress())
                         .setCorrelationId(IdUtil.generateId())
             );
             updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
             return (String) response.getPayload();
-        } catch (RoutingFailedException e) {
+        } catch (BizurException e) {
             // TODO: handle re-routing to another node
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
@@ -78,20 +71,18 @@ public class BizurClient extends BizurNode {
     @Override
     public boolean set(String key, String val) {
         checkReady();
-        ClientResponse_NC response = null;
         try {
-            response = route(
+            ClientResponse_NC response = route(
                     new ClientApiSet_NC()
                             .setKey(key)
                             .setVal(val)
-                            .setSenderId(getSettings().getRoleId())
                             .setReceiverAddress(getLeaderAddress(key))
                             .setSenderAddress(getSettings().getAddress())
                             .setCorrelationId(IdUtil.generateId())
             );
             updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
             return (boolean) response.getPayload();
-        } catch (RoutingFailedException e) {
+        } catch (BizurException e) {
             // TODO: handle re-routing to another node
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
@@ -101,19 +92,17 @@ public class BizurClient extends BizurNode {
     @Override
     public boolean delete(String key) {
         checkReady();
-        ClientResponse_NC response = null;
         try {
-            response = route(
+            ClientResponse_NC response = route(
                     new ClientApiDelete_NC()
                             .setKey(key)
-                            .setSenderId(getSettings().getRoleId())
                             .setReceiverAddress(getLeaderAddress(key))
                             .setSenderAddress(getSettings().getAddress())
                             .setCorrelationId(IdUtil.generateId())
             );
             updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
             return (boolean) response.getPayload();
-        } catch (RoutingFailedException e) {
+        } catch (BizurException e) {
             // TODO: handle re-routing to another node
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
@@ -127,13 +116,12 @@ public class BizurClient extends BizurNode {
         try {
             response = route(
                     new ClientApiIterKeys_NC()
-                            .setSenderId(getSettings().getRoleId())
                             .setReceiverAddress(getRandomAddress())
                             .setSenderAddress(getSettings().getAddress())
                             .setCorrelationId(IdUtil.generateId())
             );
             return (Set<String>) response.getPayload();
-        } catch (RoutingFailedException e) {
+        } catch (BizurException e) {
             // TODO: handle re-routing to another node
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
@@ -158,17 +146,34 @@ public class BizurClient extends BizurNode {
 
     public Address getRandomAddress() {
         synchronized (addressesLock) {
-            int index = ThreadLocalRandom.current().nextInt(addresses.length);
+            int index = RngUtil.nextInt(addresses.length);
             return addresses[index];
         }
     }
 
     private Address getLeaderAddress(String bucketKey) {
-        Address leader = bucketContainer.getBucket(bucketKey).getLeaderAddress();
-        return leader != null ? leader : getRandomAddress();
+        int index = bucketContainer.hashKey(bucketKey);
+        Bucket bucket = bucketContainer.tryAndLockBucket(index);
+        if (bucket != null) {
+            try {
+                Address lead = bucket.getLeaderAddress();
+                return lead != null ? lead : getRandomAddress();
+            } finally {
+                bucket.unlock();
+            }
+        }
+        return getRandomAddress();
     }
 
     private void updateLeaderOfBucket(String bucketKey, Address assumedLeader) {
-        bucketContainer.getBucket(bucketKey).setLeaderAddress(assumedLeader);
+        int index = bucketContainer.hashKey(bucketKey);
+        Bucket bucket = bucketContainer.tryAndLockBucket(index);
+        if (bucket != null) {
+            try {
+                bucket.setLeaderAddress(assumedLeader);
+            } finally {
+                bucket.unlock();
+            }
+        }
     }
 }

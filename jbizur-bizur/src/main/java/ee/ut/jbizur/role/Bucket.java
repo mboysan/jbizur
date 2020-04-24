@@ -8,84 +8,56 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Bucket implements Comparable<Bucket> {
     private static final Logger logger = LoggerFactory.getLogger(Bucket.class);
 
-    private final Lock bucketLock = new ReentrantLock();
-    private final ReadWriteLock mapLock = new ReentrantReadWriteLock();
+    private final ReentrantLock bucketLock = new ReentrantLock();
 
-    private final AtomicReference<Address> leaderAddress = new AtomicReference<>(null);
-    private final AtomicBoolean isLeader = new AtomicBoolean(false);
-    private final AtomicInteger electId = new AtomicInteger(0);
-    private final AtomicInteger votedElectId = new AtomicInteger(0);
+    private final int index;
 
-    /**
-     * We don't need to create a ConcHashMap because we will be protected by a lock.
-     */
+    private Address leaderAddress = null;
+    private boolean isLeader = false;
+    private int electId = 0;
+    private int votedElectId = 0;
+
     private final Map<String,String> bucketMap = new HashMap<>();
-    private final AtomicInteger index = new AtomicInteger(0);
-    private final AtomicInteger verElectId = new AtomicInteger(0);
-    private final AtomicInteger verCounter = new AtomicInteger(0);
+    private int verElectId = 0;
+    private int verCounter = 0;
 
-    private AtomicBoolean electionInProgress = new AtomicBoolean(false);
-
-    Bucket() {}
+    Bucket(int index) {
+        this.index = index;
+    }
 
     /* ***************************************************************************
      * Map Operations
      * ***************************************************************************/
 
     public String putOp(String key, String val){
-        mapLock.writeLock().lock();
-        try {
-            if (logger.isDebugEnabled()) {
-                logger.debug("put key={},val={} in bucket={}", key, val, this);
-            }
-            return bucketMap.put(key, val);
-        } finally {
-            mapLock.writeLock().unlock();
+        if (logger.isDebugEnabled()) {
+            logger.debug("put key={},val={} in bucket={}", key, val, this);
         }
+        return bucketMap.put(key, val);
     }
 
     public String getOp(String key){
-        mapLock.readLock().lock();
-        try {
-            if (logger.isDebugEnabled()) {
-                logger.debug("get key={} from bucket={}", key, this);
-            }
-            return bucketMap.get(key);
-        } finally {
-            mapLock.readLock().unlock();
+        if (logger.isDebugEnabled()) {
+            logger.debug("get key={} from bucket={}", key, this);
         }
+        return bucketMap.get(key);
     }
 
     public String removeOp(String key){
-        mapLock.writeLock().lock();
-        try {
-            if (logger.isDebugEnabled()) {
-                logger.debug("remove key={} from bucket={}", key, this);
-            }
-            return bucketMap.remove(key);
-        } finally {
-            mapLock.writeLock().unlock();
+        if (logger.isDebugEnabled()) {
+            logger.debug("remove key={} from bucket={}", key, this);
         }
+        return bucketMap.remove(key);
     }
 
     public Set<String> getKeySetOp(){
-        mapLock.readLock().lock();
-        try {
-            return bucketMap.keySet();
-        } finally {
-            mapLock.readLock().unlock();
-        }
+        return bucketMap.keySet();
     }
 
     /* ***************************************************************************
@@ -93,105 +65,78 @@ public class Bucket implements Comparable<Bucket> {
      * ***************************************************************************/
 
     public Bucket setBucketMap(Map map) {
-        mapLock.writeLock().lock();
-        try {
-            if (logger.isDebugEnabled()) {
-                logger.debug("replacing bucketMap={} with map={} in bucket={}", bucketMap, map, this);
-            }
-            this.bucketMap.clear();
-            this.bucketMap.putAll(map);
-            return this;
-        } finally {
-            mapLock.writeLock().unlock();
+        if (logger.isDebugEnabled()) {
+            logger.debug("replacing bucketMap={} with map={} in bucket={}", bucketMap, map, this);
         }
-    }
-
-    public int getIndex() {
-        return index.get();
-    }
-
-    public Bucket setIndex(int index) {
-        this.index.set(index);
+        this.bucketMap.clear();
+        this.bucketMap.putAll(map);
         return this;
     }
 
+    public int getIndex() {
+        return index;
+    }
+
     public Bucket setLeaderAddress(Address leaderAddress) {
-        this.leaderAddress.set(leaderAddress);
+        this.leaderAddress = leaderAddress;
         return this;
     }
 
     public Address getLeaderAddress() {
-        return leaderAddress.get();
+        return leaderAddress;
     }
 
-    public Bucket updateLeader(boolean isLeader) {
-        this.isLeader.set(isLeader);
+    public Bucket setLeader(boolean isLeader) {
+        this.isLeader = isLeader;
         return this;
     }
     public boolean isLeader() {
-        return isLeader.get();
+        return isLeader;
     }
 
     public int getElectId() {
-        return electId.get();
+        return electId;
     }
+
     public Bucket setElectId(int electId) {
-        this.electId.set(electId);
+        this.electId = electId;
         return this;
     }
+
     public int incrementAndGetElectId() {
-        return this.electId.incrementAndGet();
+        this.electId++;
+        return this.electId;
     }
 
     public Bucket setVotedElectId(int votedElectId) {
-        this.votedElectId.set(votedElectId);
+        this.votedElectId = votedElectId;
         return this;
     }
+
     public int getVotedElectId() {
-        return votedElectId.get();
+        return votedElectId;
     }
 
     public int getVerElectId() {
-        return verElectId.get();
+        return verElectId;
     }
     public Bucket setVerElectId(int verElectId) {
-        this.verElectId.set(verElectId);
+        this.verElectId = verElectId;
         return this;
     }
 
     public int incrementAndGetVerCounter() {
-        return this.verCounter.incrementAndGet();
+        this.verCounter++;
+        return this.verCounter;
     }
+
     public Bucket setVerCounter(int verCounter) {
-        this.verCounter.set(verCounter);
+        this.verCounter = verCounter;
         return this;
     }
+
     public int getVerCounter() {
-        return verCounter.get();
-    }
-
-
-    /* ***************************************************************************
-     * Election Operations
-     * ***************************************************************************/
-
-    public synchronized void initLeaderElection() {
-        electionInProgress.set(true);
-    }
-
-    public synchronized void endLeaderElection() {
-        electionInProgress.set(false);
-        notifyAll();
-    }
-
-    public synchronized boolean checkLeaderElectionInProgress() {
-        return electionInProgress.get();
-    }
-
-    public synchronized void waitForLeaderElection() throws InterruptedException {
-        while (electionInProgress.get()) {
-            wait();
-        }
+        return verCounter;
     }
 
 
@@ -200,37 +145,17 @@ public class Bucket implements Comparable<Bucket> {
      * ***************************************************************************/
 
     public BucketView createView() {
-        mapLock.readLock().lock();
-        try {
-            return new BucketView()
-                    .setBucketMap(new HashMap<>(bucketMap))
-                    .setIndex(getIndex())
-                    .setVerElectId(getVerElectId())
-                    .setVerCounter(getVerCounter())
-                    .setLeaderAddress(getLeaderAddress());
-        } finally {
-            mapLock.readLock().unlock();
-        }
+        return new BucketView()
+                .setBucketMap(new HashMap<>(bucketMap))
+                .setIndex(getIndex())
+                .setVerElectId(getVerElectId())
+                .setVerCounter(getVerCounter())
+                .setLeaderAddress(getLeaderAddress());
     }
 
-    public Bucket replaceBucketForReplicationWith(BucketView bucketView) {
-        return setBucketMap(bucketView.getBucketMap())
-//                    .setIndex(bucketView.getIndex())
-//                    .setVerElectId(bucketView.getVerElectId())
-//                    .setVerCounter(bucketView.getVerCounter())
-                .setLeaderAddress(bucketView.getLeaderAddress())
-                .setVotedElectId(bucketView.getVerElectId());
-    }
-
-    public static Bucket createBucket(BucketView bucketView) {
-        return new Bucket()
-                .setIndex(bucketView.getIndex())
-                .setBucketMap(bucketView.getBucketMap())
-                .setIndex(bucketView.getIndex())
-                .setVerElectId(bucketView.getVerElectId())
-                .setVerCounter(bucketView.getVerCounter())
-                .setLeaderAddress(bucketView.getLeaderAddress());
-    }
+    /* ***************************************************************************
+     * Utils
+     * ***************************************************************************/
 
     public int compareToView(BucketView bucketView) {
         if(this.getVerElectId() > bucketView.getVerElectId()){
@@ -241,11 +166,6 @@ public class Bucket implements Comparable<Bucket> {
             return -1;
         }
     }
-
-
-    /* ***************************************************************************
-     * Utils
-     * ***************************************************************************/
 
     @Override
     public int compareTo(Bucket o) {
@@ -258,22 +178,30 @@ public class Bucket implements Comparable<Bucket> {
         }
     }
 
-    public void lock() {
+    boolean isLocked() {
+        return bucketLock.isLocked();
+    }
+
+    boolean tryLock(long timeout, TimeUnit timeUnit) throws InterruptedException {
+        return bucketLock.tryLock(timeout, timeUnit);
+    }
+
+    void lock() {
         bucketLock.lock();
     }
 
-    public void unlock() {
+    void unlock() {
         bucketLock.unlock();
     }
 
     @Override
     public String toString() {
         return "Bucket{" +
-                "leaderAddress=" + leaderAddress +
+                "index=" + index +
+                ", leaderAddress=" + leaderAddress +
                 ", isLeader=" + isLeader +
                 ", electId=" + electId +
                 ", votedElectId=" + votedElectId +
-                ", index=" + index +
                 ", verElectId=" + verElectId +
                 ", verCounter=" + verCounter +
                 '}';
