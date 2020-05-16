@@ -12,7 +12,7 @@ public final class CoreConf extends GenCoreConf {
 
     private static final Logger logger = LoggerFactory.getLogger(CoreConf.class);
 
-    private static GenCoreConf sInstance;
+    private static CoreConf sInstance;
 
     private CoreConf(Config c){
         super(c);
