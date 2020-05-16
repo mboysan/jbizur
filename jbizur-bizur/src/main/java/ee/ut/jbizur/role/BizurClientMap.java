@@ -29,7 +29,7 @@ public class BizurClientMap extends BizurMap {
         if (!(key instanceof Serializable)) {
             throw new IllegalArgumentException("key must be serializable");
         }
-        checkReady();
+        client.checkReady();
         try {
             ClientResponse_NC response = route(
                     (ClientRequest_NC) new ClientApiGet_NC()
@@ -49,7 +49,7 @@ public class BizurClientMap extends BizurMap {
 
     @Override
     public Serializable put(Serializable key, Serializable value) {
-        checkReady();
+        client.checkReady();
         try {
             ClientResponse_NC response = route(
                     (ClientRequest_NC) new ClientApiSet_NC()
@@ -73,7 +73,7 @@ public class BizurClientMap extends BizurMap {
         if (!(key instanceof Serializable)) {
             throw new IllegalArgumentException("key must be serializable");
         }
-        checkReady();
+        client.checkReady();
         try {
             ClientResponse_NC response = route(
                     (ClientRequest_NC) new ClientApiDelete_NC()
@@ -93,10 +93,9 @@ public class BizurClientMap extends BizurMap {
 
     @Override
     public Set<Serializable> keySet() {
-        checkReady();
-        ClientResponse_NC response = null;
+        client.checkReady();
         try {
-            response = route(
+            ClientResponse_NC response = route(
                     (ClientRequest_NC) new ClientApiIterKeys_NC()
                             .setReceiverAddress(client.nextAddress())
                             .setSenderAddress(client.getSettings().getAddress())
@@ -111,10 +110,6 @@ public class BizurClientMap extends BizurMap {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         }
-    }
-
-    private void checkReady() {
-        client.checkReady();
     }
 
     @Override

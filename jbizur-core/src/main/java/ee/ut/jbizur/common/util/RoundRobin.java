@@ -2,6 +2,7 @@ package ee.ut.jbizur.common.util;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class RoundRobin<T> implements Iterable<T> {
     private final List<T> coll;
@@ -20,7 +21,10 @@ public class RoundRobin<T> implements Iterable<T> {
             }
 
             @Override
-            public synchronized T next() {
+            public synchronized T next() throws NoSuchElementException {
+                if (!hasNext()) {   // by contract
+                    throw new NoSuchElementException();
+                }
                 T res = coll.get(index);
                 index = (index + 1) % coll.size();
                 return res;
