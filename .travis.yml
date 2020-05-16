@@ -1,4 +1,5 @@
 language: java
+jdk: openjdk-ea
 git:
   depth: false
 #cache:
@@ -8,12 +9,9 @@ git:
 
 # install latest openjdk manually from install-jdk.sh script
 before_script:
-  - wget https://github.com/sormuras/bach/raw/master/install-jdk.sh
-  - source ./install-jdk.sh --verbose --feature ea
-  - echo JAVA_HOME = ${JAVA_HOME}
-  - echo PATH = ${PATH}
-  - ls ${JAVA_HOME}
-  - java -version
+  - chmod +x ./scripts/*
+  - ./scripts/installjdk.sh
+  - printenv
 
 addons:
   sonarcloud:
@@ -31,8 +29,6 @@ jobs:
       before_script:
         - mkdir ./config
         - mkdir ./log
-        - chmod +x ./scripts/*
-        - printenv
       script:
         - mvn -Dsonar.coverage.jacoco.xmlReportPaths=$COV_DIR -Dmaven.javadoc.skip=true -DcreateChecksum=true -V clean install sonar:sonar
       after_failure:
