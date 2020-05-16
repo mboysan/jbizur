@@ -2,6 +2,7 @@ language: java
 jdk: openjdk-ea
 git:
   depth: false
+
 #cache:
 #  directories:
 #    - '$HOME/.m2'
@@ -11,16 +12,16 @@ addons:
   sonarcloud:
     organization: "mboysan-github"
 
-install: true   # skip default mvn commands
+#install: true   # skip default mvn commands
 
 env:
   - COV_DIR="$TRAVIS_BUILD_DIR/jbizur-distribution/target/site/jacoco-aggregate/jacoco.xml"
-  - JDK=ea
 
 jobs:
   include:
     - stage: test
       before_script:
+        - chmod +x ./scripts/*
         - mkdir ./config
         - mkdir ./log
         - wget https://github.com/sormuras/bach/raw/master/install-jdk.sh
