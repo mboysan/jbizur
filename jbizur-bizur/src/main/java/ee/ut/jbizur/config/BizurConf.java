@@ -11,7 +11,7 @@ import java.util.Objects;
 public class BizurConf extends GenBizurConf {
     private static final Logger logger = LoggerFactory.getLogger(BizurConf.class);
 
-    private static volatile BizurConf sInstance = null;
+    private static BizurConf sInstance = null;
 
     private BizurConf(Config c) {
         super(c);
