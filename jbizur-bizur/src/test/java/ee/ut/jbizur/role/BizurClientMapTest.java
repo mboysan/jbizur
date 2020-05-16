@@ -1,6 +1,7 @@
 package ee.ut.jbizur.role;
 
 import ee.ut.jbizur.common.util.RngUtil;
+import ee.ut.jbizur.config.BizurConf;
 import ee.ut.jbizur.config.CoreConf;
 import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.util.MockUtil;
@@ -20,7 +21,7 @@ import java.util.concurrent.CompletableFuture;
 public class BizurClientMapTest extends BizurNodeTestBase {
 
     static {
-        CoreConf.setConfig("BizurUT.conf");
+        BizurConf.set("BizurUT.conf");
     }
 
     private static final int CLIENT_COUNT = CoreConf.get().clients.size();

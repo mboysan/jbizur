@@ -1,5 +1,6 @@
 package ee.ut.jbizur.integration;
 
+import ee.ut.jbizur.config.BizurConf;
 import ee.ut.jbizur.config.CoreConf;
 import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.protocol.address.TCPAddress;
@@ -63,7 +64,7 @@ public class BizurIT {
 
     private void initConfiguration() {
         // set the configuration
-        CoreConf.setConfig(confName);
+        BizurConf.set(confName);
 
         memberCount = CoreConf.get().members.size();
         memberAddresses = CoreConf.get().members.stream()
@@ -120,7 +121,7 @@ public class BizurIT {
     @Deprecated
     private void electBucketLeaders() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         // this method must be used for debug purposes
-        int bucketCount = CoreConf.get().consensus.bizur.bucketCount;
+        int bucketCount = BizurConf.get().bizur.bucketCount;
         for (int i = 0; i < bucketCount; i++) {
             BizurNode node = nodes[i % nodes.length];
             Method method = BizurNode.class.getDeclaredMethod("startElection", int.class);

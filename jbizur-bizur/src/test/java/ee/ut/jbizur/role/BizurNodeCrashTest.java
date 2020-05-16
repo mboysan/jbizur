@@ -1,5 +1,6 @@
 package ee.ut.jbizur.role;
 
+import ee.ut.jbizur.config.BizurConf;
 import ee.ut.jbizur.config.CoreConf;
 import ee.ut.jbizur.util.TestUtil;
 import org.junit.Assert;
@@ -9,7 +10,7 @@ import java.io.IOException;
 
 public class BizurNodeCrashTest extends BizurNodeTestBase {
     static {
-        CoreConf.setConfig("BizurUT.crash.conf");
+        BizurConf.set("BizurUT.crash.conf");
     }
 
     @Override
@@ -17,7 +18,7 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         super.setUp();
 
         // we will work on a single bucket
-        Assert.assertEquals(1, CoreConf.get().consensus.bizur.bucketCount);
+        Assert.assertEquals(1, BizurConf.get().bizur.bucketCount);
     }
 
     /**

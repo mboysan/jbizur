@@ -1,7 +1,7 @@
 package ee.ut.jbizur.role;
 
 import ee.ut.jbizur.common.util.IdUtil;
-import ee.ut.jbizur.config.CoreConf;
+import ee.ut.jbizur.config.BizurConf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +36,7 @@ public class BucketContainer {
     SerializableBucket tryAndLockBucket(int index, int contextId) {
         SerializableBucket bucket = getOrCreateBucket(index);
         try {
-            long bucketLockTimeoutMs = CoreConf.get().consensus.bizur.bucketLockTimeoutMs;
+            long bucketLockTimeoutMs = BizurConf.get().bizur.bucketLockTimeoutMs;
             if (bucketLockTimeoutMs >= 0) {
                 if (bucket.tryLock(bucketLockTimeoutMs, TimeUnit.MILLISECONDS)) {
                     if (logger.isDebugEnabled()) {

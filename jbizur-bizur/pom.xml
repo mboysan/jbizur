@@ -12,6 +12,33 @@
     <artifactId>jbizur-bizur</artifactId>
     <packaging>jar</packaging>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.github.timvlaer</groupId>
+                <artifactId>tscfg-maven-plugin</artifactId>
+                <version>${tscfg.maven.plugin.version}</version>
+                <configuration>
+                    <templateFile>src/main/resources/bizurconf-template.conf</templateFile>
+                    <packageName>ee.ut.jbizur.config</packageName>
+                    <outputDirectory>jbizur-bizur/src/main/java/</outputDirectory>
+                    <className>GenBizurConf</className>
+                    <generateGetters>false</generateGetters>
+                    <useOptionals>false</useOptionals>
+                    <useDurations>false</useDurations>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>tscfg-sources</id>
+                        <goals>
+                            <goal>generate-config-class</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
     <dependencies>
         <dependency>
             <groupId>ee.ut.jbizur</groupId>

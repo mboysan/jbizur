@@ -2,6 +2,7 @@ package ee.ut.jbizur.role;
 
 import ee.ut.jbizur.common.util.IdUtil;
 import ee.ut.jbizur.common.util.RngUtil;
+import ee.ut.jbizur.config.BizurConf;
 import ee.ut.jbizur.config.CoreConf;
 import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.util.MockUtil;
@@ -23,7 +24,7 @@ import java.util.function.Function;
 
 public class BizurNodeTestBase {
     static {
-        CoreConf.setConfig("BizurUT.conf");
+        BizurConf.set("BizurUT.conf");
     }
 
     private static final Logger logger = LoggerFactory.getLogger(BizurNodeTestBase.class);
@@ -74,7 +75,7 @@ public class BizurNodeTestBase {
     }
 
     void electBucketLeaders() {
-        int bucketCount = CoreConf.get().consensus.bizur.bucketCount;
+        int bucketCount = BizurConf.get().bizur.bucketCount;
         for (int i = 0; i < bucketCount; i++) {
             bizurNodes[i % bizurNodes.length].getMap(MAP).startElection(i);
         }
@@ -89,11 +90,11 @@ public class BizurNodeTestBase {
     }
 
     protected int hashKey(Serializable s) {
-        return IdUtil.hashKey(s, CoreConf.get().consensus.bizur.bucketCount);
+        return IdUtil.hashKey(s, BizurConf.get().bizur.bucketCount);
     }
 
     protected int hashKey(String s) {
-        return IdUtil.hashKey(s, CoreConf.get().consensus.bizur.bucketCount);
+        return IdUtil.hashKey(s, BizurConf.get().bizur.bucketCount);
     }
 
     void putExpectedKeyValue(Serializable expKey, Serializable expVal) {
