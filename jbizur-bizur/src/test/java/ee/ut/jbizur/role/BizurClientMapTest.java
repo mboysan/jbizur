@@ -10,13 +10,14 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-public class BizurClientTest extends BizurNodeTestBase {
+public class BizurClientMapTest extends BizurNodeTestBase {
 
     static {
         CoreConf.setConfig("BizurUT.conf");
@@ -80,24 +81,24 @@ public class BizurClientTest extends BizurNodeTestBase {
         String expVal = TestUtil.getRandomString();
 
         /* Test set/get */
-        Assert.assertTrue(getRandomClient().set(expKey, expVal));
+        Assert.assertNull(getRandomClient().getMap(MAP).put(expKey, expVal));
 
         putExpectedKeyValue(expKey, expVal);
 
-        Assert.assertEquals(expVal, getRandomClient().get(expKey));
+        Assert.assertEquals(expVal, getRandomClient().getMap(MAP).get(expKey));
 
         /* Test iterate keys */
-        Set<String> actualKey = getRandomClient().iterateKeys();
-        for (String actKey : actualKey) {
-            Assert.assertEquals(getExpectedValue(actKey), getRandomClient().get(actKey));
+        Set<Serializable> actualKey = getRandomClient().getMap(MAP).keySet();
+        for (Serializable actKey : actualKey) {
+            Assert.assertEquals(getExpectedValue(actKey), getRandomClient().getMap(MAP).get(actKey));
         }
-        for (String expectedKey : getExpectedKeySet()) {
-            Assert.assertEquals(getExpectedValue(expectedKey), getRandomClient().get(expectedKey));
+        for (Serializable expectedKey : getExpectedKeySet()) {
+            Assert.assertEquals(getExpectedValue(expectedKey), getRandomClient().getMap(MAP).get(expectedKey));
         }
 
         /* Test delete/get */
-        Assert.assertTrue(getRandomClient().delete(expKey));
-        Assert.assertNull(getRandomClient().get(expKey));
+        Assert.assertEquals(expVal, getRandomClient().getMap(MAP).remove(expKey));
+        Assert.assertNull(getRandomClient().getMap(MAP).get(expKey));
 
         removeExpectedKey(expKey);
     }
@@ -117,8 +118,8 @@ public class BizurClientTest extends BizurNodeTestBase {
                 String expVal = TestUtil.getRandomString();
                 putExpectedKeyValue(testKey, expVal);
 
-                Assert.assertTrue(getRandomClient().set(testKey, expVal));
-                Assert.assertEquals(expVal, getRandomClient().get(testKey));
+                Assert.assertNull(getRandomClient().getMap(MAP).put(testKey, expVal));
+                Assert.assertEquals(expVal, getRandomClient().getMap(MAP).get(testKey));
             });
         }
         executor.endExecution();
@@ -139,9 +140,9 @@ public class BizurClientTest extends BizurNodeTestBase {
                 String expVal = TestUtil.getRandomString();
                 putExpectedKeyValue(testKey, expVal);
 
-                Assert.assertTrue(getRandomClient().set(testKey, expVal));
-                Assert.assertTrue(getRandomClient().delete(testKey));
-                Assert.assertNull(getRandomClient().get(testKey));
+                Assert.assertNull(getRandomClient().getMap(MAP).put(testKey, expVal));
+                Assert.assertEquals(expVal, getRandomClient().getMap(MAP).remove(testKey));
+                Assert.assertNull(getRandomClient().getMap(MAP).get(testKey));
 
                 removeExpectedKey(testKey);
             });
@@ -160,16 +161,16 @@ public class BizurClientTest extends BizurNodeTestBase {
             String testKey = TestUtil.getRandomString();
             String expVal = TestUtil.getRandomString();
 
-            Assert.assertTrue(getRandomClient().set(testKey, expVal));
+            Assert.assertNull(getRandomClient().getMap(MAP).put(testKey, expVal));
             putExpectedKeyValue(testKey, expVal);
 
-            Set<String> actKeys = getRandomClient().iterateKeys();
+            Set<Serializable> actKeys = getRandomClient().getMap(MAP).keySet();
             Assert.assertEquals(getExpectedKeySet().size(), actKeys.size());
-            for (String expKey : getExpectedKeySet()) {
-                Assert.assertEquals(getExpectedValue(expKey), getRandomClient().get(expKey));
+            for (Serializable expKey : getExpectedKeySet()) {
+                Assert.assertEquals(getExpectedValue(expKey), getRandomClient().getMap(MAP).get(expKey));
             }
-            for (String actKey : actKeys) {
-                Assert.assertEquals(getExpectedValue(actKey), getRandomClient().get(actKey));
+            for (Serializable actKey : actKeys) {
+                Assert.assertEquals(getExpectedValue(actKey), getRandomClient().getMap(MAP).get(actKey));
             }
         }
     }

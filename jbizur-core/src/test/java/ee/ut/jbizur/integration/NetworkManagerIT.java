@@ -63,7 +63,7 @@ public class NetworkManagerIT implements ResourceCloser {
 
     @After
     public void tearDown() throws Exception {
-        closeResources(nmW1.nm, nmW2.nm, nmW3.nm);
+        closeResources(nmW1.netman, nmW2.netman, nmW3.netman);
 
         Assert.assertEquals(0, nmW1.ncq.size());
         Assert.assertEquals(0, nmW2.ncq.size());
@@ -75,7 +75,7 @@ public class NetworkManagerIT implements ResourceCloser {
         NetworkCommand ncSend = new NetworkCommand()
                 .setCorrelationId(1)
                 .setReceiverAddress(nmW2.addr);
-        nmW1.nm.send(ncSend);
+        nmW1.netman.send(ncSend);
 
         NetworkCommand ncRecv = nmW2.ncq.take();
         Assert.assertEquals(ncSend.getCorrelationId(), ncRecv.getCorrelationId());
@@ -90,8 +90,8 @@ public class NetworkManagerIT implements ResourceCloser {
             Supplier<NetworkCommand> ncSupplier = () -> new NetworkCommand()
                     .setCorrelationId(IdUtil.generateId())
                     .setReceiverAddress(recvAddr);
-            nmW1.nm.send(ncSupplier.get());
-            nmW2.nm.send(ncSupplier.get());
+            nmW1.netman.send(ncSupplier.get());
+            nmW2.netman.send(ncSupplier.get());
         }
 
         for (int i = 0; i < totalSend * 2; i++) {
@@ -109,8 +109,8 @@ public class NetworkManagerIT implements ResourceCloser {
             Supplier<NetworkCommand> ncSupplier = () -> new NetworkCommand()
                     .setCorrelationId(IdUtil.generateId())
                     .setReceiverAddress(recvAddr);
-            mte.execute(runnable(() -> nmW1.nm.send(ncSupplier.get())));
-            mte.execute(runnable(() -> nmW2.nm.send(ncSupplier.get())));
+            mte.execute(runnable(() -> nmW1.netman.send(ncSupplier.get())));
+            mte.execute(runnable(() -> nmW2.netman.send(ncSupplier.get())));
         }
         mte.endExecution();
 
@@ -128,7 +128,7 @@ public class NetworkManagerIT implements ResourceCloser {
         int totalSend = 50;
         for (int i = 0; i < totalSend; i++) {
             mte.execute(() -> {
-                nmW1.nm.multicast(
+                nmW1.netman.multicast(
                         new Connect_NC()
                                 .setSenderAddress(nmW1.addr)
                                 .setNodeType("member")
@@ -144,7 +144,7 @@ public class NetworkManagerIT implements ResourceCloser {
     }
 
     private static class NMWrapper {
-        final NetworkManager nm;
+        final NetworkManager netman;
 
         final String name;
         final TCPAddress addr;
@@ -154,11 +154,11 @@ public class NetworkManagerIT implements ResourceCloser {
         NMWrapper(String name) throws IOException {
             this.name = name;
             addr = new TCPAddress("localhost", NetUtil.findOpenPort());
-            this.nm = new NetworkManager(name, addr, (ic) -> icq.offer(ic), (nc) -> ncq.offer(nc));
+            this.netman = new NetworkManager(name, addr, (ic) -> icq.offer(ic), (nc) -> ncq.offer(nc));
         }
 
         private NMWrapper start() throws UnknownHostException {
-            nm.start();
+            netman.start();
             return this;
         }
     }

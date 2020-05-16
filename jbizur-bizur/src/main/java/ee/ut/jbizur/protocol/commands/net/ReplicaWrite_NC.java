@@ -1,16 +1,18 @@
 package ee.ut.jbizur.protocol.commands.net;
 
-public class ReplicaWrite_NC extends NetworkCommand {
+import java.io.Serializable;
+
+public class ReplicaWrite_NC extends MapRequest_NC {
 
     {setRequest(true);}
 
-    private BucketView bucketView;
+    private BucketView<Serializable, Serializable> bucketView;
 
-    public BucketView getBucketView() {
+    public BucketView<Serializable, Serializable> getBucketView() {
         return bucketView;
     }
 
-    public ReplicaWrite_NC setBucketView(BucketView bucketView) {
+    public ReplicaWrite_NC setBucketView(BucketView<Serializable, Serializable> bucketView) {
         this.bucketView = bucketView;
         return this;
     }

@@ -11,7 +11,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class Bucket implements Comparable<Bucket> {
+public class Bucket<K, V> implements Comparable<Bucket<K, V>> {
     private static final Logger logger = LoggerFactory.getLogger(Bucket.class);
 
     private final ReentrantLock bucketLock = new ReentrantLock();
@@ -23,7 +23,7 @@ public class Bucket implements Comparable<Bucket> {
     private int electId = 0;
     private int votedElectId = 0;
 
-    private final Map<String,String> bucketMap = new HashMap<>();
+    private final Map<K, V> bucketMap = new HashMap<>();
     private int verElectId = 0;
     private int verCounter = 0;
 
@@ -35,28 +35,28 @@ public class Bucket implements Comparable<Bucket> {
      * Map Operations
      * ***************************************************************************/
 
-    public String putOp(String key, String val){
+    public V putOp(K key, V val) {
         if (logger.isDebugEnabled()) {
             logger.debug("put key={},val={} in bucket={}", key, val, this);
         }
         return bucketMap.put(key, val);
     }
 
-    public String getOp(String key){
+    public V getOp(K key) {
         if (logger.isDebugEnabled()) {
             logger.debug("get key={} from bucket={}", key, this);
         }
         return bucketMap.get(key);
     }
 
-    public String removeOp(String key){
+    public V removeOp(K key) {
         if (logger.isDebugEnabled()) {
             logger.debug("remove key={} from bucket={}", key, this);
         }
         return bucketMap.remove(key);
     }
 
-    public Set<String> getKeySetOp(){
+    public Set<K> getKeySetOp() {
         return bucketMap.keySet();
     }
 
@@ -64,7 +64,7 @@ public class Bucket implements Comparable<Bucket> {
      * Specifications
      * ***************************************************************************/
 
-    public Bucket setBucketMap(Map map) {
+    public Bucket<K, V> setBucketMap(Map map) {
         if (logger.isDebugEnabled()) {
             logger.debug("replacing bucketMap={} with map={} in bucket={}", bucketMap, map, this);
         }
@@ -77,7 +77,7 @@ public class Bucket implements Comparable<Bucket> {
         return index;
     }
 
-    public Bucket setLeaderAddress(Address leaderAddress) {
+    public Bucket<K, V> setLeaderAddress(Address leaderAddress) {
         this.leaderAddress = leaderAddress;
         return this;
     }
@@ -86,10 +86,11 @@ public class Bucket implements Comparable<Bucket> {
         return leaderAddress;
     }
 
-    public Bucket setLeader(boolean isLeader) {
+    public Bucket<K, V> setLeader(boolean isLeader) {
         this.isLeader = isLeader;
         return this;
     }
+
     public boolean isLeader() {
         return isLeader;
     }
@@ -98,7 +99,7 @@ public class Bucket implements Comparable<Bucket> {
         return electId;
     }
 
-    public Bucket setElectId(int electId) {
+    public Bucket<K, V> setElectId(int electId) {
         this.electId = electId;
         return this;
     }
@@ -120,7 +121,8 @@ public class Bucket implements Comparable<Bucket> {
     public int getVerElectId() {
         return verElectId;
     }
-    public Bucket setVerElectId(int verElectId) {
+
+    public Bucket<K, V> setVerElectId(int verElectId) {
         this.verElectId = verElectId;
         return this;
     }
@@ -130,7 +132,7 @@ public class Bucket implements Comparable<Bucket> {
         return this.verCounter;
     }
 
-    public Bucket setVerCounter(int verCounter) {
+    public Bucket<K, V> setVerCounter(int verCounter) {
         this.verCounter = verCounter;
         return this;
     }
@@ -144,8 +146,8 @@ public class Bucket implements Comparable<Bucket> {
      * BucketView
      * ***************************************************************************/
 
-    public BucketView createView() {
-        return new BucketView()
+    public BucketView<K, V> createView() {
+        return new BucketView<K, V>()
                 .setBucketMap(new HashMap<>(bucketMap))
                 .setIndex(getIndex())
                 .setVerElectId(getVerElectId())
@@ -157,10 +159,10 @@ public class Bucket implements Comparable<Bucket> {
      * Utils
      * ***************************************************************************/
 
-    public int compareToView(BucketView bucketView) {
-        if(this.getVerElectId() > bucketView.getVerElectId()){
+    public int compareToView(BucketView<K, V> bucketView) {
+        if (this.getVerElectId() > bucketView.getVerElectId()) {
             return 1;
-        } else if (this.getVerElectId() == bucketView.getVerElectId()){
+        } else if (this.getVerElectId() == bucketView.getVerElectId()) {
             return Integer.compare(this.getVerCounter(), bucketView.getVerCounter());
         } else {
             return -1;
@@ -169,9 +171,9 @@ public class Bucket implements Comparable<Bucket> {
 
     @Override
     public int compareTo(Bucket o) {
-        if(this.getVerElectId() > o.getVerElectId()){
+        if (this.getVerElectId() > o.getVerElectId()) {
             return 1;
-        } else if (this.getVerElectId() == o.getVerElectId()){
+        } else if (this.getVerElectId() == o.getVerElectId()) {
             return Integer.compare(this.getVerCounter(), o.getVerCounter());
         } else {
             return -1;

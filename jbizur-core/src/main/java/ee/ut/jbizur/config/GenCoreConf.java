@@ -83,7 +83,7 @@ public class GenCoreConf {
       public final int intervalms;
       
       public Multicast(com.typesafe.config.Config c, java.lang.String parentPath, $TsCfgValidator $tsCfgValidator) {
-        this.address = c.hasPathOrNull("address") ? c.getString("address") : "230.0.0.1:54321";
+        this.address = c.hasPathOrNull("address") ? c.getString("address") : "230.0.0.1:22233";
         this.enabled = !c.hasPathOrNull("enabled") || c.getBoolean("enabled");
         this.intervalms = c.hasPathOrNull("intervalms") ? c.getInt("intervalms") : 1000;
       }

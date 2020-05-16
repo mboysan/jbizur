@@ -1,23 +1,25 @@
 package ee.ut.jbizur.protocol.commands.net;
 
-public class ClientApiSet_NC extends ClientRequest_NC {
-    private String key;
-    private String val;
+import java.io.Serializable;
 
-    public String getKey() {
+public class ClientApiSet_NC extends ClientRequest_NC {
+    private Serializable key;
+    private Serializable val;
+
+    public Serializable getKey() {
         return key;
     }
 
-    public ClientApiSet_NC setKey(String key) {
+    public ClientApiSet_NC setKey(Serializable key) {
         this.key = key;
         return this;
     }
 
-    public String getVal() {
+    public Serializable getVal() {
         return val;
     }
 
-    public ClientApiSet_NC setVal(String val) {
+    public ClientApiSet_NC setVal(Serializable val) {
         this.val = val;
         return this;
     }

@@ -5,9 +5,9 @@ import ee.ut.jbizur.protocol.address.Address;
 import java.io.Serializable;
 import java.util.Map;
 
-public class BucketView implements Serializable, Comparable<BucketView> {
+public class BucketView<K, V> implements Serializable, Comparable<BucketView> {
 
-    private Map<String, String> bucketMap;
+    private Map<K, V> bucketMap;
     private int index;
 
     private int verElectId;
@@ -15,11 +15,11 @@ public class BucketView implements Serializable, Comparable<BucketView> {
 
     private Address leaderAddress;
 
-    public Map<String, String> getBucketMap() {
+    public Map<K, V> getBucketMap() {
         return bucketMap;
     }
 
-    public BucketView setBucketMap(Map<String, String> bucketMap) {
+    public BucketView<K, V> setBucketMap(Map<K, V> bucketMap) {
         this.bucketMap = bucketMap;
         return this;
     }
@@ -28,7 +28,7 @@ public class BucketView implements Serializable, Comparable<BucketView> {
         return index;
     }
 
-    public BucketView setIndex(int index) {
+    public BucketView<K, V> setIndex(int index) {
         this.index = index;
         return this;
     }
@@ -37,7 +37,7 @@ public class BucketView implements Serializable, Comparable<BucketView> {
         return verElectId;
     }
 
-    public BucketView setVerElectId(int verElectId) {
+    public BucketView<K, V> setVerElectId(int verElectId) {
         this.verElectId = verElectId;
         return this;
     }
@@ -46,7 +46,7 @@ public class BucketView implements Serializable, Comparable<BucketView> {
         return verCounter;
     }
 
-    public BucketView setVerCounter(int verCounter) {
+    public BucketView<K, V> setVerCounter(int verCounter) {
         this.verCounter = verCounter;
         return this;
     }
@@ -55,16 +55,16 @@ public class BucketView implements Serializable, Comparable<BucketView> {
         return leaderAddress;
     }
 
-    public BucketView setLeaderAddress(Address leaderAddress) {
+    public BucketView<K, V> setLeaderAddress(Address leaderAddress) {
         this.leaderAddress = leaderAddress;
         return this;
     }
 
     @Override
     public int compareTo(BucketView o) {
-        if(this.getVerElectId() > o.getVerElectId()){
+        if (this.getVerElectId() > o.getVerElectId()) {
             return 1;
-        } else if (this.getVerElectId() == o.getVerElectId()){
+        } else if (this.getVerElectId() == o.getVerElectId()) {
             return Integer.compare(this.getVerCounter(), o.getVerCounter());
         } else {
             return -1;

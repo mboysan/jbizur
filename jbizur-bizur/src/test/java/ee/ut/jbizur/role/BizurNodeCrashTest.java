@@ -93,7 +93,7 @@ public class BizurNodeCrashTest extends BizurNodeTestBase {
         }
         String expKey = TestUtil.getRandomString();
         String expVal = TestUtil.getRandomString();
-        byNode.set(expKey, expVal);
+        byNode.getMap(MAP).put(expKey, expVal);
         putExpectedKeyValue(expKey, expVal);
     }
 

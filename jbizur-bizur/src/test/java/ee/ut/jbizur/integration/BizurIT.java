@@ -6,7 +6,6 @@ import ee.ut.jbizur.protocol.address.TCPAddress;
 import ee.ut.jbizur.role.BizurBuilder;
 import ee.ut.jbizur.role.BizurClient;
 import ee.ut.jbizur.role.BizurNode;
-import ee.ut.jbizur.role.BizurRun;
 import ee.ut.jbizur.util.MultiThreadExecutor;
 import ee.ut.jbizur.util.TestUtil;
 import org.junit.After;
@@ -19,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.UnknownHostException;
@@ -29,6 +29,8 @@ import java.util.stream.Collectors;
 @RunWith(Parameterized.class)
 public class BizurIT {
     private static final Logger logger = LoggerFactory.getLogger(BizurIT.class);
+
+    private static final String MAP = "test-map";
 
     @Parameterized.Parameters(name = "conf={0}")
     public static Object[][] conf() {
@@ -144,10 +146,10 @@ public class BizurIT {
         String expKey = TestUtil.getRandomString();
         String expVal = TestUtil.getRandomString();
 
-        Assert.assertTrue(client.set(expKey, expVal));
-        Assert.assertEquals(expVal, client.get(expKey));
-        Assert.assertTrue(client.delete(expKey));
-        Assert.assertNull(client.get(expKey));
+        Assert.assertNull(client.getMap(MAP).put(expKey, expVal));
+        Assert.assertEquals(expVal, client.getMap(MAP).get(expKey));
+        Assert.assertEquals(expVal, client.getMap(MAP).remove(expKey));
+        Assert.assertNull(client.getMap(MAP).get(expKey));
     }
 
     /**
@@ -155,19 +157,19 @@ public class BizurIT {
      */
     @Test
     public void simpleIterateKeysTest() {
-        Map<String, String> expKeyValMap = new HashMap<>();
+        Map<Serializable, Serializable> expKeyValMap = new HashMap<>();
 
         for (int i = 0; i < 10; i++) {
             String expKey = TestUtil.getRandomString();
             String expVal = TestUtil.getRandomString();
             expKeyValMap.put(expKey, expVal);
-            Assert.assertTrue(client.set(expKey, expVal));
-            Assert.assertEquals(expVal, client.get(expKey));
+            Assert.assertNull(client.getMap(MAP).put(expKey, expVal));
+            Assert.assertEquals(expVal, client.getMap(MAP).get(expKey));
         }
 
-        for (String actKey : client.iterateKeys()) {
-            String expVal = expKeyValMap.get(actKey);
-            Assert.assertEquals(expVal, client.get(actKey));
+        for (Serializable actKey : client.getMap(MAP).keySet()) {
+            Serializable expVal = expKeyValMap.get(actKey);
+            Assert.assertEquals(expVal, client.getMap(MAP).get(actKey));
         }
     }
 
@@ -183,8 +185,8 @@ public class BizurIT {
                 String testKey = TestUtil.getRandomString();
                 String expVal = TestUtil.getRandomString();
 
-                Assert.assertTrue(client.set(testKey, expVal));
-                Assert.assertEquals(expVal, client.get(testKey));
+                Assert.assertNull(client.getMap(MAP).put(testKey, expVal));
+                Assert.assertEquals(expVal, client.getMap(MAP).get(testKey));
             });
         }
         executor.endExecution();

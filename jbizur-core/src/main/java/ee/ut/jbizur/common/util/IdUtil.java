@@ -2,6 +2,7 @@ package ee.ut.jbizur.common.util;
 
 import ee.ut.jbizur.protocol.address.Address;
 
+import java.io.Serializable;
 import java.util.*;
 
 public final class IdUtil {
@@ -21,6 +22,10 @@ public final class IdUtil {
         for (int i = 0; i < s.length(); i++)
             hash = (R * hash + s.charAt(i)) % size;
         return hash;
+    }
+
+    public static int hashKey(Serializable s, int size) {
+        return s.hashCode() % size;
     }
 
     public static Address nextAddressInUnorderedSet(Set<Address> addressSet, int bucketIndex) {

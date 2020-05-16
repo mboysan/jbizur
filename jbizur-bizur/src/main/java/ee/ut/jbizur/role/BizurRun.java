@@ -21,18 +21,20 @@ public class BizurRun {
 
     private static final Logger logger = LoggerFactory.getLogger(BizurRun.class);
 
-    protected BizurNode node;
+    private final BizurNode node;
 
-    protected final BucketContainer bucketContainer;
+    private final String mapName;
+    private final BucketContainer bucketContainer;
     final int contextId;
 
-    BizurRun(BizurNode node) {
-        this(node, IdUtil.generateId());
+    BizurRun(BizurMap map) {
+        this(map, IdUtil.generateId());
     }
 
-    BizurRun(BizurNode node, int contextId) {
-        this.node = node;
-        this.bucketContainer = node.bucketContainer;
+    BizurRun(BizurMap map, int contextId) {
+        this.node = map.node;
+        this.mapName = map.mapName;
+        this.bucketContainer = map.bucketContainer;
         this.contextId = contextId;
     }
 
@@ -41,14 +43,17 @@ public class BizurRun {
     }
 
     protected String logMsg(String msg) {
-        return node.logMsg(msg);
+        return node.logMsg("map=" + mapName + ", msg=" + msg);
     }
 
     protected BizurSettings getSettings() {
         return node.getSettings();
     }
 
-    protected <T> T route(NetworkCommand command) throws BizurException {
+    protected <T> T route(MapRequest_NC command) throws BizurException {
+        command.setMapName(mapName)
+                .setContextId(contextId)
+                .setCorrelationId(IdUtil.generateId());
         return node.route(command);
     }
 
@@ -70,7 +75,7 @@ public class BizurRun {
      * Algorithm 1 - Leader Election
      * ***************************************************************************/
 
-    void startElection(Bucket localBucket) {
+    void startElection(SerializableBucket localBucket) {
         int electId = localBucket.incrementAndGetElectId();
 
         int correlationId = IdUtil.generateId();
@@ -78,6 +83,7 @@ public class BizurRun {
                 () -> new PleaseVote_NC()
                         .setBucketIndex(localBucket.getIndex())
                         .setElectId(electId)
+                        .setMapName(mapName)
                         .setContextId(contextId)
                         .setCorrelationId(correlationId);
 
@@ -94,7 +100,7 @@ public class BizurRun {
         int electId = pleaseVoteNc.getElectId();
         Address source = pleaseVoteNc.getSenderAddress();
         NetworkCommand vote;
-        Bucket localBucket = bucketContainer.tryAndLockBucket(bucketIndex, contextId);
+        SerializableBucket localBucket = bucketContainer.tryAndLockBucket(bucketIndex, contextId);
         if (localBucket != null) {
             try {
                 if (electId > localBucket.getVotedElectId()) {
@@ -121,13 +127,14 @@ public class BizurRun {
      * Algorithm 2 - Bucket Replication: Write
      * ***************************************************************************/
 
-    private boolean write(Bucket localBucket) throws OperationFailedException {
+    private boolean write(SerializableBucket localBucket) throws OperationFailedException {
         localBucket.incrementAndGetVerCounter();
 
         int correlationId = IdUtil.generateId();
         Supplier<NetworkCommand> replicaWrite =
                 () -> new ReplicaWrite_NC()
                         .setBucketView(localBucket.createView())
+                        .setMapName(mapName)
                         .setContextId(contextId)
                         .setCorrelationId(correlationId);
 
@@ -141,10 +148,10 @@ public class BizurRun {
     }
 
     void replicaWrite(ReplicaWrite_NC replicaWriteNc) {
-        BucketView recvBucketView = replicaWriteNc.getBucketView();
+        BucketView<Serializable, Serializable> recvBucketView = replicaWriteNc.getBucketView();
         int index = recvBucketView.getIndex();
         NetworkCommand response;
-        Bucket localBucket = bucketContainer.tryAndLockBucket(index, contextId);
+        SerializableBucket localBucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (localBucket != null) {
             try {
                 //TODO: Proposal1
@@ -184,7 +191,7 @@ public class BizurRun {
      * Algorithm 3 - Bucket Replication: Read
      * ***************************************************************************/
 
-    private void read(final Bucket localBucket) throws IllegalLeaderOperationException, OperationFailedException {
+    private void read(final SerializableBucket localBucket) throws IllegalLeaderOperationException, OperationFailedException {
         if (!localBucket.isLeader()) {
             throw new IllegalLeaderOperationException(node.toString(), localBucket.getIndex());
         }
@@ -198,6 +205,7 @@ public class BizurRun {
                 () -> new ReplicaRead_NC()
                         .setIndex(localBucket.getIndex())
                         .setElectId(localBucket.getElectId())
+                        .setMapName(mapName)
                         .setContextId(contextId)
                         .setCorrelationId(correlationId);
 
@@ -216,7 +224,7 @@ public class BizurRun {
         Address source = replicaReadNc.getSenderAddress();
 
         NetworkCommand resp;
-        Bucket localBucket = bucketContainer.tryAndLockBucket(index, contextId);
+        SerializableBucket localBucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (localBucket != null) {
             try {
                 if (electId < localBucket.getVotedElectId()) {
@@ -244,17 +252,17 @@ public class BizurRun {
      * Algorithm 4 - Bucket Replication: Recovery
      * ***************************************************************************/
 
-    private boolean ensureRecovery(Bucket localBucket) throws OperationFailedException {
+    private boolean ensureRecovery(SerializableBucket localBucket) throws OperationFailedException {
         if (localBucket.getElectId() == localBucket.getVerElectId()) {
             return true;
         }
 
         logger.warn(logMsg("recovering index=" + localBucket.getIndex()));
 
-        AtomicReference<BucketView> maxVerBucketView = new AtomicReference<>(null);
+        AtomicReference<BucketView<Serializable, Serializable>> maxVerBucketView = new AtomicReference<>(null);
         Predicate<NetworkCommand> handler = (cmd) -> {
             if (cmd instanceof AckRead_NC) {
-                BucketView bucketView = ((AckRead_NC) cmd).getBucketView();
+                BucketView<Serializable, Serializable> bucketView = ((AckRead_NC) cmd).getBucketView();
                 synchronized (maxVerBucketView) {
                     if (!maxVerBucketView.compareAndSet(null, bucketView)) {
                         if (bucketView.compareTo(maxVerBucketView.get()) > 0) {
@@ -272,12 +280,13 @@ public class BizurRun {
                 () -> new ReplicaRead_NC()
                         .setIndex(localBucket.getIndex())
                         .setElectId(localBucket.getElectId())
+                        .setMapName(mapName)
                         .setContextId(contextId)
                         .setCorrelationId(correlationId);
 
         if (publishAndWaitMajority(correlationId, replicaRead, handler)) {
             logger.info(logMsg("finalizing recovery with write, index={}"), localBucket.getIndex());
-            BucketView view = maxVerBucketView.get();
+            BucketView<Serializable, Serializable> view = maxVerBucketView.get();
             localBucket.setVerElectId(localBucket.getElectId());
             localBucket.setVerCounter(0);
             localBucket.setBucketMap(view.getBucketMap());
@@ -296,7 +305,7 @@ public class BizurRun {
 
     private boolean isElectionNeeded(int index) {
         boolean isLeaderNull = false;
-        Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
+        SerializableBucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (bucket != null) {
             try {
                 isLeaderNull = bucket.getLeaderAddress() == null;
@@ -315,7 +324,7 @@ public class BizurRun {
         return RngUtil.nextInt(5) >= 2;
     }
 
-    private void _startElection(int index) {
+    void _startElection(int index) {
         _startElection(index, true);
     }
     private void _startElection(int index, boolean mustWait) {
@@ -332,7 +341,7 @@ public class BizurRun {
                     logger.error(e.getMessage(), e);
                 }
             }
-            Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
+            SerializableBucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
             if (bucket != null) {
                 try {
                     if (!isElectionNeeded(index)) {
@@ -349,9 +358,9 @@ public class BizurRun {
         }
     }
 
-    private String _get(String key) throws IllegalLeaderOperationException, OperationFailedException {
+    private Serializable _get(Serializable key) throws IllegalLeaderOperationException, OperationFailedException {
         int index = bucketContainer.hashKey(key);
-        Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
+        SerializableBucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (bucket != null) {
             try {
                 read(bucket);
@@ -364,14 +373,16 @@ public class BizurRun {
         return _get(key);
     }
 
-    private boolean _set(String key, String value) throws IllegalLeaderOperationException, OperationFailedException {
+    private Serializable _set(Serializable key, Serializable value) throws IllegalLeaderOperationException, OperationFailedException {
         int index = bucketContainer.hashKey(key);
-        Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
+        SerializableBucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (bucket != null) {
             try {
                 read(bucket);
-                bucket.putOp(key, value);
-                return write(bucket);
+                Serializable prevVal = bucket.putOp(key, value);
+                if (write(bucket)) {
+                    return prevVal;
+                }
             } finally {
                 bucket.unlock();
             }
@@ -380,14 +391,16 @@ public class BizurRun {
         return _set(key, value);
     }
 
-    private boolean _delete(String key) throws IllegalLeaderOperationException, OperationFailedException {
+    private Serializable _delete(Serializable key) throws IllegalLeaderOperationException, OperationFailedException {
         int index = bucketContainer.hashKey(key);
-        Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
+        SerializableBucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (bucket != null) {
             try {
                 read(bucket);
-                bucket.removeOp(key);
-                return write(bucket);
+                Serializable prevVal = bucket.removeOp(key);
+                if (write(bucket)) {
+                    return prevVal;
+                }
             } finally {
                 bucket.unlock();
             }
@@ -396,8 +409,8 @@ public class BizurRun {
         return _delete(key);
     }
 
-    private Set<String> _iterateKeys(int index) throws IllegalLeaderOperationException, OperationFailedException {
-        Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
+    private Set<Serializable> _iterateKeys(int index) throws IllegalLeaderOperationException, OperationFailedException {
+        SerializableBucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (bucket != null) {
             try {
                 read(bucket);
@@ -417,18 +430,15 @@ public class BizurRun {
      * Public API
      * ***************************************************************************/
 
-    String get(String key) {
+    Serializable get(Serializable key) {
         Objects.requireNonNull(key);
         int index = bucketContainer.hashKey(key);
         Address lead;
         try {
             lead = resolveLeader(index);
-            return route(
-                    new ApiGet_NC()
+            return route((MapRequest_NC) new ApiGet_NC()
                             .setKey(key)
                             .setReceiverAddress(lead)
-                            .setCorrelationId(IdUtil.generateId())
-                            .setContextId(contextId)
             );
         } catch (BizurException e) {
             logger.error(e.getMessage(), e);
@@ -453,19 +463,16 @@ public class BizurRun {
     }
 
 
-    boolean set(String key, String val) {
+    Serializable set(Serializable key, Serializable val) {
         Objects.requireNonNull(key);
         int index = bucketContainer.hashKey(key);
         Address lead;
         try {
             lead = resolveLeader(index);
-            return route(
-                    new ApiSet_NC()
+            return route((MapRequest_NC) new ApiSet_NC()
                             .setKey(key)
                             .setVal(val)
                             .setReceiverAddress(lead)
-                            .setCorrelationId(IdUtil.generateId())
-                            .setContextId(contextId)
             );
         } catch (BizurException e) {
             logger.error(e.getMessage(), e);
@@ -489,18 +496,15 @@ public class BizurRun {
         );
     }
 
-    boolean delete(String key) {
+    Serializable delete(Serializable key) {
         Objects.requireNonNull(key);
         int index = bucketContainer.hashKey(key);
         Address lead;
         try {
             lead = resolveLeader(index);
-            return route(
-                    new ApiDelete_NC()
+            return route((MapRequest_NC) new ApiDelete_NC()
                             .setKey(key)
                             .setReceiverAddress(lead)
-                            .setCorrelationId(IdUtil.generateId())
-                            .setContextId(contextId)
             );
         } catch (BizurException e) {
             logger.error(e.getMessage(), e);
@@ -524,8 +528,8 @@ public class BizurRun {
         );
     }
 
-    Set<String> iterateKeys() {
-        Set<String> keySet = new HashSet<>();
+    Set<Serializable> iterateKeys() {
+        Set<Serializable> keySet = new HashSet<>();
         Set<Integer> indices = bucketContainer.collectIndices();
         for (Integer index : indices) {
             keySet.addAll(iterateKeys(index));
@@ -533,16 +537,13 @@ public class BizurRun {
         return keySet;
     }
 
-    private Set<String> iterateKeys(int index) {
+    private Set<Serializable> iterateKeys(int index) {
         Address lead;
         try {
             lead = resolveLeader(index);
-            return route(
-                    new ApiIterKeys_NC()
+            return route((MapRequest_NC) new ApiIterKeys_NC()
                             .setIndex(index)
                             .setReceiverAddress(lead)
-                            .setCorrelationId(IdUtil.generateId())
-                            .setContextId(contextId)
             );
         } catch (BizurException e) {
             logger.error(e.getMessage(), e);
@@ -575,7 +576,7 @@ public class BizurRun {
     }
 
     Address resolveLeader(int index) {
-        Bucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
+        SerializableBucket bucket = bucketContainer.tryAndLockBucket(index, contextId);
         if (bucket != null) {
             try {
                 Address lead = bucket.getLeaderAddress();

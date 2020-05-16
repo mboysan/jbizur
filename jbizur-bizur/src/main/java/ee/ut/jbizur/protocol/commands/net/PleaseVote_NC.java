@@ -1,6 +1,6 @@
 package ee.ut.jbizur.protocol.commands.net;
 
-public class PleaseVote_NC extends NetworkCommand {
+public class PleaseVote_NC extends MapRequest_NC {
 
     {setRequest(true);}
 

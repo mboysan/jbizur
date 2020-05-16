@@ -1,15 +1,17 @@
 package ee.ut.jbizur.protocol.commands.net;
 
-public class ApiGet_NC extends NetworkCommand {
+import java.io.Serializable;
+
+public class ApiGet_NC extends MapRequest_NC {
     {setRequest(true);}
 
-    private String key;
+    private Serializable key;
 
-    public String getKey() {
+    public Serializable getKey() {
         return key;
     }
 
-    public ApiGet_NC setKey(String key) {
+    public ApiGet_NC setKey(Serializable key) {
         this.key = key;
         return this;
     }
