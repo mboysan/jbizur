@@ -1,5 +1,6 @@
 package ee.ut.jbizur.role;
 
+import ee.ut.jbizur.config.BizurConf;
 import ee.ut.jbizur.config.CoreConf;
 import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.protocol.address.MulticastAddress;
@@ -50,12 +51,8 @@ public class BizurBuilder {
         return this;
     }
 
-    public BizurBuilder loadConfigFrom(Class resourceClass, String fileName) {
-        return loadConfigFrom(new File(resourceClass.getClassLoader().getResource(fileName).getFile()));
-    }
-
-    public BizurBuilder loadConfigFrom(File workingDirFile) {
-        CoreConf.setConfig(workingDirFile);
+    public BizurBuilder withConfiguration(File workingDirFile) {
+        BizurConf.set(workingDirFile);
         settings.defaults();
         return this;
     }

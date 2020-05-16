@@ -2,7 +2,6 @@ package ee.ut.jbizur.config;
 
 public class GenCoreConf {
   public final java.util.List<GenCoreConf.Clients$Elm> clients;
-  public final GenCoreConf.Consensus consensus;
   public final GenCoreConf.Logging logging;
   public final java.util.List<GenCoreConf.Members$Elm> members;
   public final GenCoreConf.Network network;
@@ -16,27 +15,6 @@ public class GenCoreConf {
       this.id = c.hasPathOrNull("id") ? c.getString("id") : "client";
       this.instance = c.hasPathOrNull("instance") && c.getBoolean("instance");
       this.tcpAddress = c.hasPathOrNull("tcpAddress") ? c.getString("tcpAddress") : "127.0.0.1:0";
-    }
-  }
-  
-  public static class Consensus {
-    public final Consensus.Bizur bizur;
-    public static class Bizur {
-      public final int bucketCount;
-      public final int bucketElectRetryCount;
-      public final long bucketLockTimeoutMs;
-      public final long maxElectionWaitSec;
-      
-      public Bizur(com.typesafe.config.Config c, java.lang.String parentPath, $TsCfgValidator $tsCfgValidator) {
-        this.bucketCount = c.hasPathOrNull("bucketCount") ? c.getInt("bucketCount") : 5;
-        this.bucketElectRetryCount = c.hasPathOrNull("bucketElectRetryCount") ? c.getInt("bucketElectRetryCount") : 5;
-        this.bucketLockTimeoutMs = c.hasPathOrNull("bucketLockTimeoutMs") ? c.getLong("bucketLockTimeoutMs") : 5000;
-        this.maxElectionWaitSec = c.hasPathOrNull("maxElectionWaitSec") ? c.getLong("maxElectionWaitSec") : 5;
-      }
-    }
-    
-    public Consensus(com.typesafe.config.Config c, java.lang.String parentPath, $TsCfgValidator $tsCfgValidator) {
-      this.bizur = c.hasPathOrNull("bizur") ? new Consensus.Bizur(c.getConfig("bizur"), parentPath + "bizur.", $tsCfgValidator) : new Consensus.Bizur(com.typesafe.config.ConfigFactory.parseString("bizur{}"), parentPath + "bizur.", $tsCfgValidator);
     }
   }
   
@@ -146,7 +124,6 @@ public class GenCoreConf {
     final $TsCfgValidator $tsCfgValidator = new $TsCfgValidator();
     final java.lang.String parentPath = "";
     this.clients = c.hasPathOrNull("clients") ? $_LGenCoreConf_Clients$Elm(c.getList("clients"), parentPath, $tsCfgValidator) : null;
-    this.consensus = c.hasPathOrNull("consensus") ? new GenCoreConf.Consensus(c.getConfig("consensus"), parentPath + "consensus.", $tsCfgValidator) : new GenCoreConf.Consensus(com.typesafe.config.ConfigFactory.parseString("consensus{}"), parentPath + "consensus.", $tsCfgValidator);
     this.logging = c.hasPathOrNull("logging") ? new GenCoreConf.Logging(c.getConfig("logging"), parentPath + "logging.", $tsCfgValidator) : new GenCoreConf.Logging(com.typesafe.config.ConfigFactory.parseString("logging{}"), parentPath + "logging.", $tsCfgValidator);
     this.members = c.hasPathOrNull("members") ? $_LGenCoreConf_Members$Elm(c.getList("members"), parentPath, $tsCfgValidator) : null;
     this.network = c.hasPathOrNull("network") ? new GenCoreConf.Network(c.getConfig("network"), parentPath + "network.", $tsCfgValidator) : new GenCoreConf.Network(com.typesafe.config.ConfigFactory.parseString("network{}"), parentPath + "network.", $tsCfgValidator);

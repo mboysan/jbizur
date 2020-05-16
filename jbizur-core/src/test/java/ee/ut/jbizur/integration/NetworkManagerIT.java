@@ -54,7 +54,7 @@ public class NetworkManagerIT implements ResourceCloser {
     @Before
     public void setUp() throws Exception {
         // set the configuration
-        CoreConf.setConfig(confName);
+        CoreConf.set(confName);
 
         nmW1 = new NMWrapper("nm1").start();
         nmW2 = new NMWrapper("nm2").start();

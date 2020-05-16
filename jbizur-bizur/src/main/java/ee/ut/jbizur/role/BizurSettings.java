@@ -1,6 +1,6 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.config.CoreConf;
+import ee.ut.jbizur.config.BizurConf;
 import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.protocol.address.MulticastAddress;
 
@@ -12,7 +12,7 @@ public class BizurSettings extends RoleSettings {
     @Override
     protected void defaults() {
         super.defaults();
-        setNumBuckets(CoreConf.get().consensus.bizur.bucketCount);
+        setNumBuckets(BizurConf.get().bizur.bucketCount);
     }
 
     public int getNumBuckets() {

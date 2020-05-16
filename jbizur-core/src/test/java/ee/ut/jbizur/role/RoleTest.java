@@ -25,7 +25,7 @@ import static org.junit.Assert.assertTrue;
 
 public class RoleTest {
     static {
-        CoreConf.setConfig("RoleUT.conf");
+        CoreConf.set("RoleUT.conf");
     }
 
     private Role role1;

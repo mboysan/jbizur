@@ -1,6 +1,7 @@
 package ee.ut.jbizur.role;
 
 import ee.ut.jbizur.common.ResourceCloser;
+import ee.ut.jbizur.config.BizurConf;
 import ee.ut.jbizur.config.CoreConf;
 import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.protocol.commands.net.NetworkCommand;
@@ -20,7 +21,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class BizurNodeTest implements ResourceCloser {
     static {
-        CoreConf.setConfig("BizurUT.conf");
+        BizurConf.set("BizurUT.conf");
     }
 
     private BizurNode member1;

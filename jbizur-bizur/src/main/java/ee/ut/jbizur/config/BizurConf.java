@@ -8,14 +8,14 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.Objects;
 
-public final class CoreConf extends GenCoreConf {
+public class BizurConf extends GenBizurConf {
+    private static final Logger logger = LoggerFactory.getLogger(BizurConf.class);
 
-    private static final Logger logger = LoggerFactory.getLogger(CoreConf.class);
+    private static BizurConf sInstance = null;
 
-    private static CoreConf sInstance;
-
-    private CoreConf(Config c){
+    private BizurConf(Config c) {
         super(c);
+        CoreConf.set(c);    // we set the CoreConf with the same configuration
     }
 
     public static synchronized void set(String resource) {
@@ -26,19 +26,13 @@ public final class CoreConf extends GenCoreConf {
         logger.info("setting configuration from file={}", file);
         ConfigFactory.invalidateCaches();
         Config config = ConfigFactory.parseFile(file);
-        set(config);
+        sInstance = new BizurConf(config);
     }
 
-    static synchronized void set(Config config) {
-        logger.info("setting configuration from config={}", config);
-        ConfigFactory.invalidateCaches();
-        sInstance = new CoreConf(config);
-    }
-
-    public static synchronized GenCoreConf get() {
+    public static synchronized BizurConf get() {
         if (sInstance == null) {
             logger.info("using default configuration");
-            sInstance = new CoreConf(defaultConf());
+            sInstance = new BizurConf(defaultConf());
         }
         return sInstance;
     }
