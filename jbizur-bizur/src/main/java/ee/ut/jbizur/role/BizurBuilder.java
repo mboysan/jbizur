@@ -10,7 +10,7 @@ import java.util.Set;
 
 public class BizurBuilder {
 
-    private BizurSettings settings;
+    private final BizurSettings settings;
 
     protected BizurBuilder(){
         settings = new BizurSettings();
@@ -58,10 +58,6 @@ public class BizurBuilder {
         CoreConf.setConfig(workingDirFile);
         settings.defaults();
         return this;
-    }
-
-    protected BizurSettings getSettings() {
-        return this.settings;
     }
 
     public BizurNode build() throws IOException {

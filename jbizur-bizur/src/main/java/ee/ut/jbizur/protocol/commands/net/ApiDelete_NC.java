@@ -1,15 +1,17 @@
 package ee.ut.jbizur.protocol.commands.net;
 
-public class ApiDelete_NC extends NetworkCommand {
+import java.io.Serializable;
+
+public class ApiDelete_NC extends MapRequest_NC {
     {setRequest(true);}
 
-    private String key;
+    private Serializable key;
 
-    public String getKey() {
+    public Serializable getKey() {
         return key;
     }
 
-    public ApiDelete_NC setKey(String key) {
+    public ApiDelete_NC setKey(Serializable key) {
         this.key = key;
         return this;
     }

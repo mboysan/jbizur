@@ -1,29 +1,34 @@
 package ee.ut.jbizur.role;
 
-import ee.ut.jbizur.common.util.IdUtil;
-import ee.ut.jbizur.common.util.RngUtil;
+import ee.ut.jbizur.common.util.RoundRobin;
 import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.protocol.commands.intl.InternalCommand;
 import ee.ut.jbizur.protocol.commands.intl.NodeAddressRegistered_IC;
 import ee.ut.jbizur.protocol.commands.intl.NodeAddressUnregistered_IC;
-import ee.ut.jbizur.protocol.commands.net.*;
+import ee.ut.jbizur.protocol.commands.net.ConnectOK_NC;
+import ee.ut.jbizur.protocol.commands.net.NetworkCommand;
+import ee.ut.jbizur.protocol.commands.net.SignalEnd_NC;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class BizurClient extends BizurNode {
 
     private static final Logger logger = LoggerFactory.getLogger(BizurClient.class);
 
-    private Address[] addresses;
+    private final AtomicReference<Address> preferredAddress = new AtomicReference<>();
+    private Iterator<Address> addressIterator;
     private final Object addressesLock = new Object();
 
     protected BizurClient(BizurSettings bizurSettings) throws IOException {
         super(bizurSettings);
         if (isAddressesAlreadyRegistered()) {
-            arrangeAddresses();
+            createAddressIterator();
         }
     }
 
@@ -31,16 +36,16 @@ public class BizurClient extends BizurNode {
     protected void handle(InternalCommand ic) {
         super.handle(ic);
         if (ic instanceof NodeAddressRegistered_IC) {
-            arrangeAddresses();
+            createAddressIterator();
         }
         if (ic instanceof NodeAddressUnregistered_IC) {
-            arrangeAddresses();
+            createAddressIterator();
         }
     }
 
     @Override
     public void handle(NetworkCommand command) {
-        if(command instanceof ConnectOK_NC){
+        if (command instanceof ConnectOK_NC) {
             getSettings().registerAddress(command.getSenderAddress());
         }
         if (command instanceof SignalEnd_NC) {
@@ -49,131 +54,30 @@ public class BizurClient extends BizurNode {
     }
 
     @Override
-    public String get(String key) {
-        checkReady();
-        try {
-            ClientResponse_NC response = route(
-                    new ClientApiGet_NC()
-                        .setKey(key)
-                        .setReceiverAddress(getLeaderAddress(key))
-                        .setSenderAddress(getSettings().getAddress())
-                        .setCorrelationId(IdUtil.generateId())
-            );
-            updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
-            return (String) response.getPayload();
-        } catch (BizurException e) {
-            // TODO: handle re-routing to another node
-            logger.error(e.getMessage(), e);
-            throw new RuntimeException(e);
-        }
+    public BizurMap getMap(String mapName) {
+        return bizurMaps.computeIfAbsent(mapName, s -> new BizurClientMap(s, this));
     }
 
-    @Override
-    public boolean set(String key, String val) {
-        checkReady();
-        try {
-            ClientResponse_NC response = route(
-                    new ClientApiSet_NC()
-                            .setKey(key)
-                            .setVal(val)
-                            .setReceiverAddress(getLeaderAddress(key))
-                            .setSenderAddress(getSettings().getAddress())
-                            .setCorrelationId(IdUtil.generateId())
-            );
-            updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
-            return (boolean) response.getPayload();
-        } catch (BizurException e) {
-            // TODO: handle re-routing to another node
-            logger.error(e.getMessage(), e);
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public boolean delete(String key) {
-        checkReady();
-        try {
-            ClientResponse_NC response = route(
-                    new ClientApiDelete_NC()
-                            .setKey(key)
-                            .setReceiverAddress(getLeaderAddress(key))
-                            .setSenderAddress(getSettings().getAddress())
-                            .setCorrelationId(IdUtil.generateId())
-            );
-            updateLeaderOfBucket(key, response.getAssumedLeaderAddress());
-            return (boolean) response.getPayload();
-        } catch (BizurException e) {
-            // TODO: handle re-routing to another node
-            logger.error(e.getMessage(), e);
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public Set<String> iterateKeys() {
-        checkReady();
-        ClientResponse_NC response = null;
-        try {
-            response = route(
-                    new ClientApiIterKeys_NC()
-                            .setReceiverAddress(getRandomAddress())
-                            .setSenderAddress(getSettings().getAddress())
-                            .setCorrelationId(IdUtil.generateId())
-            );
-            return (Set<String>) response.getPayload();
-        } catch (BizurException e) {
-            // TODO: handle re-routing to another node
-            logger.error(e.getMessage(), e);
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void arrangeAddresses() {
+    private void createAddressIterator() {
         synchronized (addressesLock) {
-            addresses = convertAddressSetToArray();
+            List<Address> addresses = new ArrayList<>(getSettings().getMemberAddresses());
+            addressIterator = new RoundRobin<>(addresses).iterator();
         }
     }
 
-    private Address[] convertAddressSetToArray() {
-        Set<Address> addressSet = getSettings().getMemberAddresses();
-        Address[] addresses = new Address[addressSet.size()];
-        int i = 0;
-        for (Address address : addressSet) {
-            addresses[i++] = address;
-        }
-        return addresses;
+    void setPreferredAddress(Address address) {
+        preferredAddress.set(address);
     }
 
-    public Address getRandomAddress() {
-        synchronized (addressesLock) {
-            int index = RngUtil.nextInt(addresses.length);
-            return addresses[index];
+    Address getMemberAddress() {
+        Address addr = preferredAddress.get();
+        if (addr != null) {
+            return addr;
         }
+        return nextAddress();
     }
 
-    private Address getLeaderAddress(String bucketKey) {
-        int index = bucketContainer.hashKey(bucketKey);
-        Bucket bucket = bucketContainer.tryAndLockBucket(index);
-        if (bucket != null) {
-            try {
-                Address lead = bucket.getLeaderAddress();
-                return lead != null ? lead : getRandomAddress();
-            } finally {
-                bucket.unlock();
-            }
-        }
-        return getRandomAddress();
-    }
-
-    private void updateLeaderOfBucket(String bucketKey, Address assumedLeader) {
-        int index = bucketContainer.hashKey(bucketKey);
-        Bucket bucket = bucketContainer.tryAndLockBucket(index);
-        if (bucket != null) {
-            try {
-                bucket.setLeaderAddress(assumedLeader);
-            } finally {
-                bucket.unlock();
-            }
-        }
+    Address nextAddress() {
+        return addressIterator.next();
     }
 }

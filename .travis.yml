@@ -1,5 +1,3 @@
-language: java
-jdk: openjdk14
 git:
   depth: false
 cache:
@@ -11,8 +9,6 @@ addons:
   sonarcloud:
     organization: "mboysan-github"
 
-install: true   # skip default mvn commands
-
 env:
   - COV_DIR="$TRAVIS_BUILD_DIR/jbizur-distribution/target/site/jacoco-aggregate/jacoco.xml"
 
@@ -20,9 +16,12 @@ jobs:
   include:
     - stage: test
       before_script:
+        - chmod +x ./scripts/*
         - mkdir ./config
         - mkdir ./log
-        - chmod +x ./scripts/*
+        - wget https://github.com/sormuras/bach/raw/master/install-jdk.sh
+        - source ./install-jdk.sh --verbose --feature ea
+        - java -version
         - printenv
       script:
         - mvn -Dsonar.coverage.jacoco.xmlReportPaths=$COV_DIR -Dmaven.javadoc.skip=true -DcreateChecksum=true -V clean install sonar:sonar

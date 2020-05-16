@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -27,10 +28,12 @@ public class BizurNodeTestBase {
 
     private static final Logger logger = LoggerFactory.getLogger(BizurNodeTestBase.class);
 
+    static final String MAP = "test-map";
+
     private static final int NODE_COUNT = CoreConf.get().members.size();
     BizurNode[] bizurNodes;
 
-    private Map<String, String> expKeyVals;
+    private Map<Serializable, Serializable> expKeyVals;
     private Set<Integer> leaderDefinedBucketIndexes;
 
     @Before
@@ -73,7 +76,7 @@ public class BizurNodeTestBase {
     void electBucketLeaders() {
         int bucketCount = CoreConf.get().consensus.bizur.bucketCount;
         for (int i = 0; i < bucketCount; i++) {
-            bizurNodes[i % bizurNodes.length].startElection(i);
+            bizurNodes[i % bizurNodes.length].getMap(MAP).startElection(i);
         }
     }
 
@@ -85,11 +88,15 @@ public class BizurNodeTestBase {
         return bizurNodes[inx == -1 ? RngUtil.nextInt(bizurNodes.length) : inx];
     }
 
+    protected int hashKey(Serializable s) {
+        return IdUtil.hashKey(s, CoreConf.get().consensus.bizur.bucketCount);
+    }
+
     protected int hashKey(String s) {
         return IdUtil.hashKey(s, CoreConf.get().consensus.bizur.bucketCount);
     }
 
-    void putExpectedKeyValue(String expKey, String expVal) {
+    void putExpectedKeyValue(Serializable expKey, Serializable expVal) {
         if (expKeyVals.get(expKey) != null) {
             logger.warn("key exists, is this intended? key={}", expKey);
         }
@@ -97,16 +104,24 @@ public class BizurNodeTestBase {
         leaderDefinedBucketIndexes.add(hashKey(expKey));
     }
 
-    void removeExpectedKey(String expKey) {
+    void removeExpectedKey(Serializable expKey) {
         expKeyVals.remove(expKey);
     }
 
-    String getExpectedValue(String expKey) {
+    Serializable getExpectedValue(Serializable expKey) {
         return expKeyVals.get(expKey);
     }
 
-    Set<String> getExpectedKeySet() {
+    Set<Serializable> getExpectedKeySet() {
         return expKeyVals.keySet();
+    }
+
+    void assertKeySetEquals(BizurNode node) {
+        Set<Serializable> actKeys = node.getMap(MAP).keySet();
+        Assert.assertEquals(getExpectedKeySet().size(), actKeys.size());
+        for (Serializable expKey : getExpectedKeySet()) {
+            Assert.assertEquals(getExpectedValue(expKey), node.getMap(MAP).get(expKey));
+        }
     }
 
     @After
@@ -123,14 +138,14 @@ public class BizurNodeTestBase {
     }
 
     private void validateKeyVals(BizurNode byNode) {
-        Set<String> actKeys = byNode.iterateKeys();
+        Set<Serializable> actKeys = byNode.getMap(MAP).keySet();
         Assert.assertEquals(byNode.logMsg("expected keyset and actual keyset size don't match"),
                 getExpectedKeySet().size(), actKeys.size());
-        for (String expKey : getExpectedKeySet()) {
-            Assert.assertEquals(logNode(byNode, hashKey(expKey)), getExpectedValue(expKey), byNode.get(expKey));
+        for (Serializable expKey : getExpectedKeySet()) {
+            Assert.assertEquals(logNode(byNode, hashKey(expKey)), getExpectedValue(expKey), byNode.getMap(MAP).get(expKey));
         }
-        for (String actKey : actKeys) {
-            Assert.assertEquals(logNode(byNode, hashKey(actKey)), getExpectedValue(actKey), byNode.get(actKey));
+        for (Serializable actKey : actKeys) {
+            Assert.assertEquals(logNode(byNode, hashKey(actKey)), getExpectedValue(actKey), byNode.getMap(MAP).get(actKey));
         }
     }
 
@@ -138,14 +153,14 @@ public class BizurNodeTestBase {
         if (expKeyVals.size() == 0) {
             leaderDefinedBucketIndexes.iterator().forEachRemaining(bIdx -> {
                 BizurNode leader = findLeaderOfBucket(bIdx);
-                int actKeySetSize = execOnBucket(leader.bucketContainer, bIdx, (b) -> b.getKeySetOp().size());
+                int actKeySetSize = execOnBucket(leader.getMap(MAP).bucketContainer, bIdx, (b) -> b.getKeySetOp().size());
                 Assert.assertEquals(logNode(leader, bIdx), 0, actKeySetSize);
             });
         } else {
             expKeyVals.forEach((expKey, expVal) -> {
                 int bIdx = hashKey(expKey);
                 BizurNode leader = findLeaderOfBucket(bIdx);
-                String actKey = execOnBucket(leader.bucketContainer, bIdx, (b) -> b.getOp(expKey));
+                Serializable actKey = execOnBucket(leader.getMap(MAP).bucketContainer, bIdx, (b) -> b.getOp(expKey));
                 Assert.assertEquals(logNode(leader, bIdx), expVal, actKey);
             });
         }
@@ -153,7 +168,7 @@ public class BizurNodeTestBase {
 
     private BizurNode findLeaderOfBucket(int bucketIndex) {
         for (BizurNode bizurNode : bizurNodes) {
-            if (execOnBucket(bizurNode.bucketContainer, bucketIndex, Bucket::isLeader)) {
+            if (execOnBucket(bizurNode.getMap(MAP).bucketContainer, bucketIndex, Bucket::isLeader)) {
                 return bizurNode;
             }
         }
@@ -165,8 +180,8 @@ public class BizurNodeTestBase {
         String log = "node=[%s], bucket=[%s], keySet=[%s]";
         return String.format(log,
                 bizurNode.toString(),
-                execOnBucket(bizurNode.bucketContainer, bucketIndex, b -> b),
-                execOnBucket(bizurNode.bucketContainer, bucketIndex, b -> b.getKeySetOp())
+                execOnBucket(bizurNode.getMap(MAP).bucketContainer, bucketIndex, b -> b),
+                execOnBucket(bizurNode.getMap(MAP).bucketContainer, bucketIndex, b -> b.getKeySetOp())
         );
     }
 
@@ -176,8 +191,8 @@ public class BizurNodeTestBase {
         }
     }
 
-    static <R> R execOnBucket(BucketContainer bucketContainer, int index, Function<Bucket, R> function) {
-        Bucket bucket = bucketContainer.tryAndLockBucket(index);
+    static <R> R execOnBucket(BucketContainer bucketContainer, int index, Function<SerializableBucket, R> function) {
+        SerializableBucket bucket = bucketContainer.tryAndLockBucket(index);
         if (bucket != null) {
             try {
                 return function.apply(bucket);

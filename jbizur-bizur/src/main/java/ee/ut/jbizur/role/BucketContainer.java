@@ -5,6 +5,7 @@ import ee.ut.jbizur.config.CoreConf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,7 +15,7 @@ public class BucketContainer {
 
     private static final Logger logger = LoggerFactory.getLogger(BucketContainer.class);
 
-    private final Map<Integer, Bucket> localBuckets;
+    private final Map<Integer, SerializableBucket> localBuckets;
     private final int numBuckets;
     private final String name;
 
@@ -24,16 +25,16 @@ public class BucketContainer {
         this.localBuckets = new ConcurrentHashMap<>();
     }
 
-    private Bucket getOrCreateBucket(int index) {
-        return localBuckets.computeIfAbsent(index, idx -> new Bucket(index));
+    private SerializableBucket getOrCreateBucket(int index) {
+        return localBuckets.computeIfAbsent(index, idx -> new SerializableBucket(index));
     }
 
-    Bucket tryAndLockBucket(int index) {
+    SerializableBucket tryAndLockBucket(int index) {
         return tryAndLockBucket(index, -1);
     }
 
-    Bucket tryAndLockBucket(int index, int contextId) {
-        Bucket bucket = getOrCreateBucket(index);
+    SerializableBucket tryAndLockBucket(int index, int contextId) {
+        SerializableBucket bucket = getOrCreateBucket(index);
         try {
             long bucketLockTimeoutMs = CoreConf.get().consensus.bizur.bucketLockTimeoutMs;
             if (bucketLockTimeoutMs >= 0) {
@@ -61,6 +62,13 @@ public class BucketContainer {
 
     Set<Integer> collectIndices() {
         return localBuckets.keySet();
+    }
+
+    int hashKey(Serializable s) {
+        if (s instanceof String) {
+            return hashKey((String) s);
+        }
+        return IdUtil.hashKey(s, numBuckets);
     }
 
     int hashKey(String s) {

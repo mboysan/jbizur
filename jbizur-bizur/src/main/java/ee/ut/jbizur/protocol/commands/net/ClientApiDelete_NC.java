@@ -1,13 +1,15 @@
 package ee.ut.jbizur.protocol.commands.net;
 
-public class ClientApiDelete_NC extends ClientRequest_NC {
-    private String key;
+import java.io.Serializable;
 
-    public String getKey() {
+public class ClientApiDelete_NC extends ClientRequest_NC {
+    private Serializable key;
+
+    public Serializable getKey() {
         return key;
     }
 
-    public ClientApiDelete_NC setKey(String key) {
+    public ClientApiDelete_NC setKey(Serializable key) {
         this.key = key;
         return this;
     }
