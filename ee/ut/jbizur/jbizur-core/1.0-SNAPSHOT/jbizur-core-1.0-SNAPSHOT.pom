@@ -69,7 +69,7 @@
           </execution>
         </executions>
         <configuration>
-          <templateFile>src/main/resources/base_template.conf</templateFile>
+          <templateFile>src/main/resources/coreconf-template.conf</templateFile>
           <packageName>ee.ut.jbizur.config</packageName>
           <outputDirectory>jbizur-core/src/main/java/</outputDirectory>
           <className>GenCoreConf</className>
