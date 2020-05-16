@@ -18,18 +18,18 @@ public class BizurConf extends GenBizurConf {
         CoreConf.set(c);    // we set the CoreConf with the same configuration
     }
 
-    public synchronized static void set(String resource) {
+    public static synchronized void set(String resource) {
         set(new File(Objects.requireNonNull(CoreConf.class.getClassLoader().getResource(resource)).getFile()));
     }
 
-    public synchronized static void set(File file) {
+    public static synchronized void set(File file) {
         logger.info("setting configuration from file={}", file);
         ConfigFactory.invalidateCaches();
         Config config = ConfigFactory.parseFile(file);
         sInstance = new BizurConf(config);
     }
 
-    public synchronized static BizurConf get() {
+    public static synchronized BizurConf get() {
         if (sInstance == null) {
             logger.info("using default configuration");
             sInstance = new BizurConf(defaultConf());
@@ -37,7 +37,7 @@ public class BizurConf extends GenBizurConf {
         return sInstance;
     }
 
-    private synchronized static Config defaultConf() {
+    private static synchronized Config defaultConf() {
         ConfigFactory.invalidateCaches();
         return ConfigFactory.defaultApplication();
     }

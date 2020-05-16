@@ -18,24 +18,24 @@ public final class CoreConf extends GenCoreConf {
         super(c);
     }
 
-    public synchronized static void set(String resource) {
+    public static synchronized void set(String resource) {
         set(new File(Objects.requireNonNull(CoreConf.class.getClassLoader().getResource(resource)).getFile()));
     }
 
-    public synchronized static void set(File file) {
+    public static synchronized void set(File file) {
         logger.info("setting configuration from file={}", file);
         ConfigFactory.invalidateCaches();
         Config config = ConfigFactory.parseFile(file);
         set(config);
     }
 
-    synchronized static void set(Config config) {
+    static synchronized void set(Config config) {
         logger.info("setting configuration from config={}", config);
         ConfigFactory.invalidateCaches();
         sInstance = new CoreConf(config);
     }
 
-    public synchronized static GenCoreConf get() {
+    public static synchronized GenCoreConf get() {
         if (sInstance == null) {
             logger.info("using default configuration");
             sInstance = new CoreConf(defaultConf());
@@ -43,7 +43,7 @@ public final class CoreConf extends GenCoreConf {
         return sInstance;
     }
 
-    private synchronized static Config defaultConf() {
+    private static synchronized Config defaultConf() {
         ConfigFactory.invalidateCaches();
         return ConfigFactory.defaultApplication();
     }
