@@ -7,12 +7,6 @@ git:
 #    - '$HOME/.m2'
 #    - '$HOME/.sonar/cache'
 
-# install latest openjdk manually from install-jdk.sh script
-before_script:
-  - chmod +x ./scripts/*
-  - ./scripts/installjdk.sh
-  - printenv
-
 addons:
   sonarcloud:
     organization: "mboysan-github"
@@ -29,6 +23,12 @@ jobs:
       before_script:
         - mkdir ./config
         - mkdir ./log
+        - wget https://github.com/sormuras/bach/raw/master/install-jdk.sh
+        - source ./install-jdk.sh --verbose --feature ea
+        - echo JAVA_HOME = ${JAVA_HOME}
+        - echo PATH = ${PATH}
+        - ls ${JAVA_HOME}
+        - java -version
       script:
         - mvn -Dsonar.coverage.jacoco.xmlReportPaths=$COV_DIR -Dmaven.javadoc.skip=true -DcreateChecksum=true -V clean install sonar:sonar
       after_failure:
