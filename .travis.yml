@@ -21,10 +21,15 @@ jobs:
   include:
     - stage: test
       before_script:
+        - echo "chmodding"
         - chmod +x ./scripts/*
+        - echo "mkdiring config"
         - mkdir ./config
+        - echo "mkdiring log"
         - mkdir ./log
+        - echo "wgetting jdk"
         - wget https://github.com/sormuras/bach/raw/master/install-jdk.sh
+        - echo "installing jdk"
         - source ./install-jdk.sh --verbose --feature ea
         - echo JAVA_HOME = ${JAVA_HOME}
         - echo PATH = ${PATH}
