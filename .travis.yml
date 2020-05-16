@@ -1,5 +1,5 @@
-language: java
-jdk: openjdk-ea
+#language: java
+#jdk: openjdk-ea
 git:
   depth: false
 
