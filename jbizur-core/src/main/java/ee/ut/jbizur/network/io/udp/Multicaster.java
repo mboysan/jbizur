@@ -34,7 +34,7 @@ public class Multicaster extends AbstractServer implements AutoCloseable {
         this.receiver = new MulticastReceiver();
     }
 
-    public void start() {
+    public void start() throws IOException {
         super.start();
         submit(receiver);
     }
