@@ -38,8 +38,8 @@ public class BizurIT {
     public static Object[][] conf() {
         return new Object[][]{
                 {"BizurIT.static.custom.conf"},
-                {"BizurIT.static.rapidoid.conf"},
-                {"BizurIT.static.netty.conf"},
+//                {"BizurIT.static.rapidoid.conf"},
+//                {"BizurIT.static.netty.conf"},
                 {"BizurIT.discovery.conf"},
         };
     }
