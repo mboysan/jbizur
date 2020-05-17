@@ -50,6 +50,7 @@ public class NettyServer extends AbstractServer {
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
             channel = b.bind(((TCPAddress) getServerAddress()).getPortNumber()).sync().channel();
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new IOException(e);
         }
         super.start();
@@ -61,11 +62,13 @@ public class NettyServer extends AbstractServer {
             workerGroup.shutdownGracefully().sync();
         } catch (InterruptedException e) {
             logger.error(e.getMessage(), e);
+            Thread.currentThread().interrupt();
         }
         try {
             bossGroup.shutdownGracefully().sync();
         } catch (InterruptedException e) {
             logger.error(e.getMessage(), e);
+            Thread.currentThread().interrupt();
         }
         if (channel != null) {
             channel.close();

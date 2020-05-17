@@ -12,14 +12,10 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.serialization.ObjectEncoder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 public class NettyClient extends AbstractClient {
-    private static final Logger logger = LoggerFactory.getLogger(NettyClient.class);
-
     private final EventLoopGroup group;
     private SocketChannel channel;
 
@@ -44,13 +40,9 @@ public class NettyClient extends AbstractClient {
             ChannelFuture f = b.connect(tcpAddress.getIp(), tcpAddress.getPortNumber()).sync();
             this.channel = (SocketChannel) f.channel();
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new IOException(e);
         }
-    }
-
-    @Override
-    protected boolean isConnected() {
-        return channel != null && channel.isActive();
     }
 
     @Override
@@ -59,20 +51,18 @@ public class NettyClient extends AbstractClient {
     }
 
     @Override
+    protected boolean isConnected() {
+        return channel.isActive();
+    }
+
+    @Override
     protected void send0(NetworkCommand command) {
-        if (channel != null) {
-            channel.writeAndFlush(command);
-        }
+        channel.writeAndFlush(command);
     }
 
     @Override
     public void close() {
         group.shutdownGracefully();
-        /*try {
-            group.shutdownGracefully().sync();
-        } catch (InterruptedException e) {
-            logger.error(e.getMessage(), e);
-        }*/
         super.close();
     }
 }
