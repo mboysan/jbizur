@@ -37,6 +37,7 @@ public class BizurIT {
     public static Object[][] conf() {
         return new Object[][]{
                 {"BizurIT.static.custom.conf"},
+                {"BizurIT.static.rapidoid.conf"},
                 {"BizurIT.static.netty.conf"},
                 {"BizurIT.discovery.conf"},
         };
@@ -180,7 +181,7 @@ public class BizurIT {
      */
     @Test
     public void keyValueSetGetMultiThreadTest() throws Throwable {
-        int testCount = 10;
+        int testCount = 100;
         MultiThreadExecutor executor = new MultiThreadExecutor();
         for (int i = 0; i < testCount; i++) {
             executor.execute(() -> {
