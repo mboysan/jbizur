@@ -6,6 +6,7 @@ import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.protocol.address.TCPAddress;
 import ee.ut.jbizur.role.BizurBuilder;
 import ee.ut.jbizur.role.BizurClient;
+import ee.ut.jbizur.role.BizurMap;
 import ee.ut.jbizur.role.BizurNode;
 import ee.ut.jbizur.util.MultiThreadExecutor;
 import ee.ut.jbizur.util.TestUtil;
@@ -125,10 +126,10 @@ public class BizurIT {
         // this method must be used for debug purposes
         int bucketCount = BizurConf.get().bizur.bucketCount;
         for (int i = 0; i < bucketCount; i++) {
-            BizurNode node = nodes[i % nodes.length];
-            Method method = BizurNode.class.getDeclaredMethod("startElection", int.class);
+            Method method = BizurMap.class.getDeclaredMethod("startElection", int.class);
             method.setAccessible(true);
-            method.invoke(node, i);
+            BizurMap map = nodes[i % nodes.length].getMap(MAP);
+            method.invoke(map, i);
             method.setAccessible(false);
         }
     }
