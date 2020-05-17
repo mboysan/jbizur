@@ -36,7 +36,8 @@ public class BizurIT {
     @Parameterized.Parameters(name = "conf={0}")
     public static Object[][] conf() {
         return new Object[][]{
-                {"BizurIT.static.conf"},
+                {"BizurIT.static.custom.conf"},
+                {"BizurIT.static.netty.conf"},
                 {"BizurIT.discovery.conf"},
         };
     }

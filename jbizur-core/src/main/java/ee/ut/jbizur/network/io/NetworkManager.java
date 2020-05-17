@@ -51,7 +51,7 @@ public class NetworkManager implements AutoCloseable, ResourceCloser {
         this.networkCommandConsumer = networkCommandConsumer;
     }
 
-    public NetworkManager start() throws UnknownHostException {
+    public NetworkManager start() throws IOException {
         Objects.requireNonNull(serverAddress);
         Objects.requireNonNull(networkCommandConsumer);
 

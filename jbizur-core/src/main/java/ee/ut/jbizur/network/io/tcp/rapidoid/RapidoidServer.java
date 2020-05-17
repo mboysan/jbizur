@@ -8,6 +8,8 @@ import ee.ut.jbizur.network.io.AbstractServer;
 import org.rapidoid.net.Server;
 import org.rapidoid.net.TCP;
 
+import java.io.IOException;
+
 public class RapidoidServer extends AbstractServer {
 
     private Server rapidoidServer;
@@ -19,7 +21,7 @@ public class RapidoidServer extends AbstractServer {
     }
 
     @Override
-    public void start() {
+    public void start() throws IOException {
         rapidoidServer = TCP.server().protocol(ctx -> {
             String line = ctx.readln().trim();
             int length = Integer.parseInt(line);

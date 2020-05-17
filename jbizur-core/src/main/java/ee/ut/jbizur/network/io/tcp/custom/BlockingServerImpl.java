@@ -34,7 +34,7 @@ public class BlockingServerImpl extends AbstractServer {
     }
 
     @Override
-    public void start() {
+    public void start() throws IOException {
         serverThread = new ServerThread(getServerAddress().getPortNumber());
         serverThread.start();
         super.start();

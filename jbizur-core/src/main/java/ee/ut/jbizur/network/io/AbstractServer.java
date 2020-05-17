@@ -1,5 +1,6 @@
 package ee.ut.jbizur.network.io;
 
+import ee.ut.jbizur.common.ResourceCloser;
 import ee.ut.jbizur.config.CoreConf;
 import ee.ut.jbizur.protocol.address.Address;
 import ee.ut.jbizur.protocol.address.MulticastAddress;
@@ -12,6 +13,7 @@ import ee.ut.jbizur.network.io.udp.Multicaster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
@@ -28,7 +30,8 @@ public abstract class AbstractServer implements AutoCloseable {
     private volatile boolean isRunning = true;
 
 //    private final ExecutorService executor = Executors.newFixedThreadPool(1);
-    private final ExecutorService executor = Executors.newCachedThreadPool();
+//    private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final ExecutorService executor = Executors.newFixedThreadPool(16);
 
     private final String name;
     private final Address serverAddress;
@@ -42,7 +45,7 @@ public abstract class AbstractServer implements AutoCloseable {
         this.serverAddress = serverAddress;
     }
 
-    public void start() {
+    public void start() throws IOException {
         logger.info("starting {}", toString());
         isRunning = true;
     }

@@ -33,6 +33,7 @@ public class NetworkManagerIT implements ResourceCloser {
     @Parameterized.Parameters(name = "conf={0}")
     public static Object[][] conf() {
         return new Object[][]{
+                {"NMIT.netty.conf"},
                 {"NMIT.multicast.conf"},
                 {"NMIT.buffered-custom.conf"},
                 {"NMIT.buffered-rapidoid.conf"},
@@ -157,7 +158,7 @@ public class NetworkManagerIT implements ResourceCloser {
             this.netman = new NetworkManager(name, addr, (ic) -> icq.offer(ic), (nc) -> ncq.offer(nc));
         }
 
-        private NMWrapper start() throws UnknownHostException {
+        private NMWrapper start() throws IOException {
             netman.start();
             return this;
         }
