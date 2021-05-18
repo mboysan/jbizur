@@ -27,7 +27,7 @@
     <maven.assembly.plugin.version>3.2.0</maven.assembly.plugin.version>
     <revision>1.0-SNAPSHOT</revision>
     <flatten.maven.plugin.version>1.1.0</flatten.maven.plugin.version>
-    <xstream.version>1.4.16</xstream.version>
+    <xstream.version>1.4.17</xstream.version>
     <tscfg.maven.plugin.version>0.8.2</tscfg.maven.plugin.version>
     <jettison.version>1.4.1</jettison.version>
     <maven.surefire.plugin.version>3.0.0-M4</maven.surefire.plugin.version>
